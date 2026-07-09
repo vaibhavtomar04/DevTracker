@@ -1,2 +1,0 @@
-This is a dummy unit testing document for verification.
-All tests passed with 100% code coverage.
