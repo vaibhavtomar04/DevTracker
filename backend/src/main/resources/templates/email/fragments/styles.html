@@ -1,0 +1,42 @@
+<th:block th:fragment="styles">
+<style>
+  :root {
+    --bg:#0B0F0D; --card:#111714; --border:rgba(255,255,255,.08);
+    --primary:#1FAE7A; --copper:#C2703D; --success:#2BB673;
+    --warning:#E0A52E; --danger:#D4503E; --info:#2FA4A0;
+    --text:#EAF2EE; --muted:#90A39A;
+  }
+  body{margin:0;padding:0;background:#0B0F0D;
+    font-family:'Inter','Segoe UI',Roboto,Helvetica,Arial,sans-serif;
+    -webkit-font-smoothing:antialiased;}
+  .wrap{width:100%;background:#0B0F0D;padding:24px 0;}
+  .container{max-width:600px;margin:0 auto;background:#111714;
+    border:1px solid rgba(255,255,255,.08);border-radius:16px;overflow:hidden;
+    box-shadow:0 8px 30px rgba(0,0,0,.45);}
+  .px{padding-left:32px;padding-right:32px;}
+  .h1{color:#EAF2EE;font-size:20px;font-weight:700;margin:0;}
+  .muted{color:#90A39A;font-size:14px;line-height:22px;}
+  .text{color:#EAF2EE;font-size:15px;line-height:24px;}
+  .banner{padding:16px 32px;font-size:15px;font-weight:600;color:#0B0F0D;}
+  .infocard{background:#0E1411;border:1px solid rgba(255,255,255,.08);
+    border-radius:12px;padding:20px 24px;margin:20px 0;}
+  .row{padding:6px 0;}
+  .row .label{color:#90A39A;font-size:13px;width:42%;}
+  .row .value{color:#EAF2EE;font-size:14px;font-weight:600;}
+  .btn{display:inline-block;background:#1FAE7A;color:#0B0F0D;
+    text-decoration:none;font-weight:700;font-size:15px;
+    padding:13px 28px;border-radius:10px;}
+  .timeline span{color:#90A39A;font-size:13px;}
+  .timeline .done{color:#2BB673;font-weight:bold;}
+  .notice{background:rgba(212,80,62,.12);border:1px solid rgba(212,80,62,.3);
+    border-radius:10px;padding:14px 18px;color:#EAF2EE;font-size:13px;margin-top:20px;}
+  .footer{color:#90A39A;font-size:12px;line-height:20px;text-align:center;
+    padding:24px 32px;border-top:1px solid rgba(255,255,255,.08);}
+  a{color:#1FAE7A;}
+  @media (max-width:620px){
+    .container{border-radius:0;}
+    .px,.banner,.footer{padding-left:20px!important;padding-right:20px!important;}
+    .row .label,.row .value{display:block;width:100%!important;}
+  }
+</style>
+</th:block>

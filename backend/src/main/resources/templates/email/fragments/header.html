@@ -1,0 +1,20 @@
+<table th:fragment="header" role="presentation" width="100%" cellpadding="0" cellspacing="0">
+  <tr>
+    <td class="px" style="padding-top:28px;padding-bottom:16px;">
+      <table role="presentation" cellpadding="0" cellspacing="0">
+        <tr>
+          <td style="padding-right:14px;vertical-align:middle;">
+            <!-- Application Logo -->
+            <img th:src="${brand.logoUrl}" width="38" height="38"
+                 th:alt="${brand.appName}" style="display:block;border-radius:10px;box-shadow:0 2px 8px rgba(31,174,122,0.3);"/>
+          </td>
+          <td style="vertical-align:middle;">
+            <p class="h1" th:text="${brand.appName}">DevTrack 2.0</p>
+            <p class="muted" style="margin:2px 0 0;"
+               th:text="${brand.tagline}">Enterprise Engineering Workflow Platform</p>
+          </td>
+        </tr>
+      </table>
+    </td>
+  </tr>
+</table>

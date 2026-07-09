@@ -1,0 +1,2 @@
+ALTER TABLE notifications ADD COLUMN is_pinned BOOLEAN DEFAULT FALSE;
+ALTER TABLE notifications ADD COLUMN snoozed_until TIMESTAMP NULL;

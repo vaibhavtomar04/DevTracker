@@ -1,0 +1,4 @@
+This is a dummy bug document for testing bug attachments.
+Steps to reproduce:
+1. Click here.
+2. Observe error.

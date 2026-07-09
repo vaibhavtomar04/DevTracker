@@ -1,0 +1,8 @@
+<div th:fragment="infoCard(rows)" class="infocard" th:if="${rows != null and !rows.isEmpty()}">
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
+    <tr class="row" th:each="r : ${rows}">
+      <td class="label" th:text="${r.label}">Label</td>
+      <td class="value" th:text="${r.value}">Value</td>
+    </tr>
+  </table>
+</div>

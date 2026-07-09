@@ -1,0 +1,17 @@
+<table th:fragment="button(actionButtonText, actionUrl)" role="presentation"
+       th:if="${actionUrl != null}" cellpadding="0" cellspacing="0"
+       style="margin:24px 0;">
+  <tr>
+    <td>
+      <!--[if mso]><v:roundrect xmlns:v="urn:schemas-microsoft-com:vml"
+        th:attr="href=${actionUrl}" arcsize="18%" fillcolor="#1FAE7A"
+        style="height:46px;v-text-anchor:middle;width:220px;" stroke="f">
+        <center style="color:#0B0F0D;font-weight:700;"
+          th:text="${actionButtonText}">Action</center>
+      </v:roundrect><![endif]-->
+      <!--[if !mso]><!-->
+      <a class="btn" th:href="${actionUrl}" th:text="${actionButtonText}">Action</a>
+      <!--<![endif]-->
+    </td>
+  </tr>
+</table>

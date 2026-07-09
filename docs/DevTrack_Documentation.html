@@ -1,0 +1,1696 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>DevTrack 2.0 Enterprise Technical Reference</title>
+    <style>
+    :root {
+        --bg-color: #060814;
+        --card-bg: rgba(255, 255, 255, 0.03);
+        --border-color: rgba(255, 255, 255, 0.08);
+        --text-primary: #f1f5f9;
+        --text-secondary: #94a3b8;
+        --accent-violet: #8b5cf6;
+        --accent-cyan: #22d3ee;
+        --code-bg: rgba(255, 255, 255, 0.05);
+    }
+    body {
+        font-family: 'Inter', system-ui, sans-serif;
+        background-color: var(--bg-color);
+        color: var(--text-primary);
+        line-height: 1.7;
+        margin: 0;
+        padding: 40px 20px;
+        display: flex;
+        justify-content: center;
+    }
+    .container {
+        max-width: 900px;
+        width: 100%;
+        background-color: var(--card-bg);
+        border: 1px solid var(--border-color);
+        border-radius: 20px;
+        padding: 50px;
+        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+        backdrop-filter: blur(8px);
+    }
+    h1, h2, h3, h4 {
+        color: var(--text-primary);
+        font-weight: 800;
+        margin-top: 1.5em;
+        letter-spacing: -0.02em;
+    }
+    h1 {
+        font-size: 2.2em;
+        border-bottom: 2px solid var(--accent-violet);
+        padding-bottom: 10px;
+        margin-bottom: 1em;
+        background: linear-gradient(to right, #a78bfa, #22d3ee);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+    }
+    h2 {
+        font-size: 1.6em;
+        color: #c084fc;
+        border-bottom: 1px solid var(--border-color);
+        padding-bottom: 5px;
+    }
+    h3 {
+        font-size: 1.2em;
+        color: var(--accent-cyan);
+    }
+    p, li {
+        color: var(--text-secondary);
+        font-size: 14px;
+    }
+    a {
+        color: var(--accent-cyan);
+        text-decoration: none;
+    }
+    a:hover {
+        text-decoration: underline;
+    }
+    pre {
+        background-color: var(--code-bg);
+        border: 1px solid var(--border-color);
+        padding: 15px;
+        border-radius: 10px;
+        overflow-x: auto;
+    }
+    code {
+        font-family: 'Fira Code', Consolas, monospace;
+        font-size: 13px;
+        color: #f472b6;
+    }
+    table {
+        width: 100%;
+        border-collapse: collapse;
+        margin: 20px 0;
+        font-size: 13px;
+    }
+    th, td {
+        padding: 12px;
+        border: 1px solid var(--border-color);
+        text-align: left;
+    }
+    th {
+        background-color: rgba(139, 92, 246, 0.1);
+        color: #c084fc;
+    }
+    td {
+        color: var(--text-secondary);
+    }
+    @media print {
+        body {
+            background-color: #fff;
+            color: #000;
+            padding: 0;
+        }
+        .container {
+            border: none;
+            box-shadow: none;
+            padding: 0;
+            max-width: 100%;
+        }
+        h1, h2, h3, h4, p, li, td, th {
+            color: #000 !important;
+            background: none !important;
+            -webkit-text-fill-color: initial !important;
+        }
+        pre {
+            background-color: #f5f5f5;
+            border: 1px solid #ccc;
+            page-break-inside: avoid;
+        }
+        table {
+            page-break-inside: avoid;
+        }
+    }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>DevTrack 2.0 Enterprise Technical Reference Suite</h1>
+<h2>Complete Documentation and System Specifications</h2>
+<hr />
+<h1>Chapter 1: Executive Summary</h1>
+<h2>1.1 Project Vision</h2>
+<p>DevTrack 2.0 is an enterprise-grade Change Request (CR) management and deployment tracking platform. It bridges the gap between software development lifecycle (SDLC) activities and operational audit needs by providing an end-to-end trace of code approvals, test suite runs, and deployment environments. The platform empowers developers, testers, and administrators with clear dashboard workspaces, multi-factor security, and automated deployment records.</p>
+<h2>1.2 Business Objectives</h2>
+<ul>
+<li><strong>Standardize CR Flow</strong>: Enforce rigorous state transitions from draft development to production rollout.</li>
+<li><strong>Traceability &amp; Auditing</strong>: Maintain a chronological, tamper-proof history of every state change, code review approval, and user interaction.</li>
+<li><strong>Controlled Testing Lifecycles</strong>: Prevent uncoordinated testing by assigning clear tester ownership and enforcing retesting pipelines for bugs.</li>
+<li><strong>MFA Compliance</strong>: Enforce Multi-Factor Authentication (MFA) via Microsoft Authenticator to secure administrative and developer workspaces.</li>
+</ul>
+<h2>1.3 Target Users</h2>
+<ul>
+<li><strong>Developers</strong>: Create CRs, upload unit testing results, update code reviews, and address bugs.</li>
+<li><strong>Testers / QA Specialists</strong>: Manage testing pool, self-assign tasks, log bugs, and sign off on SIT/UAT results.</li>
+<li><strong>Administrators</strong>: Manage roles, approve code reviews, execute force reassignments, and audit platform activity.</li>
+<li><strong>Project Managers / Stakeholders</strong>: View engineering analytics, audit trails, and deployment timelines.</li>
+</ul>
+<h2>1.4 Business Benefits</h2>
+<ul>
+<li><strong>Decreased Deployment Lead Time</strong>: Streamlined approvals and direct visibility of UAT state transitions speed up deployment cycles.</li>
+<li><strong>Zero-Trust Compliance</strong>: High-grade MFA validation and security auditing logs protect production deploy sequences.</li>
+<li><strong>Enhanced Software Quality</strong>: Clear tester boundaries, sticky bug assignments, and mandatory test artifact collection reduce regression leaks.</li>
+</ul>
+<h2>1.5 Technical Highlights</h2>
+<ul>
+<li><strong>Spring Boot 3.3 Backend</strong>: Powered by Java 21, JPA/Hibernate, and Spring Security.</li>
+<li><strong>React 18 / Vite Frontend</strong>: SPA built with TypeScript, Tailwind CSS, Framer Motion, and Lucide React.</li>
+<li><strong>Atomic Database Locks</strong>: Race-safe SQL queries for tester assignment preventing concurrent pick-ups.</li>
+<li><strong>Flyway Migrations</strong>: Automated, versioned schema management keeping development and production databases synchronized.</li>
+<li><strong>TOTP / MFA Engine</strong>: Fully offline verification using standard RFC 6238 TOTP algorithms.</li>
+</ul>
+<h2>1.6 Key Features</h2>
+<ul>
+<li><strong>MFA Secure Sign-on</strong>: Multi-factor authentication via Authenticator app with backup recovery codes.</li>
+<li><strong>Role-Based Workspaces</strong>: Customized layouts and operations tailored to Developer, Tester, and Admin roles.</li>
+<li><strong>Sequential Pipeline</strong>: Code approval directly unlocks UAT deployment and testing pools.</li>
+<li><strong>Sticky Testing Pool</strong>: Testing queue allowing testers to self-assign tasks while preventing double-ownership.</li>
+<li><strong>Comprehensive Auditing</strong>: Global trace showing SIT/UAT deploy/complete dates, code review approvals, and bug lifecycles.</li>
+</ul>
+<h2>1.7 Application Scope</h2>
+<ul>
+<li><strong>In Scope</strong>: CR lifecycle management, user management, TOTP MFA registration and verification, unit test artifact storage, bug tracking, and global auditing reports.</li>
+<li><strong>Out of Scope</strong>: Direct Git hosting provider hosting (handled via branch/PR links), automated server hosting virtualization (deployments are logged manually or via webhooks).</li>
+</ul>
+<h2>1.8 Future Roadmap</h2>
+<ul>
+<li>Deep integrations with GitHub, GitLab, and Azure DevOps for automated state movement on PR merges.</li>
+<li>AI-driven bug description and reproduction step parsing.</li>
+<li>Slack and Microsoft Teams notification channels.</li>
+</ul>
+<hr />
+<h1>Chapter 2: Functional Requirement Specification (FRS)</h1>
+<p>This document specifies the functional requirements, user stories, acceptance criteria, rules, and exceptions for the core feature modules of DevTrack 2.0.</p>
+<hr />
+<h2>2.1 User Authentication &amp; Multi-Factor Authentication (MFA)</h2>
+<h3>Description</h3>
+<p>Users must authenticate securely using their credentials. If MFA is enabled for the account, they must submit a valid Time-based One-Time Password (TOTP) from an authenticator application.</p>
+<h3>User Story</h3>
+<p><em>As a DevTrack 2.0 user, I want to log in using my credentials and MFA token, so that my account and workspace remain secure.</em></p>
+<h3>Acceptance Criteria</h3>
+<ul>
+<li>Login screen must prompt for Username and Password.</li>
+<li>If MFA is active, user must be redirected to an MFA verification screen to input a 6-digit code.</li>
+<li>If MFA is not setup, the user is prompted to scan a QR code and set up MFA.</li>
+<li>Providing 10 recovery codes for download on first setup.</li>
+</ul>
+<h3>Preconditions</h3>
+<ul>
+<li>User account exists in the database.</li>
+<li>User is active.</li>
+</ul>
+<h3>Postconditions</h3>
+<ul>
+<li>JWT access and refresh tokens generated and stored in the client session.</li>
+<li>User is redirected to their role-specific dashboard workspace.</li>
+</ul>
+<h3>Validation &amp; Business Rules</h3>
+<ul>
+<li>Username and password fields cannot be blank.</li>
+<li>The MFA token must be exactly 6 digits.</li>
+<li>The backend verifies TOTP using an RFC 6238-compliant algorithm with a time-step window of 30 seconds (allowing $\pm 1$ step clock drift).</li>
+</ul>
+<h3>Exceptions</h3>
+<ul>
+<li>Incorrect credentials return a generic <code>401 Unauthorized</code> response.</li>
+<li>Expired or invalid MFA tokens block login.</li>
+<li>Locked accounts due to excessive failed attempts block login.</li>
+</ul>
+<h3>Success Criteria</h3>
+<ul>
+<li>User successfully reaches their specific dashboard within 2 seconds.</li>
+</ul>
+<hr />
+<h2>2.2 Change Request (CR) Lifecycle &amp; Pipeline Transitions</h2>
+<h3>Description</h3>
+<p>Allows developers to raise Change Requests (CRs), track them through environments (SIT, UAT), submit code reviews for approval, and promote them to Production.</p>
+<h3>User Story</h3>
+<p><em>As a Developer, I want to create a CR and advance it through pipeline gates, so that my code changes are audited, verified, and safely deployed.</em></p>
+<h3>Acceptance Criteria</h3>
+<ul>
+<li>CR must contain Jtrack ID, Title, Project, Sprint, Category, Priority, and Description.</li>
+<li>Sequential gates: <code>OPEN</code> -&gt; <code>IN_PROGRESS</code> -&gt; <code>SIT_DEPLOYED</code> -&gt; <code>SIT_COMPLETED</code> -&gt; <code>CODE_REVIEW</code> -&gt; <code>CODE_REVIEW_DONE</code> -&gt; <code>MOVE_TO_UAT</code> -&gt; <code>TESTING_POOL</code> -&gt; <code>TESTING_IN_PROGRESS</code> -&gt; <code>TESTING_COMPLETED</code> -&gt; <code>CLOSED</code>.</li>
+<li>Uploading unit testing documents (Base64 file stream) is mandatory when pushing from <code>CODE_REVIEW_DONE</code> to <code>MOVE_TO_UAT</code>.</li>
+</ul>
+<h3>Preconditions</h3>
+<ul>
+<li>Developer is authenticated.</li>
+<li>Target project and sprint are active.</li>
+</ul>
+<h3>Postconditions</h3>
+<ul>
+<li>CR table record updated with new status, transition dates, and audit log.</li>
+<li>Notification sent to relevant parties (Admins, Reviewers, or Testers).</li>
+</ul>
+<h3>Validation &amp; Business Rules</h3>
+<ul>
+<li>Jtrack ID must start with a valid prefix (e.g. <code>DT-</code> or <code>J-</code>) and be unique.</li>
+<li>Title and description must not be blank.</li>
+<li>Rejection during code review resets status to <code>IN_PROGRESS</code> and captures admin remarks.</li>
+</ul>
+<h3>Exceptions</h3>
+<ul>
+<li>Attempting to bypass workflow gates throws a validation exception.</li>
+<li>Missing unit testing documents blocks UAT push.</li>
+</ul>
+<h3>Success Criteria</h3>
+<ul>
+<li>Status transition takes place and updates dashboard states immediately.</li>
+</ul>
+<hr />
+<h2>2.3 Tester Assignment &amp; UAT Testing</h2>
+<h3>Description</h3>
+<p>Once a CR is moved to UAT, it enters a shared Testing Pool. Testers self-assign CRs atomically. Only the assigned tester can test, raise bugs, or sign off on that CR.</p>
+<h3>User Story</h3>
+<p><em>As a Tester, I want to assign a CR to myself from the pool, so that I have exclusive ownership of its testing lifecycle.</em></p>
+<h3>Acceptance Criteria</h3>
+<ul>
+<li>Shared pool is visible to all testers.</li>
+<li>&quot;Assign to Me&quot; button assigns the tester atomically.</li>
+<li>Once assigned, CR moves to &quot;My Assigned Testing&quot; tab and status updates to <code>TESTING_IN_PROGRESS</code>.</li>
+<li>If testing passes, tester logs completion comments and marks it as <code>TESTING_COMPLETED</code>.</li>
+<li>Admins can reassign a tester, requiring a mandatory textual reason.</li>
+</ul>
+<h3>Preconditions</h3>
+<ul>
+<li>CR is in <code>TESTING_POOL</code> status with no tester assigned.</li>
+<li>Tester is authenticated.</li>
+</ul>
+<h3>Postconditions</h3>
+<ul>
+<li><code>tester_id</code> column set to the tester's ID.</li>
+<li><code>testing_started_date</code> set to current timestamp.</li>
+</ul>
+<h3>Validation &amp; Business Rules</h3>
+<ul>
+<li>Atomic check: The update query must verify <code>tester_id IS NULL</code> and <code>status = 'TESTING_POOL'</code> in the <code>WHERE</code> clause.</li>
+<li>Only the assigned tester can perform &quot;Testing Passed&quot; or &quot;Raise Bug&quot; actions on that CR.</li>
+</ul>
+<h3>Exceptions</h3>
+<ul>
+<li>Simultaneous clicks by two testers results in one success and a &quot;CR already assigned&quot; toast message for the other.</li>
+</ul>
+<hr />
+<h2>2.4 Bug Lifecycle &amp; Retesting</h2>
+<h3>Description</h3>
+<p>Enables testers to raise bugs on assigned CRs, which automatically tags the CR as <code>BUG_FOUND</code> (displayed as <code>OPEN</code> in developer's active bugs queue). Once fixed, the tester retests the CR.</p>
+<h3>User Story</h3>
+<p><em>As a Tester, I want to raise a bug for a failed CR, so that the developer is notified and can fix the issue.</em></p>
+<h3>Acceptance Criteria</h3>
+<ul>
+<li>Bug must include Title, Severity (Low, Medium, High, Critical), Description, Steps to Reproduce, Expected Result, and Actual Result.</li>
+<li>Once raised, CR status moves to <code>BUG_FOUND</code> and is routed to the developer's Bug Dashboard.</li>
+<li>When fixed, developer submits transition comments and marks the bug as <code>RESOLVED</code>.</li>
+<li>CR is returned back to the original assigning tester for verification.</li>
+</ul>
+<h3>Preconditions</h3>
+<ul>
+<li>CR is assigned to a tester and in <code>TESTING_IN_PROGRESS</code> status.</li>
+</ul>
+<h3>Postconditions</h3>
+<ul>
+<li>Bug record created in the <code>bugs</code> table.</li>
+<li>CR status updated to <code>BUG_FOUND</code>.</li>
+</ul>
+<h3>Validation &amp; Business Rules</h3>
+<ul>
+<li>Jtrack ID must be provided.</li>
+<li>Description, steps to reproduce, expected result, and actual result cannot be blank.</li>
+</ul>
+<h3>Exceptions</h3>
+<ul>
+<li>Developers cannot self-approve or self-resolve bugs without entering transition comments.</li>
+</ul>
+<h3>Success Criteria</h3>
+<ul>
+<li>Bug shows up in the &quot;Bugs &amp; Defective CRs&quot; tab for the tester, and in the &quot;Assigned Bugs&quot; list for the developer.</li>
+</ul>
+<hr />
+<h1>Chapter 3: Software Requirement Specification (SRS)</h1>
+<p>This document establishes the hardware, software, browser, network, and third-party dependencies required to run, build, and deploy DevTrack 2.0.</p>
+<hr />
+<h2>3.1 System Requirements</h2>
+<h3>Hardware Requirements</h3>
+<ul>
+<li><strong>Development Workstation / Server Host</strong>:
+<ul>
+<li><strong>CPU</strong>: Quad-core x86_64 processor (Intel Core i5/AMD Ryzen 5 or equivalent, minimum; 8-core recommended for enterprise deployment).</li>
+<li><strong>Memory (RAM)</strong>: Minimum 8 GB (16 GB recommended to run backend Spring Boot services, local MySQL instance, and React build watcher concurrently).</li>
+<li><strong>Storage</strong>: Minimum 10 GB free space (SSD recommended for fast build compiles).</li>
+</ul>
+</li>
+<li><strong>Client (End User Workstation)</strong>:
+<ul>
+<li><strong>Memory (RAM)</strong>: Minimum 4 GB.</li>
+<li><strong>Screen Resolution</strong>: Minimum 1280x800 px (1920x1080 px recommended for dashboard layouts).</li>
+</ul>
+</li>
+</ul>
+<hr />
+<h2>3.2 Software Requirements</h2>
+<h3>Development &amp; Build Tools</h3>
+<ul>
+<li><strong>Java Development Kit (JDK)</strong>: JDK 17 or JDK 21 (Temurin / Adoptium build recommended).</li>
+<li><strong>Node.js</strong>: v18.x or v20.x (LTS releases).</li>
+<li><strong>Build Managers</strong>:
+<ul>
+<li><strong>Backend</strong>: Apache Maven 3.8.x or 3.9.x.</li>
+<li><strong>Frontend</strong>: Vite 8.x with TypeScript compilation (<code>tsc</code>).</li>
+</ul>
+</li>
+<li><strong>Database Engine</strong>: MySQL 8.0+ or MariaDB 10.5+.</li>
+<li><strong>Database Migrations</strong>: Flyway Core (integrated in Spring Boot build path).</li>
+</ul>
+<hr />
+<h2>3.3 Browser Support</h2>
+<p>DevTrack 2.0 uses modern styling paradigms including Glassmorphism (backdrop-filters), CSS grid layouts, and Framer Motion hardware-accelerated animations.</p>
+<ul>
+<li><strong>Google Chrome</strong>: Version 100+ (fully supported).</li>
+<li><strong>Mozilla Firefox</strong>: Version 102+ (fully supported).</li>
+<li><strong>Microsoft Edge</strong>: Version 100+ (fully supported).</li>
+<li><strong>Apple Safari</strong>: Version 15+ (fully supported).</li>
+<li><em>Internet Explorer is not supported.</em></li>
+</ul>
+<hr />
+<h2>3.4 Network Requirements</h2>
+<ul>
+<li><strong>Protocol</strong>: HTTP/1.1 or HTTP/2 over TLS (HTTPS) on production.</li>
+<li><strong>WebSocket Protocol</strong>: <code>ws://</code> (development) and <code>wss://</code> (production) for in-app notification synchronization.</li>
+<li><strong>Port Allocations</strong>:
+<ul>
+<li><strong>Port 8080</strong>: Spring Boot web container (API and static assets server).</li>
+<li><strong>Port 5173</strong>: React local Vite hot-reload server (development only).</li>
+<li><strong>Port 3306</strong>: MySQL database daemon.</li>
+</ul>
+</li>
+<li><strong>SMTP Gateway Access</strong>: Outbound access on ports 25, 465, or 587 to connect to external email relays (SendGrid, AWS SES, or corporate Exchange servers).</li>
+</ul>
+<hr />
+<h2>3.5 Third-party Dependencies</h2>
+<h3>Backend (Spring Boot Core Starter Packages)</h3>
+<ul>
+<li><code>spring-boot-starter-web</code>: API routing and Tomcat servlet.</li>
+<li><code>spring-boot-starter-security</code>: BCrypt encoding, JWT filter chains, and security configurations.</li>
+<li><code>spring-boot-starter-data-jpa</code>: Hibernate ORM engine.</li>
+<li><code>mysql-connector-j</code>: Database driver.</li>
+<li><code>flyway-core</code> &amp; <code>flyway-mysql</code>: Versioned database migration executor.</li>
+<li><code>spring-boot-starter-websocket</code>: Real-time notification socket controller.</li>
+<li><code>spring-boot-starter-mail</code>: SMTP client.</li>
+<li><code>jjwt-api</code>, <code>jjwt-impl</code>, <code>jjwt-jackson</code>: JWT token parsing and generation.</li>
+</ul>
+<h3>Frontend (npm Packages)</h3>
+<ul>
+<li><code>react</code> &amp; <code>react-dom</code> (v18.x / v19.x)</li>
+<li><code>react-router-dom</code> (v6.x)</li>
+<li><code>zustand</code> (v4.x) - Light-weight state management.</li>
+<li><code>framer-motion</code> &amp; <code>lucide-react</code> - UI animation and iconography.</li>
+<li><code>chart.js</code> &amp; <code>react-chartjs-2</code> - Analytic visualization charts.</li>
+<li><code>jspdf</code> &amp; <code>html2canvas</code> - Client-side report exports.</li>
+</ul>
+<hr />
+<h2>3.6 Supported Operating Systems</h2>
+<ul>
+<li><strong>Production Server</strong>: Ubuntu Server 20.04 LTS / 22.04 LTS, Red Hat Enterprise Linux 8/9, or Windows Server 2019/2022.</li>
+<li><strong>Developer Local Environment</strong>: Windows 10/11 (PowerShell/CMD), macOS (Ventura/Sonoma), or Linux (Ubuntu/Debian/Fedora).</li>
+</ul>
+<hr />
+<h1>Chapter 4: System Architecture</h1>
+<p>This document presents the architectural blueprints, design patterns, component relationships, and execution pipelines of DevTrack 2.0.</p>
+<hr />
+<h2>4.1 High-Level Architecture</h2>
+<p>DevTrack 2.0 is structured as a decoupled Single Page Application (SPA) communicating over REST and WebSocket connections with a stateless Spring Boot microservice container.</p>
+<pre><code class="language-mermaid">graph TD
+    Client[React SPA - Client Browser] --&gt;|REST APIs / JWT| Gateway[Spring Boot Controller &amp; Security Filters]
+    Client --&gt;|WebSockets| WS[WebSocket Notification Handler]
+    Gateway --&gt;|JPA / Hibernate| DB[(MySQL Database)]
+    Gateway --&gt;|SMTP Port 587| Email[SMTP Mail Server]
+    Gateway --&gt;|TOTP Protocol| MFA[MFA Validation Engine]
+</code></pre>
+<hr />
+<h2>4.2 Low-Level Architecture &amp; Layered Patterns</h2>
+<p>The application enforces strict separation of concerns through standard enterprise layered patterns:</p>
+<ol>
+<li><strong>Presentation Layer (Frontend)</strong>: React components rendering views using global state fetched via Axios/Fetch API from Zustand stores.</li>
+<li><strong>Controller Layer (API Gateway)</strong>: REST controller endpoints map routes, validate payloads using <code>@Valid</code> annotations, and return HTTP ResponseEntities.</li>
+<li><strong>Security Layer</strong>: Intercepts requests, validates JWT authorization headers, sets SecurityContextHolder, and enforces endpoint-level annotations (<code>@PreAuthorize</code>).</li>
+<li><strong>Service Layer (Business Logic)</strong>: Transactional services (<code>@Service</code>) orchestrating database reads/writes, triggering system events, sending notifications, and running workflows.</li>
+<li><strong>Data Access Layer (Repository)</strong>: Spring Data JPA Repositories mapping database entities to queries.</li>
+<li><strong>Database Layer</strong>: MySQL relational storage managed by version-controlled Flyway SQL scripts.</li>
+</ol>
+<hr />
+<h2>4.3 Logical Architecture</h2>
+<pre><code>+-------------------------------------------------------------------------------------------------+
+|                                     React Frontend App                                          |
+|  +-----------------------+   +------------------------+   +----------------------------------+  |
+|  |       UI Views        |   |     State Stores       |   |       API Clients / Axios        |  |
+|  | Developer/Tester/Admin|--&gt;|  authStore, taskStore  |--&gt;|  Sends JWT auth headers to       |  |
+|  +-----------------------+   +------------------------+   |  REST backend endpoints          |  |
+|                                                           +----------------------------------+  |
++-------------------------------------------------------------------------------------------------+
+                                                |
+                                                v
++-------------------------------------------------------------------------------------------------+
+|                                    Spring Boot Backend REST Container                           |
+|  +-----------------------+   +------------------------+   +----------------------------------+  |
+|  |     Security Context   |   |   Controllers (APIs)   |   |        Service Layers            |  |
+|  | JWT Validation Filter |--&gt;| Task, Auth, Bug, Admin |--&gt;| TaskService, AuthService, Mfa    |  |
+|  +-----------------------+   +------------------------+   +----------------------------------+  |
+|                                                                           |                     |
+|                                                                           v                     |
+|                                                           +----------------------------------+  |
+|                                                           |      JPA Repository layer        |  |
+|                                                           | TaskRepository, UserRepository   |  |
+|                                                           +----------------------------------+  |
++-------------------------------------------------------------------------------------------------+
+</code></pre>
+<hr />
+<h2>4.4 Deployment Architecture</h2>
+<ul>
+<li><strong>Development</strong>: Local compilation. React Vite dev-server runs on port 5173 proxying API requests to Spring Boot on port 8080.</li>
+<li><strong>SIT / UAT</strong>: Static production build of React is compiled and copied into the backend's <code>/src/main/resources/static/</code> folder. Maven builds a single fat executable jar containing both client pages and backend server. Run via standard Java virtual machine.</li>
+<li><strong>Production</strong>: Fat Jar runs behind an Nginx reverse-proxy handling SSL termination, rate-limiting, and static file caching.</li>
+</ul>
+<hr />
+<h2>4.5 Component Architecture</h2>
+<ul>
+<li><strong>Auth Component</strong>: Standard username/password validation, refresh token rotation, and Google Authenticator TOTP generator/verifier.</li>
+<li><strong>Workflow Engine</strong>: Orchestrates transitions using status definitions and maps them to TaskWorkflowMap.</li>
+<li><strong>Attachment Component</strong>: Encodes documents as Base64 binaries, storing them in dedicated <code>document_content</code> database blocks.</li>
+<li><strong>Notification Broker</strong>: Listens for internal system events (e.g. <code>TaskStatusChangedEvent</code>, <code>BugCreatedEvent</code>) and dispatches simultaneous e-mails and WebSocket payloads.</li>
+</ul>
+<hr />
+<h2>4.6 Database Architecture &amp; Transaction Isolation</h2>
+<ul>
+<li><strong>Isolation Level</strong>: Read Committed (MySQL default or configured).</li>
+<li><strong>Concurrency Strategy</strong>: Optimistic locking where applicable. Tester self-assignment uses a modified query check (<code>tester IS NULL</code>) to guarantee atomic isolation.</li>
+<li><strong>Foreign Keys</strong>: Enforced on database levels to guarantee referential integrity. Cascading deletes set on session configurations (<code>ON DELETE CASCADE</code>) for user configurations and preferences.</li>
+</ul>
+<hr />
+<h2>4.7 Security Architecture</h2>
+<ul>
+<li><strong>Password Hashing</strong>: BCrypt algorithm with a strength/work factor of 10.</li>
+<li><strong>JWT Lifetimes</strong>: Access tokens expire in 15 minutes; Refresh tokens stored in HTTP-Only cookies with 7-day validity.</li>
+<li><strong>XSS Prevention</strong>: Frontend purifies HTML content using <code>DOMPurify</code> before binding strings to elements.</li>
+<li><strong>SQL Injection</strong>: Hibernate parameters bind inputs securely, preventing raw string concatenation in queries.</li>
+</ul>
+<hr />
+<h1>Chapter 5: Technology Stack</h1>
+<p>This document details the technology stack of DevTrack 2.0, describing the purpose, version, selection rationale, and alternatives considered for each component.</p>
+<hr />
+<h2>5.1 Backend Technologies</h2>
+<h3>1. Spring Boot</h3>
+<ul>
+<li><strong>Purpose</strong>: Core application framework, MVC routing, dependency injection, and JPA management.</li>
+<li><strong>Version</strong>: 3.3.4</li>
+<li><strong>Reason for Selection</strong>: Rapid scaffolding, built-in production-ready features (actuators, security), and mature ORM integration (Hibernate).</li>
+<li><strong>Alternatives Considered</strong>: Node.js/Express (lacks out-of-the-box JPA/security ecosystem stability for enterprise database mapping), Go/Gin (requires manual SQL writing and lacks mature ORM capabilities).</li>
+</ul>
+<h3>2. Spring Security</h3>
+<ul>
+<li><strong>Purpose</strong>: Enforce role-based access control, manage CORS/CSRF configurations, and orchestrate JWT filters.</li>
+<li><strong>Version</strong>: 6.3.3</li>
+<li><strong>Reason for Selection</strong>: Highly customizable security filter chains that integrate natively with Spring Boot.</li>
+<li><strong>Alternatives Considered</strong>: Keycloak (requires running a separate server, adding operations overhead), manual security filters (too error-prone).</li>
+</ul>
+<h3>3. MySQL</h3>
+<ul>
+<li><strong>Purpose</strong>: Relational database storage.</li>
+<li><strong>Version</strong>: 8.0+</li>
+<li><strong>Reason for Selection</strong>: Strict relational integrity, transaction locks, reliability, and widespread developer familiarity.</li>
+<li><strong>Alternatives Considered</strong>: PostgreSQL (strong alternative, MySQL chosen for existing client hosting alignment), MongoDB (lack of strong foreign key guarantees and transactional constraints).</li>
+</ul>
+<h3>4. JSON Web Tokens (JWT)</h3>
+<ul>
+<li><strong>Purpose</strong>: Stateless client authentication.</li>
+<li><strong>Version</strong>: JJWT v0.12.x</li>
+<li><strong>Reason for Selection</strong>: Prevents the need to store session states in the backend memory, allowing easy scale-out.</li>
+<li><strong>Alternatives Considered</strong>: Session cookies (requires sticky sessions or Redis session replication).</li>
+</ul>
+<h3>5. Flyway</h3>
+<ul>
+<li><strong>Purpose</strong>: Database schema migration tracking.</li>
+<li><strong>Version</strong>: Core 10.x</li>
+<li><strong>Reason for Selection</strong>: Schema migrations are versioned SQL scripts committed to git, avoiding schema drift.</li>
+<li><strong>Alternatives Considered</strong>: Liquibase (uses verbose XML/YAML files; Flyway's pure SQL approach is preferred by DBAs).</li>
+</ul>
+<h3>6. JavaMail</h3>
+<ul>
+<li><strong>Purpose</strong>: Send SMTP emails for alerts and MFA notifications.</li>
+<li><strong>Version</strong>: Spring Boot Starter Mail (Jakarta Mail)</li>
+<li><strong>Reason for Selection</strong>: Standardized API with built-in connection pooling and asynchronous template dispatch.</li>
+<li><strong>Alternatives Considered</strong>: Direct HTTP API integrations (e.g. SendGrid Client, AWS SES Client) - binds application code to specific vendors.</li>
+</ul>
+<hr />
+<h2>5.2 Frontend Technologies</h2>
+<h3>1. React</h3>
+<ul>
+<li><strong>Purpose</strong>: Component-based single-page application framework.</li>
+<li><strong>Version</strong>: 18.2+</li>
+<li><strong>Reason for Selection</strong>: Virtual DOM performance, rich component ecosystems (Lucide, Framer Motion), and declarative state mapping.</li>
+<li><strong>Alternatives Considered</strong>: Angular (steeper learning curve, heavier bundle size), Vue (lighter, but React has a wider collection of UI blueprints).</li>
+</ul>
+<h3>2. TypeScript</h3>
+<ul>
+<li><strong>Purpose</strong>: Static type checking.</li>
+<li><strong>Version</strong>: 5.x</li>
+<li><strong>Reason for Selection</strong>: Catches component property bugs and state changes during compile-time.</li>
+<li><strong>Alternatives Considered</strong>: Vanilla JavaScript (unsafe, harder to maintain as codebase scales).</li>
+</ul>
+<h3>3. Zustand</h3>
+<ul>
+<li><strong>Purpose</strong>: Global client state management.</li>
+<li><strong>Version</strong>: 4.5.x</li>
+<li><strong>Reason for Selection</strong>: Zero boilerplate compared to Redux, extremely lightweight, and integrates perfectly with local storage synchronization.</li>
+<li><strong>Alternatives Considered</strong>: Redux Toolkit (unnecessary boilerplate for a medium-scale platform), React Context API (re-renders all sub-components on any state change).</li>
+</ul>
+<h3>4. Framer Motion</h3>
+<ul>
+<li><strong>Purpose</strong>: Fluent micro-animations and gesture animations.</li>
+<li><strong>Version</strong>: 11.x</li>
+<li><strong>Reason for Selection</strong>: High-performance CSS transitions, exit animation states (<code>AnimatePresence</code>), and simple declarative props.</li>
+<li><strong>Alternatives Considered</strong>: Anime.js or GSAP (more complex to integrate with React life-cycles).</li>
+</ul>
+<h3>5. Playwright</h3>
+<ul>
+<li><strong>Purpose</strong>: End-to-end (E2E) testing framework.</li>
+<li><strong>Version</strong>: 1.4x</li>
+<li><strong>Reason for Selection</strong>: Fast parallel executions, headless browser testing, and simple auto-waiting selectors.</li>
+<li><strong>Alternatives Considered</strong>: Cypress (runs inside browser context making multi-tab and system integrations harder), Selenium (slow, requires manual driver installations).</li>
+</ul>
+<hr />
+<h1>Chapter 6: Project Structure</h1>
+<p>This document details the folder hierarchy, packaging patterns, naming conventions, and file organization of DevTrack 2.0.</p>
+<hr />
+<h2>6.1 Root Directory Hierarchy</h2>
+<pre><code>DevTracker/
+├── backend/               # Spring Boot 3.3.4 Source Code
+├── frontend/              # React + Vite + TS SPA Source Code
+├── docs/                  # System Technical Reference Manuals (This Folder)
+└── README.md
+</code></pre>
+<hr />
+<h2>6.2 Backend Directory Structure</h2>
+<p>The backend is structured as a standard Maven single-module layout. The Java classes reside under <code>src/main/java/com/devtrack/api/</code> and resources under <code>src/main/resources/</code>.</p>
+<pre><code>backend/
+├── pom.xml
+└── src/
+    └── main/
+        ├── java/com/devtrack/api/
+        │   ├── DevtrackApplication.java      # Boot Entry Point
+        │   ├── config/                       # CORS, Web MVC, WebSocket configs
+        │   ├── controller/                   # REST API Controllers
+        │   ├── dto/                          # Data Transfer Objects (Payload models)
+        │   ├── event/                        # Spring ApplicationEvent definitions
+        │   ├── model/                        # JPA Entities (Hibernate mappings)
+        │   ├── notification/                 # Email templates and dispatchers
+        │   ├── repository/                   # JPA Repositories (Database access)
+        │   ├── security/                     # Spring Security filters &amp; JWT utilities
+        │   └── services/                     # Business services &amp; workflow execution
+        └── resources/
+            ├── application.properties        # App configs, Database credentials
+            ├── db/migration/                 # Flyway SQL schema scripts (V1 -&gt; V10)
+            └── templates/                    # Thymeleaf email templates
+</code></pre>
+<h3>Packaging Conventions</h3>
+<ul>
+<li><code>config/</code>: Contains beans for third-party setup (Web Security, WebSockets, AppConfig).</li>
+<li><code>controller/</code>: REST layer endpoints. Direct interactions with database entities are strictly avoided here; business services are invoked instead.</li>
+<li><code>model/</code>: Defines database table structures using <code>@Entity</code> annotations.</li>
+<li><code>repository/</code>: Extension of <code>JpaRepository</code> representing CRUD operations.</li>
+<li><code>services/</code>: Contains interfaces and implementation classes containing transactions (<code>@Transactional</code>).</li>
+</ul>
+<hr />
+<h2>6.3 Frontend Directory Structure</h2>
+<p>The client app is a single page application built on Vite + React + TypeScript.</p>
+<pre><code>frontend/
+├── index.html
+├── package.json
+├── tsconfig.json
+├── vite.config.ts
+└── src/
+    ├── main.tsx             # React SPA mounting root
+    ├── App.tsx              # Base router and layout binding
+    ├── index.css            # Custom CSS styles
+    ├── components/
+    │   ├── shared/          # Reusable drawer panels and modals
+    │   └── ui/              # Atom level elements (Button, Cards, Input)
+    ├── pages/               # Routed page panels (Dashboards, Sprints, Login)
+    ├── services/            # Mock schemas &amp; API connection clients
+    └── store/               # Zustand global store files (authStore, taskStore)
+</code></pre>
+<hr />
+<h2>6.4 Naming Conventions</h2>
+<h3>File &amp; Class Names</h3>
+<ul>
+<li><strong>Java Classes</strong>: PascalCase (e.g. <code>TaskController</code>, <code>WorkflowExecutionService</code>).</li>
+<li><strong>TypeScript Component Files</strong>: PascalCase (e.g. <code>DeveloperDashboard.tsx</code>, <code>BugDetailModal.tsx</code>).</li>
+<li><strong>TypeScript Store Files</strong>: camelCase (e.g. <code>taskStore.ts</code>, <code>authStore.ts</code>).</li>
+<li><strong>Database Tables</strong>: Plural lowercase with underscores (e.g. <code>tasks</code>, <code>bugs</code>, <code>audit_logs</code>).</li>
+<li><strong>Database Columns</strong>: snake_case (e.g. <code>testing_started_date</code>, <code>assigned_developer_id</code>).</li>
+</ul>
+<h3>Code Style Guidelines</h3>
+<ul>
+<li><strong>Braces</strong>: K&amp;R style (braces open on the same line as the statement).</li>
+<li><strong>Indentation</strong>: 2 spaces for TypeScript/CSS, 4 spaces for Java/XML.</li>
+<li><strong>REST Resource Paths</strong>: plural-lowercase (e.g. <code>/api/tasks</code>, <code>/api/bugs</code>).</li>
+</ul>
+<hr />
+<h1>Chapter 7: Database Documentation</h1>
+<p>This document describes the schema architecture, column details, relational integrity, constraints, and operational patterns for the database of DevTrack 2.0.</p>
+<hr />
+<h2>7.1 Schema Catalog</h2>
+<h3>1. <code>users</code> Table</h3>
+<ul>
+<li><strong>Purpose</strong>: Holds authenticated accounts and roles.</li>
+<li><strong>Columns</strong>:
+<ul>
+<li><code>id</code> (BIGINT, Primary Key, Auto Increment)</li>
+<li><code>username</code> (VARCHAR(255), Unique, Not Null)</li>
+<li><code>password</code> (VARCHAR(255), Not Null) - BCrypt hash.</li>
+<li><code>full_name</code> (VARCHAR(255), Not Null)</li>
+<li><code>email</code> (VARCHAR(255), Unique, Not Null)</li>
+<li><code>mfa_enabled</code> (TINYINT(1), Default 0)</li>
+<li><code>mfa_secret</code> (VARCHAR(255), Nullable)</li>
+</ul>
+</li>
+<li><strong>APIs using it</strong>: <code>/api/auth/login</code>, <code>/api/auth/register</code>, <code>/api/users</code>.</li>
+</ul>
+<h3>2. <code>tasks</code> Table</h3>
+<ul>
+<li><strong>Purpose</strong>: Stores Change Requests (CRs) and tracking metadata.</li>
+<li><strong>Columns</strong>:
+<ul>
+<li><code>id</code> (BIGINT, Primary Key, Auto Increment)</li>
+<li><code>jtrack_id</code> (VARCHAR(100), Unique, Not Null)</li>
+<li><code>title</code> (VARCHAR(255), Not Null)</li>
+<li><code>description</code> (TEXT)</li>
+<li><code>status</code> (VARCHAR(100), Not Null) - Active status enum string.</li>
+<li><code>priority</code> (VARCHAR(50), Default 'Medium')</li>
+<li><code>efforts</code> (INT, Default 0) - Efforts in days.</li>
+<li><code>created_date</code> (DATETIME, Not Null)</li>
+<li><code>updated_date</code> (DATETIME)</li>
+<li><code>assigned_developer_id</code> (BIGINT, Foreign Key -&gt; <code>users(id)</code>)</li>
+<li><code>tester_id</code> (BIGINT, Foreign Key -&gt; <code>users(id)</code>)</li>
+<li><code>testing_started_date</code> (DATETIME)</li>
+<li><code>testing_completed_date</code> (DATETIME)</li>
+<li><code>testing_duration</code> (VARCHAR(255))</li>
+<li><code>testing_comments</code> (VARCHAR(2000))</li>
+<li><code>total_bugs_raised</code> (INT, Default 0)</li>
+<li><code>total_retests</code> (INT, Default 0)</li>
+<li><code>reassignment_reason</code> (VARCHAR(2000))</li>
+<li><code>reassignment_date</code> (DATETIME)</li>
+<li><code>previous_tester_id</code> (BIGINT, Foreign Key -&gt; <code>users(id)</code>)</li>
+<li><code>reassigned_by_id</code> (BIGINT, Foreign Key -&gt; <code>users(id)</code>)</li>
+<li><code>unit_test_doc_url</code> (LONGTEXT) - Base64 encoded test document.</li>
+<li><code>unit_test_doc_name</code> (VARCHAR(512))</li>
+</ul>
+</li>
+<li><strong>APIs using it</strong>: <code>/api/tasks/*</code>, <code>/api/tasks/{id}/assign-tester</code>, <code>/api/tasks/{id}/reassign-tester</code>.</li>
+</ul>
+<h3>3. <code>bugs</code> Table</h3>
+<ul>
+<li><strong>Purpose</strong>: Logs defects raised during testing on specific CRs.</li>
+<li><strong>Columns</strong>:
+<ul>
+<li><code>id</code> (BIGINT, Primary Key, Auto Increment)</li>
+<li><code>cr_task_id</code> (BIGINT, Foreign Key -&gt; <code>tasks(id)</code>)</li>
+<li><code>title</code> (VARCHAR(255), Not Null)</li>
+<li><code>description</code> (TEXT)</li>
+<li><code>severity</code> (VARCHAR(50), Not Null)</li>
+<li><code>status</code> (VARCHAR(100), Default 'OPEN')</li>
+<li><code>assigned_developer_id</code> (BIGINT, Foreign Key -&gt; <code>users(id)</code>)</li>
+<li><code>raised_by_id</code> (BIGINT, Foreign Key -&gt; <code>users(id)</code>)</li>
+<li><code>created_date</code> (DATETIME)</li>
+<li><code>updated_date</code> (DATETIME)</li>
+<li><code>reason</code> (VARCHAR(2000))</li>
+<li><code>steps_to_reproduce</code> (VARCHAR(2000))</li>
+<li><code>expected_result</code> (VARCHAR(2000))</li>
+<li><code>actual_result</code> (VARCHAR(2000))</li>
+</ul>
+</li>
+<li><strong>APIs using it</strong>: <code>/api/bugs/*</code>.</li>
+</ul>
+<h3>4. <code>audit_logs</code> Table</h3>
+<ul>
+<li><strong>Purpose</strong>: Stores historical system logs.</li>
+<li><strong>Columns</strong>:
+<ul>
+<li><code>id</code> (BIGINT, Primary Key, Auto Increment)</li>
+<li><code>entity_type</code> (VARCHAR(100), Not Null) - e.g. 'TASK', 'BUG', 'USER'</li>
+<li><code>entity_id</code> (BIGINT, Not Null)</li>
+<li><code>action</code> (VARCHAR(255), Not Null) - e.g. 'STATUS_CHANGE', 'ASSIGNMENT'</li>
+<li><code>field_name</code> (VARCHAR(100))</li>
+<li><code>old_value</code> (TEXT)</li>
+<li><code>new_value</code> (TEXT)</li>
+<li><code>remarks</code> (TEXT)</li>
+<li><code>changed_by_username</code> (VARCHAR(255))</li>
+<li><code>changed_date</code> (DATETIME, Default CURRENT_TIMESTAMP)</li>
+</ul>
+</li>
+<li><strong>APIs using it</strong>: <code>/api/audit-logs/*</code>.</li>
+</ul>
+<hr />
+<h2>7.2 Entity-Relationship (ER) Diagram (Conceptual)</h2>
+<pre><code>  +--------------+               +------------------+
+  |    users     | 1         0..*|      tasks       |
+  |--------------|--------------&gt;|------------------|
+  | id (PK)      |               | id (PK)          |
+  | username     |               | jtrack_id (UK)   |
+  | password     |               | status           |
+  | email        |               | dev_id (FK)      |
+  +--------------+               | tester_id (FK)   |
+         |                       +------------------+
+         |                                | 1
+         |                                |
+         | 1                              | 0..*
+         |                                v
+         |                       +------------------+
+         |                       |      bugs        |
+         |                       |------------------|
+         +----------------------&gt;| id (PK)          |
+                                 | cr_task_id (FK)  |
+                                 | status           |
+                                 | raised_by (FK)   |
+                                 +------------------+
+</code></pre>
+<hr />
+<h2>7.3 Data Ownership &amp; Lifecycle</h2>
+<ul>
+<li><strong>Who updates data</strong>:
+<ul>
+<li><strong>Developers</strong>: Update Task properties when coding, upload Unit Test docs, resolve bugs.</li>
+<li><strong>Testers</strong>: Self-assign tasks, update test duration/retests, raise bugs.</li>
+<li><strong>Admins</strong>: Add/modify users, reassign tester fields with audit justification, change global statuses.</li>
+</ul>
+</li>
+<li><strong>When is it updated</strong>: Triggered instantly on GUI button submission or API REST POST execution.</li>
+<li><strong>Soft Delete Rules</strong>: Hard deletes are generally avoided for tasks and bugs; records remain in database and are filtered out via UI states.</li>
+</ul>
+<hr />
+<h1>Chapter 8: API Documentation</h1>
+<p>This document describes the REST endpoints exposed by the DevTrack 2.0 backend, specifying the request models, headers, validation constraints, and database side effects.</p>
+<hr />
+<h2>8.1 Authentication &amp; Registration Endpoints</h2>
+<h3>1. Register User</h3>
+<ul>
+<li><strong>HTTP Method</strong>: <code>POST</code></li>
+<li><strong>URL</strong>: <code>/api/auth/register</code></li>
+<li><strong>Headers</strong>: <code>Content-Type: application/json</code></li>
+<li><strong>Request Body</strong>:<pre><code class="language-json">{
+  &quot;username&quot;: &quot;tester1&quot;,
+  &quot;password&quot;: &quot;SecurePassword123&quot;,
+  &quot;fullName&quot;: &quot;Alice Tester&quot;,
+  &quot;email&quot;: &quot;tester1@devtrack.com&quot;,
+  &quot;roles&quot;: [&quot;TESTER&quot;]
+}
+</code></pre>
+</li>
+<li><strong>Validation Rules</strong>:
+<ul>
+<li><code>username</code>: Not blank, unique, min 4 chars.</li>
+<li><code>password</code>: Not blank, min 8 chars.</li>
+<li><code>email</code>: Valid email format.</li>
+</ul>
+</li>
+<li><strong>Success Response (<code>200 OK</code>)</strong>:<pre><code class="language-json">{
+  &quot;success&quot;: true,
+  &quot;message&quot;: &quot;User registered successfully.&quot;
+}
+</code></pre>
+</li>
+<li><strong>Failure Response (<code>400 Bad Request</code>)</strong>:<pre><code class="language-json">{
+  &quot;success&quot;: false,
+  &quot;message&quot;: &quot;Username already exists.&quot;
+}
+</code></pre>
+</li>
+<li><strong>Business Logic</strong>: Hashes password with BCrypt, saves record to <code>users</code> table.</li>
+</ul>
+<hr />
+<h2>8.2 Task / CR Endpoints</h2>
+<h3>1. Get All Tasks</h3>
+<ul>
+<li><strong>HTTP Method</strong>: <code>GET</code></li>
+<li><strong>URL</strong>: <code>/api/tasks</code></li>
+<li><strong>Authentication</strong>: Bearer JWT token required in <code>Authorization</code> header.</li>
+<li><strong>Success Response (<code>200 OK</code>)</strong>:<pre><code class="language-json">[
+  {
+    &quot;id&quot;: 1,
+    &quot;jtrackId&quot;: &quot;DT-101&quot;,
+    &quot;title&quot;: &quot;Setup Login Screen&quot;,
+    &quot;status&quot;: &quot;OPEN&quot;,
+    &quot;priority&quot;: &quot;High&quot;,
+    &quot;assignedDeveloper&quot;: { &quot;id&quot;: 2, &quot;fullName&quot;: &quot;Bob Dev&quot; },
+    &quot;tester&quot;: null
+  }
+]
+</code></pre>
+</li>
+</ul>
+<h3>2. Assign Tester Atomically</h3>
+<ul>
+<li><strong>HTTP Method</strong>: <code>POST</code></li>
+<li><strong>URL</strong>: <code>/api/tasks/{id}/assign-tester</code></li>
+<li><strong>Authentication</strong>: Bearer JWT token. User role must be <code>TESTER</code> or <code>TESTADMIN</code>.</li>
+<li><strong>Success Response (<code>200 OK</code>)</strong>:<pre><code class="language-json">{
+  &quot;id&quot;: 1,
+  &quot;jtrackId&quot;: &quot;DT-101&quot;,
+  &quot;status&quot;: &quot;TESTING_IN_PROGRESS&quot;,
+  &quot;tester&quot;: { &quot;id&quot;: 3, &quot;fullName&quot;: &quot;Alice Tester&quot; },
+  &quot;testingStartedDate&quot;: &quot;2026-07-01T12:00:00&quot;
+}
+</code></pre>
+</li>
+<li><strong>Failure Response (<code>400 Bad Request</code>)</strong>:<pre><code class="language-json">{
+  &quot;success&quot;: false,
+  &quot;message&quot;: &quot;CR already assigned or not in testing pool.&quot;
+}
+</code></pre>
+</li>
+<li><strong>Database Side Effects</strong>:
+<ul>
+<li>Updates <code>tasks</code> table: sets <code>tester_id = CURRENT_USER_ID</code>, <code>status = 'TESTING_IN_PROGRESS'</code>, <code>testing_started_date = NOW()</code>.</li>
+<li>Creates record in <code>audit_logs</code>.</li>
+</ul>
+</li>
+</ul>
+<h3>3. Reassign Tester (Admin Only)</h3>
+<ul>
+<li><strong>HTTP Method</strong>: <code>POST</code></li>
+<li><strong>URL</strong>: <code>/api/tasks/{id}/reassign-tester</code></li>
+<li><strong>Authentication</strong>: Bearer JWT token. User role must be <code>ADMIN</code>.</li>
+<li><strong>Request Body</strong>:<pre><code class="language-json">{
+  &quot;newTesterUsername&quot;: &quot;tester2&quot;,
+  &quot;reason&quot;: &quot;Initial tester went on leave.&quot;
+}
+</code></pre>
+</li>
+<li><strong>Success Response (<code>200 OK</code>)</strong>:<pre><code class="language-json">{
+  &quot;id&quot;: 1,
+  &quot;status&quot;: &quot;TESTING_IN_PROGRESS&quot;,
+  &quot;tester&quot;: { &quot;id&quot;: 5, &quot;fullName&quot;: &quot;Charlie Tester&quot; },
+  &quot;previousTester&quot;: { &quot;id&quot;: 3, &quot;fullName&quot;: &quot;Alice Tester&quot; },
+  &quot;reassignmentReason&quot;: &quot;Initial tester went on leave.&quot;
+}
+</code></pre>
+</li>
+<li><strong>Database Side Effects</strong>:
+<ul>
+<li>Updates <code>tasks</code> table: sets <code>tester_id = NEW_TESTER_ID</code>, <code>previous_tester_id = OLD_TESTER_ID</code>, <code>reassignment_reason = REASON</code>, <code>reassignment_date = NOW()</code>, <code>reassigned_by_id = ADMIN_ID</code>.</li>
+<li>Increments <code>total_retests</code> on the task.</li>
+<li>Inserts <code>audit_logs</code> record.</li>
+</ul>
+</li>
+</ul>
+<hr />
+<h2>8.3 Bug Endpoints</h2>
+<h3>1. Create Bug</h3>
+<ul>
+<li><strong>HTTP Method</strong>: <code>POST</code></li>
+<li><strong>URL</strong>: <code>/api/bugs</code></li>
+<li><strong>Authentication</strong>: Bearer JWT token.</li>
+<li><strong>Request Body</strong>:<pre><code class="language-json">{
+  &quot;jtrackId&quot;: &quot;DT-101&quot;,
+  &quot;title&quot;: &quot;Login crash on blank input&quot;,
+  &quot;description&quot;: &quot;App crashes when submit is clicked without inputs.&quot;,
+  &quot;severity&quot;: &quot;Critical&quot;,
+  &quot;reason&quot;: &quot;NullPointerException in login validation&quot;,
+  &quot;stepsToReproduce&quot;: &quot;1. Go to login page\n2. Click Submit&quot;,
+  &quot;expectedResult&quot;: &quot;Validation error displayed&quot;,
+  &quot;actualResult&quot;: &quot;Blank white screen (app crash)&quot;
+}
+</code></pre>
+</li>
+<li><strong>Success Response (<code>200 OK</code>)</strong>:<pre><code class="language-json">{
+  &quot;id&quot;: 12,
+  &quot;title&quot;: &quot;Login crash on blank input&quot;,
+  &quot;status&quot;: &quot;OPEN&quot;,
+  &quot;severity&quot;: &quot;Critical&quot;,
+  &quot;crTaskId&quot;: 1
+}
+</code></pre>
+</li>
+<li><strong>Database Side Effects</strong>:
+<ul>
+<li>Inserts record into <code>bugs</code> table.</li>
+<li>Updates associated task in <code>tasks</code> table: sets <code>status = 'BUG_FOUND'</code>, increments <code>total_bugs_raised</code>.</li>
+<li>Inserts <code>audit_logs</code> record.</li>
+<li>Dispatches WebSocket and SMTP email notifications to the assigned developer.</li>
+</ul>
+</li>
+</ul>
+<hr />
+<h1>Chapter 9: Workflow Documentation</h1>
+<p>This document describes the operational workflows, state machines, and approval gates driving DevTrack 2.0.</p>
+<hr />
+<h2>9.1 Authentication &amp; Multi-Factor Setup (MFA)</h2>
+<h3>Workflow Steps</h3>
+<ol>
+<li>User enters username and password.</li>
+<li>If correct, backend checks if MFA is active:
+<ul>
+<li><strong>MFA Active</strong>: Redirects client to <code>/mfa-verify</code>. User inputs 6-digit TOTP code. If valid, JWT is generated.</li>
+<li><strong>MFA Inactive</strong>: User registers MFA. Backend generates a 32-character secret key, creates a QR code image (using Google Authenticator URI schema), and generates 10 single-use recovery codes.</li>
+</ul>
+</li>
+<li>User scans QR code using Microsoft Authenticator or any RFC 6238 app and inputs the first 6-digit token to confirm.</li>
+<li>Validation success activates MFA flag on user account.</li>
+</ol>
+<hr />
+<h2>9.2 Change Request (CR) Lifecycle</h2>
+<pre><code>[Draft Development] --&gt; (Submit Code Review) --&gt; [Code Review (Pending Admin)]
+                                                     |
+                                   +-----------------+-----------------+
+                                   |                                   |
+                          (Approved by Admin)                 (Rejected by Admin)
+                                   |                                   |
+                                   v                                   v
+                         [Code Review Done]                  [Changes Requested]
+                                   |                                   |
+                        (Upload Unit Test Doc)                 (Fix &amp; Resubmit)
+                                   v                                   |
+                         [Move to UAT / Pool] &lt;------------------------+
+                                   |
+                         (Tester Self-Assigns)
+                                   v
+                       [Testing In Progress]
+                                   |
+                   +---------------+---------------+
+                   |                               |
+             (Pass Testing)                  (Fail / Raise Bug)
+                   |                               |
+                   v                               v
+          [Testing Completed]                 [Bug Found / Open]
+                   |                               |
+          (Promote to Prod)                  (Developer Fixes)
+                   |                               |
+                   v                               v
+               [Closed]                      [Bug Resolved]
+                                                   |
+                                            (Tester Retests)
+                                                   v
+                                         [Testing In Progress]
+</code></pre>
+<hr />
+<h2>9.3 Bug Lifecycle &amp; Retests</h2>
+<ul>
+<li><strong>Raising Bug</strong>: Tester inputs bug details on an assigned CR. Associated task status changes to <code>BUG_FOUND</code>. The task's <code>total_bugs_raised</code> field is incremented.</li>
+<li><strong>Resolving Bug</strong>: Developer completes fix, writes comments, and marks as <code>RESOLVED</code>.</li>
+<li><strong>Retesting</strong>: The bug is routed back to the assigning tester. Task returns to <code>TESTING_IN_PROGRESS</code>. Tester performs verification. If verified, tester closes the bug. If verified and all bugs on the CR are resolved, UAT testing can be marked passed.</li>
+</ul>
+<hr />
+<h2>9.4 Deployment &amp; Releases</h2>
+<ul>
+<li><strong>SIT Deployment</strong>: Handled manually or via webhooks. Developer marks status as <code>SIT_DEPLOYED</code>. Audit logs track deployment date.</li>
+<li><strong>UAT Deployment</strong>: Developer must upload a unit testing document (Base64 file stream) to advance status from <code>CODE_REVIEW_DONE</code> to <code>MOVE_TO_UAT</code>. Document name and base64 string are stored directly.</li>
+<li><strong>Prod Promotion</strong>: Admin moves task from <code>TESTING_COMPLETED</code> (or <code>UAT_COMPLETED</code>) to <code>CLOSED</code>. This marks the end of the CR lifecycle.</li>
+</ul>
+<hr />
+<h1>Chapter 10: Dashboard Documentation</h1>
+<p>This document describes the role-specific dashboards, workspace metrics, widget designs, and state behaviors implemented in DevTrack 2.0.</p>
+<hr />
+<h2>10.1 Developer Dashboard</h2>
+<ul>
+<li><strong>Purpose</strong>: Personalized workspace for developers to track active development tasks, address raised bugs, and transition tasks from creation to UAT release.</li>
+<li><strong>Widgets &amp; Widgets Layout</strong>:
+<ul>
+<li><strong>KPI Cards</strong>: Count of Active CRs, Pending Reviews, and Open Assigned Bugs.</li>
+<li><strong>My Active Workspace (Table)</strong>: List of assigned CRs matching search query. Actions include: Start Development, Deploy to SIT, Verify &amp; Complete SIT, and Submit for Code Review.</li>
+<li><strong>My Assigned Bugs (Table)</strong>: List of bugs assigned to the developer. Developer can click a bug, view steps to reproduce, and submit a fix comment to mark it as <code>RESOLVED</code>.</li>
+<li><strong>Status Update Drawer</strong>: Right-anchored sliding panel containing fields for comments and files (proof of testing screenshot, unit testing document).</li>
+</ul>
+</li>
+<li><strong>Permissions</strong>: View and edit only self-assigned tasks and bugs.</li>
+<li><strong>API Calls</strong>: <code>GET /api/tasks</code>, <code>GET /api/bugs</code>, <code>POST /api/tasks/{id}/status</code>.</li>
+</ul>
+<hr />
+<h2>10.2 Tester Dashboard</h2>
+<ul>
+<li><strong>Purpose</strong>: Shared workspace for quality engineers to self-assign tasks from the pool, log defects, and approve testing runs.</li>
+<li><strong>Tabs / Sub-Queues</strong>:
+<ul>
+<li><strong>Testing Pool</strong>: Shows CRs in UAT state with no tester (<code>TESTING_POOL</code>). Actions: &quot;Assign to Me&quot;.</li>
+<li><strong>My Assigned Testing</strong>: CRs self-assigned by the current tester. Actions: &quot;Raise Bug&quot; (opens modal), &quot;Testing Passed&quot; (promotes to <code>TESTING_COMPLETED</code>).</li>
+<li><strong>Bugs &amp; Defective CRs</strong>: Defective CRs showing open bugs. Shows all relevant information logged during the bug-raising stage.</li>
+</ul>
+</li>
+<li><strong>Permissions</strong>: View all UAT items; assign tasks to self; raise and close bugs for self-assigned tasks.</li>
+<li><strong>API Calls</strong>: <code>GET /api/tasks</code>, <code>POST /api/tasks/{id}/assign-tester</code>, <code>POST /api/bugs</code>.</li>
+</ul>
+<hr />
+<h2>10.3 Admin Dashboard (CR Management &amp; Configs)</h2>
+<ul>
+<li><strong>Purpose</strong>: Global control room for system configurations, role management, code review approvals, audit trails, and tester reassignment.</li>
+<li><strong>Views</strong>:
+<ul>
+<li><strong>CR Management (Table)</strong>: Comprehensive list of all CRs. Displays detailed transition dates (SIT deploy, SIT completed, UAT deploy, testing completed, bug raised/resolved, UAT completed, prod deploy dates).</li>
+<li><strong>Admin Action Panel (Drawer)</strong>: Allows code reviews approval/rejection and tester reassignments (requiring a mandatory justification reason).</li>
+<li><strong>MFA Reset View</strong>: Reset MFA for locked out users.</li>
+<li><strong>User Configs Table</strong>: Lists user roles and credentials.</li>
+</ul>
+</li>
+<li><strong>Permissions</strong>: System-wide view, edit, approve, reassign, and configuration access.</li>
+<li><strong>API Calls</strong>: <code>GET /api/users</code>, <code>POST /api/tasks/{id}/reassign-tester</code>, <code>POST /api/auth/approve-cr</code>.</li>
+</ul>
+<hr />
+<h1>Chapter 11: UI Documentation</h1>
+<p>This document describes the design systems, UI components, states, and client interactions implemented in the React frontend of DevTrack 2.0.</p>
+<hr />
+<h2>11.1 Design System &amp; Aesthetic Directives</h2>
+<p>DevTrack 2.0 uses a modern <strong>Glassmorphic Dark UI Theme</strong> with deep violet-blue gradients.</p>
+<ul>
+<li><strong>Color Palette</strong>:
+<ul>
+<li>Primary Background: <code>#060814</code> (Deep space slate).</li>
+<li>Component Container: <code>rgba(255, 255, 255, 0.03)</code> with standard CSS backdrop blur (<code>backdrop-blur-md</code>).</li>
+<li>Board Border: <code>rgba(255, 255, 255, 0.06)</code>.</li>
+<li>Accents: Violet (<code>rgb(139, 92, 246)</code>), Cyan (<code>rgb(34, 211, 238)</code>), Emerald (<code>rgb(16, 185, 129)</code>), Rose/Red (<code>rgb(244, 63, 94)</code>).</li>
+</ul>
+</li>
+<li><strong>Typography</strong>: Inter (Google Fonts) with strict letter-spacing mapping.</li>
+</ul>
+<hr />
+<h2>11.2 Core Components &amp; Layouts</h2>
+<h3>1. Interactive Drawer (Right Slide-out Panel)</h3>
+<ul>
+<li><strong>Files</strong>: Embedded directly inside dashboard pages (<code>developerDashboard.tsx</code>, <code>testerDashboard.tsx</code>, <code>crManagement.tsx</code>).</li>
+<li><strong>Features</strong>: Smooth spring entry and exit animations powered by Framer Motion's <code>&lt;AnimatePresence&gt;</code>.</li>
+<li><strong>States</strong>:
+<ul>
+<li>Empty: Displays &quot;Select a Change Request to view detailed progress and transitions&quot; in styled muted slate.</li>
+<li>Active: Renders CR metadata, audit logs, screenshots (with download triggers), and contextual transition buttons.</li>
+</ul>
+</li>
+</ul>
+<h3>2. Modals (Raise Bug &amp; Bug Details)</h3>
+<ul>
+<li><strong>RaiseBugModal</strong>: Standard React modal overlay containing fields for Title, Severity dropdown, Reason, Steps to Reproduce, Expected Result, and Actual Result. Form inputs check for blank strings before submitting.</li>
+<li><strong>BugDetailModal</strong>: View-only drawer details showing the complete bug lifecycle, severity indicator pill, and reporter comments.</li>
+</ul>
+<hr />
+<h2>11.3 Interactive Elements &amp; States</h2>
+<ul>
+<li><strong>Animations</strong>:
+<ul>
+<li>Sidebar Hover: Muted scale increase and glow effect.</li>
+<li>Cards: Soft translateY hover offset (<code>-4px</code>) and shadow transitions.</li>
+</ul>
+</li>
+<li><strong>Loading States</strong>: Uses pulse placeholders (Skeleton screens) and spinner SVGs.</li>
+<li><strong>Empty States</strong>: Customized visual vector containers indicating &quot;No tasks found&quot; with styled descriptive subtexts.</li>
+<li><strong>Tooltips</strong>: Dynamic native browser title attributes and customized text boxes detailing status definitions on hover.</li>
+</ul>
+<hr />
+<h1>Chapter 12: Role-Based Access Control (RBAC)</h1>
+<p>This document maps user roles to specific permission rules and authorization scopes within the DevTrack 2.0 application workspace.</p>
+<hr />
+<h2>12.1 Permissions Matrix by Role</h2>
+<p>| Workspace Action | ADMIN | DEVELOPER | TESTER | TESTADMIN |
+|---|:---:|:---:|:---:|:---:|
+| <strong>View CR details</strong> | Yes | Yes | Yes | Yes |
+| <strong>Create new CR</strong> | Yes | Yes | No | No |
+| <strong>Update CR status (Dev States)</strong> | No | Yes (Only Assigned) | No | No |
+| <strong>Approve Code Review</strong> | Yes | No | No | No |
+| <strong>Deploy/Move to UAT</strong> | No | Yes (Only Assigned) | No | No |
+| <strong>Self-Assign Tester</strong> | No | No | Yes | Yes |
+| <strong>Reassign Tester</strong> | Yes | No | No | Yes |
+| <strong>Upload Unit Test Document</strong> | No | Yes | No | No |
+| <strong>Download Unit Test Document</strong> | Yes | Yes | Yes | Yes |
+| <strong>Raise Bug</strong> | No | No | Yes | Yes |
+| <strong>Resolve Bug</strong> | No | Yes (Only Assigned) | No | No |
+| <strong>Close Bug</strong> | No | No | Yes | Yes |
+| <strong>Reset MFA Secrets</strong> | Yes | No | No | No |
+| <strong>View Audit Logs</strong> | Yes | Yes | Yes | Yes |</p>
+<hr />
+<h2>12.2 Workspace Authorization Flow</h2>
+<ul>
+<li><strong>Backend Enforcement</strong>:
+Backend REST controllers use Spring Security annotations (e.g. <code>@PreAuthorize(&quot;hasRole('ADMIN')&quot;)</code> or custom evaluation checks based on task ownership).<pre><code class="language-java">@PreAuthorize(&quot;hasAnyRole('TESTER', 'TESTADMIN')&quot;)
+@PostMapping(&quot;/{id}/assign-tester&quot;)
+public ResponseEntity&lt;?&gt; assignTester(...) { ... }
+</code></pre>
+</li>
+<li><strong>Frontend Enforcement</strong>:
+The user role is cached in the client session state (<code>useAuthStore</code>). Render methods use conditional operators to hide or display buttons:<pre><code class="language-typescript">{user?.roles?.includes('ADMIN') &amp;&amp; (
+  &lt;Button onClick={handleReassign}&gt;Reassign Tester&lt;/Button&gt;
+)}
+</code></pre>
+</li>
+<li><strong>Future Roles</strong>:
+The database schema stores roles as collections of strings, enabling simple future additions of roles such as <code>PROJECT_MANAGER</code> or <code>RELEASE_ENGINEER</code> by adding new entries to the user role mappings without schema modifications.</li>
+</ul>
+<hr />
+<h1>Chapter 13: Security Documentation</h1>
+<p>This document describes the security protocols, encryption algorithms, network constraints, and vulnerability protections implemented in DevTrack 2.0.</p>
+<hr />
+<h2>13.1 Authentication &amp; Secrets Management</h2>
+<h3>1. Password Encryption (BCrypt)</h3>
+<ul>
+<li><strong>Algorithm</strong>: BCrypt password-hashing function (based on Blowfish cipher).</li>
+<li><strong>Configuration</strong>: Standard Spring Security <code>BCryptPasswordEncoder</code> using a work factor of 10.</li>
+<li><strong>Data Store</strong>: Salt is embedded within the generated hash string stored under <code>password</code> in the <code>users</code> table.</li>
+</ul>
+<h3>2. Time-Based One-Time Passwords (TOTP / MFA)</h3>
+<ul>
+<li><strong>Specification</strong>: Compliance with <strong>RFC 6238</strong> (TOTP: Time-Based One-Time Password Algorithm) and <strong>RFC 4226</strong> (HOTP).</li>
+<li><strong>Algorithm</strong>: HMAC-SHA1 using a 32-character Base32 encoded shared secret.</li>
+<li><strong>Verification Window</strong>: 30 seconds. Clock drift tolerance is set to $\pm 1$ step (allowing codes within a 90-second window to authenticate).</li>
+<li><strong>Recovery Codes</strong>: 10 cryptographically secure, random 10-character alphanumeric codes generated using secure random number generators (<code>SecureRandom</code>) during registration. Once used, the code is invalidated in the database (<code>mfa_backup_codes</code> table).</li>
+</ul>
+<hr />
+<h2>13.2 Session &amp; Network Security</h2>
+<h3>1. JSON Web Tokens (JWT)</h3>
+<ul>
+<li><strong>Signature Algorithm</strong>: HMAC-SHA256 (HS256) signed using a secure 256-bit environment secret (<code>jwt.secret</code>).</li>
+<li><strong>Validation</strong>: Performed by <code>JwtAuthenticationFilter</code> extending <code>OncePerRequestFilter</code>.</li>
+<li><strong>Claims</strong>: Contains Subject (username), Issued-At (<code>iat</code>), Expiry (<code>exp</code>), and authorities.</li>
+</ul>
+<h3>2. CORS (Cross-Origin Resource Sharing)</h3>
+<ul>
+<li><strong>Development</strong>: Dev-server proxies requests to <code>/api</code> from port 5173 to port 8080.</li>
+<li><strong>Production</strong>: Configured inside <code>WebConfig</code> and <code>SecurityConfig</code> to restrict origins to verified system domains. Allowed headers include <code>Authorization</code>, <code>Content-Type</code>, and <code>X-Requested-With</code>.</li>
+</ul>
+<h3>3. File Validation &amp; Sanitization</h3>
+<ul>
+<li>When developers upload unit testing documents:
+<ul>
+<li>Filename checked for directory traversal attempts (e.g. <code>../</code>).</li>
+<li>Size verified against a backend limit of 10 MB.</li>
+<li>MIME-type checked against approved lists (PDF, DOCX, PNG, JPG).</li>
+</ul>
+</li>
+<li>Base64 payload is parsed and stored inside <code>document_content(content)</code> as a raw binary blob.</li>
+</ul>
+<hr />
+<h1>Chapter 14: Notification Documentation</h1>
+<p>This document describes the notification subsystem, messaging channels, layout templates, and dispatch rules utilized in DevTrack 2.0.</p>
+<hr />
+<h2>14.1 Notification Channels</h2>
+<h3>1. WebSocket In-App Notifications</h3>
+<ul>
+<li><strong>Protocol</strong>: Raw WebSocket connection managed via a custom endpoint <code>/ws/notifications</code>.</li>
+<li><strong>Implementation</strong>: The handler <code>NotificationWebSocketHandler</code> intercepts the handshake, extracts user context, maps connection sessions, and broadcasts dynamic JSON alerts.</li>
+<li><strong>Payload format</strong>:<pre><code class="language-json">{
+  &quot;id&quot;: 45,
+  &quot;title&quot;: &quot;Bug Raised&quot;,
+  &quot;message&quot;: &quot;Alice Tester raised Bug DT-101-B1 on your task Setup Login Screen.&quot;,
+  &quot;type&quot;: &quot;BUG_RAISED&quot;,
+  &quot;timestamp&quot;: &quot;2026-07-01T12:00:00&quot;
+}
+</code></pre>
+</li>
+</ul>
+<h3>2. SMTP Email Notifications</h3>
+<ul>
+<li><strong>Implementation</strong>: Managed by the Spring Boot starter mail package. Connects to the configured external SMTP host to dispatch HTML emails.</li>
+<li><strong>Templates</strong>: Thymeleaf HTML files located under <code>src/main/resources/templates/mail/</code>. Includes placeholders for target usernames, task IDs, actions, and redirect links.</li>
+</ul>
+<hr />
+<h2>14.2 Recipient Dispatch Rules</h2>
+<p>| System Event | Primary Recipient | Notification Channel | Content Summary |
+|---|---|---|---|
+| <strong>CR Submitted for Review</strong> | System Admins | Email + In-App | Alerting admins to review Jtrack CR |
+| <strong>CR Code Approved</strong> | Assigned Developer | In-App | Confirmation of review approval |
+| <strong>Bug Raised</strong> | Assigned Developer | Email + In-App | Bug details, severity, steps to reproduce |
+| <strong>Bug Resolved</strong> | Assigned Tester | In-App | Fix comments, prompting regression test |
+| <strong>Tester Assigned</strong> | Developer &amp; Admins | In-App | Notification of tester pick-up |
+| <strong>MFA Code Reset</strong> | Target User | Email | Recovery codes generated and sent |</p>
+<hr />
+<h2>14.3 Retry &amp; Error Handling Policies</h2>
+<ul>
+<li><strong>Asynchronous Execution</strong>: Email dispatching runs asynchronously (<code>@Async</code>) to prevent blocking API response threads.</li>
+<li><strong>SMTP Failure</strong>: If SMTP connection fails (e.g. timeout, invalid credentials), exceptions are caught, logged via <code>System.err.println</code>, and saved in the database under an error audit flag.</li>
+<li><strong>Fallback</strong>: WebSocket channel remains active if email transport fails.</li>
+</ul>
+<hr />
+<h1>Chapter 15: File Management</h1>
+<p>This document describes how documents, screenshots, and test artifacts are uploaded, stored, validated, and downloaded within DevTrack 2.0.</p>
+<hr />
+<h2>15.1 Upload Constraints &amp; Protocols</h2>
+<h3>Supported File Types</h3>
+<ul>
+<li><strong>Unit Testing Documents</strong>: <code>.pdf</code>, <code>.docx</code>, <code>.txt</code>, <code>.xlsx</code>.</li>
+<li><strong>Proof of Testing Screenshots</strong>: <code>.png</code>, <code>.jpg</code>, <code>.jpeg</code>.</li>
+<li><strong>Bug Attachments</strong>: <code>.zip</code>, <code>.log</code>, <code>.txt</code>, <code>.png</code>, <code>.jpg</code>.</li>
+</ul>
+<h3>Size Limitations</h3>
+<ul>
+<li>Maximum single file upload size is set to <strong>10 MB</strong> (enforced by Spring Boot Web MVC multiparts configurations <code>spring.servlet.multipart.max-file-size</code> and verified on client-side prior to Base64 serialization).</li>
+</ul>
+<hr />
+<h2>15.2 Storage Architecture &amp; Database Schema</h2>
+<p>Unlike traditional setups that store files on disk, DevTrack 2.0 uses a database-backed storage strategy to avoid file sync synchronization issues across load-balanced application instances.</p>
+<h3>1. <code>document</code> Entity</h3>
+<ul>
+<li><strong>Properties</strong>:
+<ul>
+<li><code>id</code> (Long, PK)</li>
+<li><code>fileName</code> (String) - Original user filename.</li>
+<li><code>fileType</code> (String) - MIME-type descriptor (e.g. <code>image/png</code>).</li>
+<li><code>uploadedDate</code> (LocalDateTime)</li>
+<li><code>uploadedBy</code> (User)</li>
+</ul>
+</li>
+</ul>
+<h3>2. <code>document_content</code> Entity</h3>
+<ul>
+<li><strong>Properties</strong>:
+<ul>
+<li><code>documentId</code> (Long, PK, Foreign Key -&gt; <code>document(id)</code> on delete cascade)</li>
+<li><code>content</code> (MediumBlob / LongText) - Holds base64 encoded byte content.</li>
+</ul>
+</li>
+</ul>
+<hr />
+<h2>15.3 Download Mechanism</h2>
+<ol>
+<li>Client clicks the download link.</li>
+<li>React store calls <code>apiClient</code> or fetches the Base64 data from the record.</li>
+<li>React store converts the Base64 stream back into a binary array (Blob) inside browser memory.</li>
+<li>Generates a temporary object URL (<code>URL.createObjectURL(blob)</code>), binds it to a dynamic <code>&lt;a&gt;</code> tag with a <code>download</code> attribute, programmatically clicks the link, and immediately revokes the URL to prevent memory leaks.</li>
+<li>This prevents server filesystem exposure and ensures security auditing checks run prior to data access.</li>
+</ol>
+<hr />
+<h1>Chapter 16: Audit Logging</h1>
+<p>This document details the system auditing engine, tracking models, logging triggers, and metadata captured for every critical user operation in DevTrack 2.0.</p>
+<hr />
+<h2>16.1 Audited Events</h2>
+<p>The following activities trigger synchronous audit records:</p>
+<ul>
+<li><strong>Authentication</strong>: Successful logins, MFA validation, failed attempts, and password resets.</li>
+<li><strong>CR Lifecycle</strong>: Stage movements (e.g. <code>SIT_DEPLOYED</code>, <code>MOVE_TO_UAT</code>, <code>CLOSED</code>).</li>
+<li><strong>Tester Assignment</strong>: Atomic self-assignments, reassignments (logs reason and admin user), and testing completions.</li>
+<li><strong>Bug Workflows</strong>: Creation of defects, status updates, resolutions, and closures.</li>
+<li><strong>Files</strong>: Document uploads and downloads.</li>
+</ul>
+<hr />
+<h2>16.2 Schema &amp; Properties Catalog</h2>
+<p>Audit logs are stored in the <code>audit_logs</code> table. Each entry maps the following properties:</p>
+<p>| Field Name | Type | Description |
+|---|---|---|
+| <code>id</code> | BIGINT | Auto-increment primary key. |
+| <code>entity_type</code> | VARCHAR | Entity classification (e.g. <code>TASK</code>, <code>BUG</code>, <code>USER</code>). |
+| <code>entity_id</code> | BIGINT | Identifier of the changed object. |
+| <code>action</code> | VARCHAR | Verb describing the operation (e.g. <code>STATUS_CHANGE</code>, <code>ASSIGNMENT</code>). |
+| <code>field_name</code> | VARCHAR | Specific attribute modified (e.g. <code>status</code>, <code>tester_id</code>, <code>mfa_enabled</code>). |
+| <code>old_value</code> | TEXT | Value before modification (null if new entity creation). |
+| <code>new_value</code> | TEXT | Value after modification. |
+| <code>remarks</code> | TEXT | Transition comments, admin reason, or system messages. |
+| <code>changed_by_username</code> | VARCHAR | Username of the authenticated trigger source. |
+| <code>changed_date</code> | DATETIME | Timestamp of change execution. |</p>
+<hr />
+<h2>16.3 Logging Mechanics</h2>
+<ul>
+<li><strong>Backend Service Integration</strong>:
+The <code>AuditLogService</code> or <code>TaskController</code> creates records transactionally:<pre><code class="language-java">AuditLog log = new AuditLog();
+log.setEntityType(&quot;TASK&quot;);
+log.setEntityId(task.getId());
+log.setAction(&quot;STATUS_CHANGE&quot;);
+log.setFieldName(&quot;status&quot;);
+log.setOldValue(oldStatus);
+log.setNewValue(newStatus);
+log.setRemarks(remarks);
+log.setChangedByUsername(currentUser.getUsername());
+auditLogRepository.save(log);
+</code></pre>
+</li>
+<li><strong>Auditing UI</strong>:
+Admins can query the global audit history page (<code>audits.tsx</code>), which lists actions sequentially, filterable by date range, action type, and username.</li>
+</ul>
+<hr />
+<h1>Chapter 17: Reports</h1>
+<p>This document covers the reporting subsystem, data export formats, calculation formulas, and table columns available in DevTrack 2.0.</p>
+<hr />
+<h2>17.1 Reporting Inventory</h2>
+<h3>1. Developer Productivity Report</h3>
+<ul>
+<li><strong>Purpose</strong>: Tracks developers' efforts, sprint closures, and bug resolution rates.</li>
+<li><strong>Columns</strong>: Developer Name, Tasks Assigned, Tasks Closed, Open Bugs, Avg Bug Resolution Time.</li>
+<li><strong>Data Source</strong>: Joint query on <code>tasks</code>, <code>bugs</code>, and <code>users</code> tables.</li>
+<li><strong>Filters</strong>: Sprint ID, Date Range.</li>
+</ul>
+<h3>2. Testing &amp; Quality Metrics Report</h3>
+<ul>
+<li><strong>Purpose</strong>: Evaluates defect density, testing coverage, and duration.</li>
+<li><strong>Columns</strong>: Task Jtrack ID, Title, Tester, Testing Started, Testing Completed, Duration (hours), Total Bugs Raised, Retests Count.</li>
+<li><strong>Data Source</strong>: <code>tasks</code> table and <code>bugs</code> table.</li>
+<li><strong>Calculations</strong>:
+$$\text{Testing Duration} = \text{testingCompletedDate} - \text{testingStartedDate}$$
+$$\text{Defect Leakage Ratio} = \frac{\text{Bugs Raised in Production}}{\text{Total Bugs Raised in UAT}}$$</li>
+</ul>
+<h3>3. Audit &amp; Security Report</h3>
+<ul>
+<li><strong>Purpose</strong>: Details authentication activity and high-impact administrative actions.</li>
+<li><strong>Columns</strong>: Timestamp, Operator, Action, Target Entity, Old Value, New Value, System IP/Browser.</li>
+<li><strong>Data Source</strong>: <code>audit_logs</code> table.</li>
+</ul>
+<hr />
+<h2>17.2 Export Formats &amp; Generation</h2>
+<p>Reports can be exported in two formats on the frontend client:</p>
+<ol>
+<li><strong>Excel/CSV Export</strong>: Extracts raw datasets, formats tabular grids, and outputs downloads via JavaScript file writers.</li>
+<li><strong>PDF Report Export</strong>: Formats the DOM table with responsive styling, prints layout onto a high-resolution canvas using <code>html2canvas</code>, and bundles it into standard multipage <code>.pdf</code> documents using <code>jspdf</code>.</li>
+</ol>
+<hr />
+<h1>Chapter 18: Analytics</h1>
+<p>This document presents the analytics dashboard, mathematical score formulas, velocity calculations, and performance metrics utilized in DevTrack 2.0.</p>
+<hr />
+<h2>18.1 Developer Engineering Score Formula</h2>
+<p>To evaluate developer efficiency, quality, and velocity, the system aggregates productivity metrics into a standardized <strong>Engineering Score (ES)</strong>.</p>
+<p>$$ES = (E_d \times 10) - (B_{low} \times 1) - (B_{med} \times 2) - (B_{high} \times 5) - (B_{crit} \times 10) - (R \times 3)$$</p>
+<p>Where:</p>
+<ul>
+<li>$E_d$: Total efforts (in days) of all closed CRs.</li>
+<li>$B_{low}, B_{med}, B_{high}, B_{crit}$: Number of bugs raised of corresponding severities on the developer's tasks.</li>
+<li>$R$: Number of re-opened/retested tasks (defect bounces).</li>
+</ul>
+<h3>Business Meaning</h3>
+<p>A developer who delivers massive efforts with zero bug leakage receives a high positive score. Defective deliverables with multiple bug cycles significantly penalize the score, highlighting quality focus.</p>
+<hr />
+<h2>18.2 System Analytics Metrics</h2>
+<h3>1. Sprint Velocity</h3>
+<ul>
+<li><strong>Calculation</strong>: Total effort days completed during a single sprint window divided by scheduled days.</li>
+<li><strong>Formula</strong>:
+$$\text{Velocity} = \sum (\text{Efforts of tasks in 'CLOSED' / 'TESTING_COMPLETED' status})$$</li>
+</ul>
+<h3>2. Defect Density</h3>
+<ul>
+<li><strong>Calculation</strong>: Number of bugs found per Change Request.</li>
+<li><strong>Formula</strong>:
+$$\text{Defect Density} = \frac{\text{Total Bugs}}{\text{Total CRs}}$$</li>
+</ul>
+<h3>3. Testing Quality Metric (Avg Testing Duration)</h3>
+<ul>
+<li><strong>Calculation</strong>: Evaluates average duration a tester spends on checking a CR in progress.</li>
+<li><strong>Formula</strong>:
+$$\text{Avg Testing Duration} = \frac{\sum (\text{testingCompletedDate} - \text{testingStartedDate})}{\text{Count of Completed Tasks}}$$</li>
+<li><strong>Visuals</strong>: Represented on the Analytics Dashboard using Chart.js bar and line charts showing sprint-by-sprint trends.</li>
+</ul>
+<hr />
+<h1>Chapter 19: Code Documentation</h1>
+<p>This document serves as a code reference guide for key classes, interfaces, controllers, and services in DevTrack 2.0.</p>
+<hr />
+<h2>19.1 Core Controllers</h2>
+<h3>1. <code>TaskController</code></h3>
+<ul>
+<li><strong>Purpose</strong>: Exposes REST endpoints to manage CRs, handle pipeline state transitions, assign testers atomically, and upload unit test artifacts.</li>
+<li><strong>Dependencies</strong>: <code>TaskRepository</code>, <code>UserRepository</code>, <code>AuditLogRepository</code>, <code>WorkflowExecutionService</code>.</li>
+<li><strong>Core Methods</strong>:
+<ul>
+<li><code>assignTesterAtomically(Long id, Principal principal)</code>
+<ul>
+<li><strong>Input</strong>: Task ID (path parameter), Authenticated User principal.</li>
+<li><strong>Output</strong>: <code>ResponseEntity&lt;Task&gt;</code> containing updated task details.</li>
+<li><strong>Exceptions</strong>: <code>IllegalArgumentException</code> (task or user not found), <code>IllegalStateException</code> (task already assigned or not in pool).</li>
+<li><strong>Business Logic</strong>: Queries user using principal, calls repository's atomic assign query. Inserts audit log indicating successful pick-up.</li>
+</ul>
+</li>
+<li><code>reassignTester(Long id, ReassignTesterRequest request, Principal principal)</code>
+<ul>
+<li><strong>Input</strong>: Task ID (path parameter), <code>ReassignTesterRequest</code> payload, Admin User principal.</li>
+<li><strong>Output</strong>: <code>ResponseEntity&lt;Task&gt;</code> updated.</li>
+<li><strong>Exceptions</strong>: <code>AccessDeniedException</code> if caller is not an administrator.</li>
+<li><strong>Business Logic</strong>: Verifies request user. Updates <code>tester</code>, <code>previousTester</code>, <code>reassignmentReason</code>, <code>reassignmentDate</code>, and <code>reassignedBy</code> fields. Creates <code>audit_logs</code> entry.</li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+<hr />
+<h2>19.2 Core Services</h2>
+<h3>1. <code>WorkflowExecutionService</code></h3>
+<ul>
+<li><strong>Purpose</strong>: Core engine that routes a Task's status, checks preconditions, increments bug/retest statistics, and records state dates.</li>
+<li><strong>Dependencies</strong>: <code>TaskRepository</code>, <code>AuditLogRepository</code>.</li>
+<li><strong>Core Methods</strong>:
+<ul>
+<li><code>executeStatusTransition(Task task, String newStatus, String remarks, User operator)</code>
+<ul>
+<li><strong>Input</strong>: Task entity, target status String, mandatory transition remarks, operator User.</li>
+<li><strong>Output</strong>: <code>Task</code> with updated properties.</li>
+<li><strong>Business Logic</strong>: Evaluates current task status and enforces sequential mapping. Saves transition timestamp in audit logs. If transitioning to <code>TESTING_POOL</code>, sets <code>isInPool = true</code> and resets <code>tester = null</code>.</li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+<hr />
+<h2>19.3 Custom Annotations &amp; Configs</h2>
+<h3>1. <code>@Transactional</code></h3>
+<ul>
+<li><strong>Usage</strong>: Set on services to guarantee atomic execution. If any database write fail within the block, the entire transaction rolls back to preserve consistency.</li>
+</ul>
+<h3>2. <code>WebSocketConfig</code></h3>
+<ul>
+<li><strong>Purpose</strong>: Implements <code>WebSocketConfigurer</code>. Maps the handshake handler to <code>/ws/notifications</code> and registers a custom <code>NotificationWebSocketHandler</code> bean.</li>
+<li><strong>Access Control</strong>: Handshake interceptors extract user ID from query strings, validating sessions prior to socket registration.</li>
+</ul>
+<hr />
+<h1>Chapter 20: UML Diagrams, Flowcharts, and Coding Standards</h1>
+<p>This document contains visual diagrams mapping system sequences, component architectures, and coding standards.</p>
+<hr />
+<h2>20.1 Sequence Diagrams</h2>
+<h3>1. Multi-Factor Authentication (MFA) Verification</h3>
+<pre><code class="language-mermaid">sequenceDiagram
+    autonumber
+    actor User as User Browser
+    participant Gateway as API Security Layer
+    participant Auth as AuthController
+    participant MFA as MfaController
+    participant DB as MySQL Database
+
+    User-&gt;&gt;Gateway: POST /api/auth/login (credentials)
+    Gateway-&gt;&gt;DB: Fetch User details
+    DB--&gt;&gt;Gateway: User details returned
+    Gateway-&gt;&gt;Auth: Verify password hash
+    alt Credentials invalid
+        Auth--&gt;&gt;User: 401 Unauthorized
+    else Credentials valid
+        alt MFA active on user account
+            Auth--&gt;&gt;User: Redirect to MFA verification (with temp session token)
+            User-&gt;&gt;MFA: POST /api/mfa/verify (6-digit TOTP)
+            MFA-&gt;&gt;MFA: Calculate HMAC-SHA1 using stored user secret
+            alt Token matches (allowing +-1 interval drift)
+                MFA-&gt;&gt;DB: Generate active JWT access token
+                MFA--&gt;&gt;User: Return JWT Token (Auth success)
+            else Token invalid
+                MFA--&gt;&gt;User: 403 Forbidden (Invalid token)
+            end
+        else MFA inactive
+            Auth--&gt;&gt;User: Return JWT Token (Auth success, redirect to MFA setup)
+        end
+    end
+</code></pre>
+<h3>2. Tester Self-Assignment Flow</h3>
+<pre><code class="language-mermaid">sequenceDiagram
+    autonumber
+    actor Tester as Tester Dashboard
+    participant API as TaskController
+    participant Repo as TaskRepository
+    participant DB as MySQL Database
+    participant WS as WebSocket Handler
+
+    Tester-&gt;&gt;API: POST /api/tasks/{id}/assign-tester
+    API-&gt;&gt;Repo: execute assignTesterAtomically(taskId, testerId)
+    Note over Repo, DB: UPDATE tasks SET tester_id = ? ... WHERE id = ? AND status = 'TESTING_POOL' AND tester_id IS NULL
+    Repo-&gt;&gt;DB: Send query
+    DB--&gt;&gt;Repo: Returns affected row count (1 or 0)
+    alt Rows affected == 1
+        API-&gt;&gt;WS: Broadcast TaskStatusChangedEvent
+        WS--&gt;&gt;Tester: Refresh queues, status: TESTING_IN_PROGRESS
+    else Rows affected == 0 (race condition: another tester assigned first)
+        API--&gt;&gt;Tester: Return 400 Bad Request (Conflict)
+    end
+</code></pre>
+<hr />
+<h2>20.2 Coding Standards &amp; Naming conventions</h2>
+<h3>Exception Handling Rules</h3>
+<ol>
+<li>Never suppress exceptions with empty catch blocks.</li>
+<li>In case of unexpected issues, write details to standard error stream (<code>System.err.println</code>) or raise a specific runtime exception (e.g. <code>AccessDeniedException</code>).</li>
+<li>Return clean, parsed error models via <code>GlobalExceptionHandler</code> to prevent exposing stack traces to the client:<pre><code class="language-json">{
+  &quot;success&quot;: false,
+  &quot;message&quot;: &quot;Error details here...&quot;,
+  &quot;timestamp&quot;: &quot;2026-07-01T12:00:00&quot;
+}
+</code></pre>
+</li>
+</ol>
+<h3>Logging Rules</h3>
+<ul>
+<li>System alerts and background logs should output clear chronological messages indicating the entity type, ID, operator, and action executed.</li>
+</ul>
+<hr />
+<h1>Chapter 23: DevOps and Testing Documentation</h1>
+<p>This document describes the compilation process, continuous integration, production deployment models, and the testing automation framework of DevTrack 2.0.</p>
+<hr />
+<h2>23.1 DevOps &amp; Build Pipeline</h2>
+<h3>1. Unified Compilation</h3>
+<p>To bundle the frontend application directly into the Spring Boot container, execute the following steps:</p>
+<ol>
+<li>Compile the React assets for production:<pre><code class="language-bash">cd frontend
+npm run build
+</code></pre>
+This generates compiled files under the <code>frontend/dist/</code> directory.</li>
+<li>Compile and package the Java backend:<pre><code class="language-bash">cd ../backend
+mvn clean package
+</code></pre>
+During the packaging step, Maven copies the React assets from <code>frontend/dist/</code> into <code>backend/target/classes/static/</code> before assembling the <code>.jar</code>.</li>
+<li>The application is run as a single containerized unit:<pre><code class="language-bash">java -jar target/devtrack-backend-1.0.0.jar
+</code></pre>
+</li>
+</ol>
+<h3>2. Environment Configurations</h3>
+<p>The system reads configurations from <code>application.properties</code> or environment variables:</p>
+<ul>
+<li><code>SPRING_DATASOURCE_URL</code>: JDBC connector string.</li>
+<li><code>SPRING_DATASOURCE_USERNAME</code> / <code>SPRING_DATASOURCE_PASSWORD</code>: Database credentials.</li>
+<li><code>JWT_SECRET</code>: 256-bit signature secret.</li>
+<li><code>SPRING_MAIL_HOST</code> / <code>SPRING_MAIL_PORT</code>: SMTP Relay configurations.</li>
+</ul>
+<hr />
+<h2>23.2 Testing Framework</h2>
+<h3>1. Backend Unit Testing</h3>
+<ul>
+<li>Enforces Test-Driven Development (TDD) using JUnit 5, Mockito, and AssertJ.</li>
+<li>Service tests mock the Repository Layer to verify logic paths, status mapping, and authentication logic.</li>
+</ul>
+<h3>2. E2E UI Testing (Playwright)</h3>
+<ul>
+<li>End-to-end user scenarios are automated using Playwright.</li>
+<li>Test files reside under <code>frontend/e2e/</code> (or configured directories).</li>
+<li>Selectors target unique, stable IDs on interactive elements (e.g. <code>data-testid</code>).</li>
+<li><strong>Example E2E Workflow Script</strong>:<pre><code class="language-typescript">import { test, expect } from '@playwright/test';
+
+test('Tester can assign task atomically', async ({ page }) =&gt; {
+  // 1. Login as Tester
+  await page.goto('/login');
+  await page.fill('#username', 'tester1');
+  await page.fill('#password', 'password123');
+  await page.click('#submit-btn');
+
+  // 2. Access Testing Pool Tab
+  await page.click('button:has-text(&quot;Testing Pool&quot;)');
+  
+  // 3. Assign Task
+  const assignBtn = page.locator('[data-testid=&quot;assign-btn-DT-101&quot;]');
+  await expect(assignBtn).toBeVisible();
+  await assignBtn.click();
+  
+  // 4. Verify Movement
+  await expect(page.locator('text=TESTING_IN_PROGRESS')).toBeVisible();
+});
+</code></pre>
+</li>
+</ul>
+<hr />
+<h1>Chapter 26: User Manuals, Administrator &amp; Deployment Guides</h1>
+<p>This document compiles operational manuals, deployment steps, system configurations, and troubleshooting guides for DevTrack 2.0.</p>
+<hr />
+<h2>26.1 User Manuals</h2>
+<h3>1. Developer Workspace Manual</h3>
+<ul>
+<li><strong>Creating a CR</strong>: Click &quot;Create CR&quot; on the dashboard. Fill in all details (Jtrack ID, Title, Project, Category).</li>
+<li><strong>Working on a CR</strong>:
+<ul>
+<li>Click &quot;Start Development&quot; (moves CR to <code>IN_PROGRESS</code>).</li>
+<li>Deploy to SIT, then click &quot;Verify &amp; Complete SIT&quot; (moves to <code>SIT_COMPLETED</code>).</li>
+<li>Click &quot;Submit for Review&quot;, entering the PR URL and branch.</li>
+</ul>
+</li>
+<li><strong>Pushing to UAT</strong>: Once the code review is approved, open the task, upload the mandatory unit testing document, and click &quot;Deploy to UAT&quot;.</li>
+<li><strong>Resolving Bugs</strong>: If the tester logs a bug, it will appear under your &quot;Assigned Bugs&quot; section. Fix the bug, write transition comments, and mark it as <code>RESOLVED</code>.</li>
+</ul>
+<h3>2. Tester Workspace Manual</h3>
+<ul>
+<li><strong>Picking up a CR</strong>: Navigate to the &quot;Testing Pool&quot; tab. Select a CR and click &quot;Assign to Me&quot; (moves it to <code>TESTING_IN_PROGRESS</code>).</li>
+<li><strong>Verifying CR</strong>:
+<ul>
+<li><strong>Pass</strong>: If the CR behaves correctly, click &quot;Testing Passed&quot; to log remarks and sign off.</li>
+<li><strong>Fail</strong>: Click &quot;Raise Bug&quot;. Log description, steps to reproduce, expected vs actual results. The task changes to <code>BUG_FOUND</code>.</li>
+</ul>
+</li>
+</ul>
+<hr />
+<h2>26.2 Administrator Guide</h2>
+<h3>User &amp; Role Management</h3>
+<ul>
+<li>Navigate to the &quot;Users&quot; panel on the Admin Dashboard.</li>
+<li>Admins can create new user accounts, modify role scopes (<code>ADMIN</code>, <code>DEVELOPER</code>, <code>TESTER</code>, <code>TESTADMIN</code>), and disable inactive credentials.</li>
+</ul>
+<h3>Database Backups</h3>
+<ul>
+<li>To create a backup of the relational schemas, execute a mysqldump against the target schema:<pre><code class="language-bash">mysqldump -u [username] -p --databases devtrack &gt; devtrack_backup_$(date +%F).sql
+</code></pre>
+</li>
+</ul>
+<hr />
+<h2>26.3 Troubleshooting Guide</h2>
+<h3>1. JWT / Auth Failures</h3>
+<ul>
+<li><strong>Symptom</strong>: Client receives <code>401 Unauthorized</code> or &quot;Invalid JWT signature&quot; errors.</li>
+<li><strong>Resolution</strong>: Verify that the backend server and frontend client are configured with identical <code>jwt.secret</code> signing credentials. Ensure the client browser is storing the returned authorization header properly.</li>
+</ul>
+<h3>2. Database Migration Conflicts (Flyway)</h3>
+<ul>
+<li><strong>Symptom</strong>: Backend fails to launch with a &quot;Migration checksum mismatch&quot; error.</li>
+<li><strong>Resolution</strong>: Occurs when migration SQL scripts are modified after being applied. In development, run <code>mvn flyway:repair</code> or manually repair the Flyway metadata table.</li>
+</ul>
+<h3>3. Database Column Mismatches</h3>
+<ul>
+<li><strong>Symptom</strong>: Exception <code>Unknown column 't1_0.previous_tester_id' in 'field list'</code> on startup.</li>
+<li><strong>Resolution</strong>: Verify all database migration files (V1 through V10) have executed. Check the <code>flyway_schema_history</code> table to confirm V10 shows success.</li>
+</ul>
+<hr />
+<h1>Chapter 30: Future Roadmap</h1>
+<p>This document outlines the planned integrations, architectural scaling plans, and feature enhancements scheduled for the future evolution of DevTrack 2.0.</p>
+<hr />
+<h2>30.1 Planned Integrations</h2>
+<h3>1. Version Control System (VCS) Webhooks</h3>
+<ul>
+<li><strong>Objective</strong>: Link DevTrack directly to GitHub, GitLab, and Bitbucket.</li>
+<li><strong>Workflow</strong>: Creating a PR with title matching a Jtrack ID (e.g. <code>[DT-101] Fix login validation</code>) will automatically trigger state transitions in DevTrack:
+<ul>
+<li>PR open: Moves task to <code>CODE_REVIEW</code>.</li>
+<li>PR merge: Moves task to <code>CODE_REVIEW_DONE</code>, notifying developers to proceed with UAT deployment.</li>
+</ul>
+</li>
+</ul>
+<h3>2. CI/CD Orchestration (Jenkins &amp; GitLab CI)</h3>
+<ul>
+<li><strong>Objective</strong>: Automate the transition from code review approval to deployment.</li>
+<li><strong>Workflow</strong>: Once an admin approves a CR, DevTrack notifies Jenkins/GitLab to launch build jobs. Upon successful deployment, the pipeline notifies DevTrack to advance status to <code>SIT_DEPLOYED</code> or <code>MOVE_TO_UAT</code>.</li>
+</ul>
+<h3>3. Slack &amp; MS Teams Notifications</h3>
+<ul>
+<li><strong>Objective</strong>: Move notification delivery out of emails and directly into channels.</li>
+<li><strong>Workflow</strong>: Real-time webhook dispatches to project teams on event states:
+<ul>
+<li><code>#devtrack-alerts</code> gets a feed of raised bugs and critical deployments.</li>
+<li>Interactive Slack buttons allowing reviewers to approve code reviews directly from Slack chat.</li>
+</ul>
+</li>
+</ul>
+<hr />
+<h2>30.2 AI Enhancements</h2>
+<ul>
+<li><strong>Auto-Bug Reproduction</strong>: Integrate LLM APIs to read user bug descriptions and generate automated Playwright E2E test scripts.</li>
+<li><strong>Velocity Estimation</strong>: Machine learning modeling based on previous sprint efforts to estimate completion dates for new CRs.</li>
+</ul>
+<hr />
+<h2>30.3 Native Desktop &amp; Mobile Clients</h2>
+<ul>
+<li><strong>Mobile Companion App</strong>: React Native app for Android and iOS allowing stakeholders to approve reviews, view metrics, and resolve bugs on the go.</li>
+<li><strong>Desktop System Tray</strong>: Electron client for quick status updates and native notifications.</li>
+</ul>
+<hr />
+
+    </div>
+</body>
+</html>
