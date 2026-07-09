@@ -41,13 +41,12 @@ function PolicyItem({ ok, text }: { ok: boolean; text: string }) {
 
 /* ── Background dot grid ── */
 function DotGrid({ theme }: { theme: "light" | "dark" }) {
+  const dotColor = theme === "dark" ? "rgba(255, 255, 255, 0.09)" : "rgba(15, 23, 42, 0.08)"
   return (
     <div
-      className="absolute inset-0 pointer-events-none animate-fade-in"
+      className="absolute inset-0 pointer-events-none"
       style={{
-        backgroundImage: theme === "dark" 
-          ? `radial-gradient(circle, rgba(139,92,246,0.12) 1px, transparent 1px)` 
-          : `radial-gradient(circle, rgba(139,92,246,0.06) 1px, transparent 1px)`,
+        backgroundImage: `radial-gradient(circle, ${dotColor} 1.5px, transparent 1.5px)`,
         backgroundSize: "32px 32px",
       }}
     />

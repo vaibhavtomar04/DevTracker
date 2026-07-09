@@ -313,22 +313,28 @@ export default function LoginPage() {
         token: response.accessToken || response.token,
         mustChangePassword: !!response.mustChangePassword,
       }
-      setLoggedInUser(response.username)
-      setShowOverlay(true)
-      setTimeout(() => {
-        if (pendingSession.current) {
-          setSession(
-            pendingSession.current.user,
-            pendingSession.current.token,
-            pendingSession.current.mustChangePassword
-          )
-        }
-        if (pendingSession.current?.mustChangePassword) {
-          navigate("/set-new-password")
-        } else {
+
+      if (response.mustChangePassword) {
+        setSession(
+          pendingSession.current.user,
+          pendingSession.current.token,
+          true
+        )
+        navigate("/set-new-password")
+      } else {
+        setLoggedInUser(response.username)
+        setShowOverlay(true)
+        setTimeout(() => {
+          if (pendingSession.current) {
+            setSession(
+              pendingSession.current.user,
+              pendingSession.current.token,
+              false
+            )
+          }
           navigate("/dashboard")
-        }
-      }, 2700)
+        }, 2700)
+      }
     } catch {
       // handled by store error state
     }
@@ -357,22 +363,28 @@ export default function LoginPage() {
       token: res.accessToken || res.token,
       mustChangePassword: !!res.mustChangePassword,
     }
-    setLoggedInUser(res.username)
-    setShowOverlay(true)
-    setTimeout(() => {
-      if (pendingSession.current) {
-        setSession(
-          pendingSession.current.user,
-          pendingSession.current.token,
-          pendingSession.current.mustChangePassword
-        )
-      }
-      if (pendingSession.current?.mustChangePassword) {
-        navigate("/set-new-password")
-      } else {
+
+    if (res.mustChangePassword) {
+      setSession(
+        pendingSession.current.user,
+        pendingSession.current.token,
+        true
+      )
+      navigate("/set-new-password")
+    } else {
+      setLoggedInUser(res.username)
+      setShowOverlay(true)
+      setTimeout(() => {
+        if (pendingSession.current) {
+          setSession(
+            pendingSession.current.user,
+            pendingSession.current.token,
+            false
+          )
+        }
         navigate("/dashboard")
-      }
-    }, 2700)
+      }, 2700)
+    }
   }
 
   const handleForgotSubmit = async (e: React.FormEvent) => {
