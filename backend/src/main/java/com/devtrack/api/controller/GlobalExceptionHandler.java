@@ -49,17 +49,42 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(SQLException.class)
     public ResponseEntity<Map<String, Object>> handleSqlException(SQLException ex) {
-        // Critical: Never leak SQL errors or database state to the client
         log.error("Critical Database SQL error: ", ex);
         return buildErrorResponse("A database processing error occurred.", HttpStatus.INTERNAL_SERVER_ERROR);
+    }
+
+    @ExceptionHandler(org.springframework.dao.DataAccessException.class)
+    public ResponseEntity<Map<String, Object>> handleDataAccessException(org.springframework.dao.DataAccessException ex) {
+        log.error("Database access error: ", ex);
+        return buildErrorResponse("An unexpected database error occurred.", HttpStatus.INTERNAL_SERVER_ERROR);
+    }
+
+    @ExceptionHandler(jakarta.validation.ConstraintViolationException.class)
+    public ResponseEntity<Map<String, Object>> handleConstraintViolation(jakarta.validation.ConstraintViolationException ex) {
+        log.warn("Constraint violation: {}", ex.getMessage());
+        return buildErrorResponse("Database constraint validation failed.", HttpStatus.BAD_REQUEST);
     }
 
     @ExceptionHandler(RuntimeException.class)
     public ResponseEntity<Map<String, Object>> handleRuntimeException(RuntimeException ex) {
         log.error("Internal runtime exception: ", ex);
-        // If the error message is clean or customized (e.g. from service assertions), return it, otherwise mask
         String message = ex.getMessage();
-        if (message == null || message.contains("Exception") || message.contains("Sql") || message.contains("Hibernate")) {
+        if (message != null) {
+            String lowerMessage = message.toLowerCase();
+            if (lowerMessage.contains("exception") 
+                    || lowerMessage.contains("sql") 
+                    || lowerMessage.contains("jdbc")
+                    || lowerMessage.contains("hibernate")
+                    || lowerMessage.contains("constraint")
+                    || lowerMessage.contains("foreign key")
+                    || lowerMessage.contains("query")
+                    || lowerMessage.contains("database")
+                    || lowerMessage.contains("table")
+                    || lowerMessage.contains("column")
+                    || lowerMessage.contains("driver")) {
+                message = "An unexpected runtime error occurred.";
+            }
+        } else {
             message = "An unexpected runtime error occurred.";
         }
         return buildErrorResponse(message, HttpStatus.INTERNAL_SERVER_ERROR);
@@ -67,7 +92,6 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(Exception.class)
     public ResponseEntity<Map<String, Object>> handleGenericException(Exception ex) {
-        // Critical: Hides raw exceptions and stack traces
         log.error("Critical Unhandled system error: ", ex);
         return buildErrorResponse("An unexpected system error occurred. Please contact support.", HttpStatus.INTERNAL_SERVER_ERROR);
     }
