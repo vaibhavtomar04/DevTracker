@@ -424,12 +424,12 @@ export default function LoginPage() {
       {/* Theme toggle */}
       <div className="absolute top-4 right-4 z-50">
         <Button
-          variant="outline"
+          variant="ghost"
           size="icon"
-          className="rounded-full w-10 h-10 border-slate-200 dark:border-white/10 backdrop-blur-md bg-white/70 dark:bg-white/[0.04] text-slate-800 dark:text-white shadow-sm"
+          className="rounded-full w-10 h-10 border border-slate-200 dark:border-white/10 backdrop-blur-md bg-white/80 dark:bg-white/[0.04] text-slate-800 dark:text-white shadow-sm hover:bg-slate-100 hover:text-slate-900 dark:hover:bg-white/10 dark:hover:text-white"
           onClick={toggleTheme}
         >
-          {theme === "light" ? <Moon className="h-4 w-4" /> : <Sun className="h-4 w-4" />}
+          {theme === "light" ? <Moon className="h-4 w-4 text-indigo-600" /> : <Sun className="h-4 w-4 text-amber-400" />}
         </Button>
       </div>
 

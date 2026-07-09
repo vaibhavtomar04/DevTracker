@@ -9,7 +9,7 @@ interface ThemeState {
 }
 
 export const useThemeStore = create<ThemeState>((set, get) => ({
-  theme: "dark", // Default to premium dark mode
+  theme: "light", // Default to premium light mode
 
   toggleTheme: () => {
     const newTheme = get().theme === "light" ? "dark" : "light"
@@ -62,8 +62,7 @@ export const useThemeStore = create<ThemeState>((set, get) => ({
 
   initTheme: () => {
     const storedTheme = localStorage.getItem("dlms_theme") as "light" | "dark" | null
-    const prefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches
-    const theme = storedTheme || (prefersDark ? "dark" : "dark") // Enforce dark as default first preference
+    const theme = storedTheme || "light" // Enforce light as default
     
     set({ theme })
     localStorage.setItem("dlms_theme", theme)

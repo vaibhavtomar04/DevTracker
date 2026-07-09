@@ -208,7 +208,7 @@ export default function Navbar() {
           <Button
             variant="ghost"
             size="icon"
-            className="rounded-full h-9 w-9 bg-white/[0.04] border border-white/[0.08] hover:bg-primary/[0.08] hover:border-primary/30 overflow-hidden transition-all"
+            className="rounded-full h-9 w-9 bg-slate-100 dark:bg-white/[0.04] border border-slate-200 dark:border-white/[0.08] hover:bg-slate-200 hover:text-slate-900 dark:hover:bg-primary/[0.08] dark:hover:border-primary/30 overflow-hidden transition-all text-slate-800 dark:text-white"
             onClick={toggleTheme}
             title={theme === "light" ? "Switch to dark mode" : "Switch to light mode"}
           >
@@ -222,9 +222,9 @@ export default function Navbar() {
                 className="flex items-center justify-center"
               >
                 {theme === "light" ? (
-                  <Moon className="h-4 w-4 text-indigo-400" />
+                  <Moon className="h-4 w-4 text-indigo-600 dark:text-indigo-400" />
                 ) : (
-                  <Sun className="h-4 w-4 text-amber-400" />
+                  <Sun className="h-4 w-4 text-amber-500 dark:text-amber-400" />
                 )}
               </motion.div>
             </AnimatePresence>
