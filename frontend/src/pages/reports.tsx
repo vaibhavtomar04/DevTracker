@@ -35,6 +35,17 @@ export default function Reports() {
   const [exporting, setExporting] = useState<string | null>(null)
   const [analytics, setAnalytics] = useState<any>(null)
 
+  const getSlabadge = (rate: number | null) => {
+    if (rate === null) return null;
+    if (rate >= 80) {
+      return <span className="px-2 py-0.5 rounded-full text-[9px] font-extrabold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 shadow-sm shadow-emerald-500/5">Optimal</span>;
+    } else if (rate >= 60) {
+      return <span className="px-2 py-0.5 rounded-full text-[9px] font-extrabold bg-cyan-500/10 text-cyan-400 border border-cyan-500/20 shadow-sm shadow-cyan-500/5">Acceptable</span>;
+    } else {
+      return <span className="px-2 py-0.5 rounded-full text-[9px] font-extrabold bg-rose-500/10 text-rose-400 border border-rose-500/20 shadow-sm shadow-rose-500/5">At Risk</span>;
+    }
+  }
+
   useEffect(() => {
     fetchData()
     apiClient("/api/analytics/dashboard")
@@ -303,32 +314,68 @@ export default function Reports() {
                 Compare total development efforts (days) and completed tasks delivered per engineer.
               </CardDescription>
             </CardHeader>
-            <CardContent className="p-4 flex-1 min-h-[250px] flex items-center justify-center">
+            <CardContent className="p-5 flex-1 min-h-[380px] flex flex-col justify-between">
               {devProductivityData.length === 0 ? (
-                <div className="text-xs text-muted-foreground/60 font-semibold py-12">
+                <div className="text-xs text-muted-foreground/60 font-semibold py-12 text-center w-full">
                   No developer efforts logged yet.
                 </div>
               ) : (
-                <ResponsiveContainer width="100%" height={230}>
-                  <BarChart data={devProductivityData} margin={{ top: 10, right: 10, left: -25, bottom: 0 }}>
-                    <XAxis dataKey="name" stroke="#64748b" fontSize={9} tickLine={false} axisLine={false} />
-                    <YAxis stroke="#64748b" fontSize={9} tickLine={false} axisLine={false} />
-                    <Tooltip
-                      contentStyle={{ 
-                        background: "rgba(7, 10, 20, 0.85)", 
-                        border: "1px solid rgba(255,255,255,0.08)", 
-                        borderRadius: "12px", 
-                        fontSize: "11px", 
-                        color: "white",
-                        backdropFilter: "blur(12px)",
-                        boxShadow: "0 10px 30px rgba(0,0,0,0.5)"
-                      }}
-                    />
-                    <Legend wrapperStyle={{ fontSize: "10px", color: "#94a3b8" }} />
-                    <Bar dataKey="efforts" name="Logged Efforts (days)" fill="#8b5cf6" radius={[4, 4, 0, 0]} />
-                    <Bar dataKey="tasks" name="Completed Tasks" fill="#06b6d4" radius={[4, 4, 0, 0]} />
-                  </BarChart>
-                </ResponsiveContainer>
+                <>
+                  <div className="h-[220px] w-full">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <BarChart data={devProductivityData} margin={{ top: 10, right: 10, left: -25, bottom: 0 }}>
+                        <defs>
+                          <linearGradient id="effortsGrad" x1="0" y1="0" x2="0" y2="1">
+                            <stop offset="5%" stopColor="#8b5cf6" stopOpacity={0.9}/>
+                            <stop offset="95%" stopColor="#8b5cf6" stopOpacity={0.25}/>
+                          </linearGradient>
+                          <linearGradient id="tasksGrad" x1="0" y1="0" x2="0" y2="1">
+                            <stop offset="5%" stopColor="#06b6d4" stopOpacity={0.9}/>
+                            <stop offset="95%" stopColor="#06b6d4" stopOpacity={0.25}/>
+                          </linearGradient>
+                        </defs>
+                        <XAxis dataKey="name" stroke="#64748b" fontSize={9} tickLine={false} axisLine={false} />
+                        <YAxis stroke="#64748b" fontSize={9} tickLine={false} axisLine={false} />
+                        <Tooltip
+                          contentStyle={{ 
+                            background: "rgba(7, 10, 20, 0.85)", 
+                            border: "1px solid rgba(255,255,255,0.08)", 
+                            borderRadius: "12px", 
+                            fontSize: "11px", 
+                            color: "white",
+                            backdropFilter: "blur(12px)",
+                            boxShadow: "0 10px 30px rgba(0,0,0,0.5)"
+                          }}
+                        />
+                        <Legend wrapperStyle={{ fontSize: "10px", color: "#94a3b8", paddingTop: "5px" }} />
+                        <Bar dataKey="efforts" name="Logged Efforts (days)" fill="url(#effortsGrad)" radius={[4, 4, 0, 0]} />
+                        <Bar dataKey="tasks" name="Completed Tasks" fill="url(#tasksGrad)" radius={[4, 4, 0, 0]} />
+                      </BarChart>
+                    </ResponsiveContainer>
+                  </div>
+
+                  {/* Precision Data Table */}
+                  <div className="mt-4 border-t border-white/[0.06] pt-3 overflow-y-auto max-h-[120px] custom-scrollbar">
+                    <table className="w-full text-left border-collapse text-[10px]">
+                      <thead>
+                        <tr className="text-muted-foreground border-b border-white/[0.04]">
+                          <th className="pb-1.5 font-bold uppercase tracking-wider">Developer</th>
+                          <th className="pb-1.5 font-bold uppercase tracking-wider text-right">Efforts (Days)</th>
+                          <th className="pb-1.5 font-bold uppercase tracking-wider text-right">Completed Tasks</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-white/[0.02]">
+                        {devProductivityData.map((d) => (
+                          <tr key={d.name} className="hover:bg-white/[0.02] transition-colors">
+                            <td className="py-1 font-semibold text-slate-200">{d.name}</td>
+                            <td className="py-1 text-right font-mono text-violet-400">{d.efforts.toFixed(1)}</td>
+                            <td className="py-1 text-right font-mono text-cyan-400">{d.tasks}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </>
               )}
             </CardContent>
           </Card>
@@ -346,32 +393,71 @@ export default function Reports() {
                 Bugs raised vs. solved ratio mapped per developer.
               </CardDescription>
             </CardHeader>
-            <CardContent className="p-4 flex-1 min-h-[250px] flex items-center justify-center">
+            <CardContent className="p-5 flex-1 min-h-[380px] flex flex-col justify-between">
               {devBugsData.length === 0 ? (
-                <div className="text-xs text-muted-foreground/60 font-semibold py-12">
+                <div className="text-xs text-muted-foreground/60 font-semibold py-12 text-center w-full">
                   No active bug tickets logged in system.
                 </div>
               ) : (
-                <ResponsiveContainer width="100%" height={230}>
-                  <LineChart data={devBugsData} margin={{ top: 10, right: 10, left: -25, bottom: 0 }}>
-                    <XAxis dataKey="name" stroke="#64748b" fontSize={9} tickLine={false} axisLine={false} />
-                    <YAxis stroke="#64748b" fontSize={9} tickLine={false} axisLine={false} />
-                    <Tooltip
-                      contentStyle={{ 
-                        background: "rgba(7, 10, 20, 0.85)", 
-                        border: "1px solid rgba(255,255,255,0.08)", 
-                        borderRadius: "12px", 
-                        fontSize: "11px", 
-                        color: "white",
-                        backdropFilter: "blur(12px)",
-                        boxShadow: "0 10px 30px rgba(0,0,0,0.5)"
-                      }}
-                    />
-                    <Legend wrapperStyle={{ fontSize: "10px", color: "#94a3b8" }} />
-                    <Line type="monotone" dataKey="raised" name="Defects Raised" stroke="#f43f5e" strokeWidth={2.5} activeDot={{ r: 6 }} />
-                    <Line type="monotone" dataKey="solved" name="Defects Resolved" stroke="#10b981" strokeWidth={2.5} />
-                  </LineChart>
-                </ResponsiveContainer>
+                <>
+                  <div className="h-[220px] w-full">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <LineChart data={devBugsData} margin={{ top: 10, right: 10, left: -25, bottom: 0 }}>
+                        <XAxis dataKey="name" stroke="#64748b" fontSize={9} tickLine={false} axisLine={false} />
+                        <YAxis stroke="#64748b" fontSize={9} tickLine={false} axisLine={false} />
+                        <Tooltip
+                          contentStyle={{ 
+                            background: "rgba(7, 10, 20, 0.85)", 
+                            border: "1px solid rgba(255,255,255,0.08)", 
+                            borderRadius: "12px", 
+                            fontSize: "11px", 
+                            color: "white",
+                            backdropFilter: "blur(12px)",
+                            boxShadow: "0 10px 30px rgba(0,0,0,0.5)"
+                          }}
+                        />
+                        <Legend wrapperStyle={{ fontSize: "10px", color: "#94a3b8", paddingTop: "5px" }} />
+                        <Line type="monotone" dataKey="raised" name="Defects Raised" stroke="#f43f5e" strokeWidth={2.5} activeDot={{ r: 6 }} dot={{ r: 3, strokeWidth: 1 }} />
+                        <Line type="monotone" dataKey="solved" name="Defects Resolved" stroke="#10b981" strokeWidth={2.5} dot={{ r: 3, strokeWidth: 1 }} />
+                      </LineChart>
+                    </ResponsiveContainer>
+                  </div>
+
+                  {/* Precision Data Table */}
+                  <div className="mt-4 border-t border-white/[0.06] pt-3 overflow-y-auto max-h-[120px] custom-scrollbar">
+                    <table className="w-full text-left border-collapse text-[10px]">
+                      <thead>
+                        <tr className="text-muted-foreground border-b border-white/[0.04]">
+                          <th className="pb-1.5 font-bold uppercase tracking-wider">Developer</th>
+                          <th className="pb-1.5 font-bold uppercase tracking-wider text-right">Raised</th>
+                          <th className="pb-1.5 font-bold uppercase tracking-wider text-right">Resolved</th>
+                          <th className="pb-1.5 font-bold uppercase tracking-wider text-right">Resolution Rate</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-white/[0.02]">
+                        {devBugsData.map((d) => {
+                          const rate = d.raised > 0 ? (d.solved / d.raised) * 100 : 0;
+                          return (
+                            <tr key={d.name} className="hover:bg-white/[0.02] transition-colors">
+                              <td className="py-1 font-semibold text-slate-200">{d.name}</td>
+                              <td className="py-1 text-right font-mono text-rose-400">{d.raised}</td>
+                              <td className="py-1 text-right font-mono text-emerald-400">{d.solved}</td>
+                              <td className="py-1 text-right font-mono">
+                                <span className={`px-1.5 py-0.5 rounded-[4px] text-[9px] font-bold ${
+                                  rate >= 80 ? "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20" :
+                                  rate >= 50 ? "bg-amber-500/10 text-amber-400 border border-amber-500/20" :
+                                  "bg-rose-500/10 text-rose-400 border border-rose-500/20"
+                                }`}>
+                                  {rate.toFixed(1)}%
+                                </span>
+                              </td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+                </>
               )}
             </CardContent>
           </Card>
@@ -451,14 +537,17 @@ export default function Reports() {
                 Overall operational benchmarks for release SLA approvals and pipeline compliance.
               </CardDescription>
             </CardHeader>
-            <CardContent className="p-5 flex-1 flex flex-col justify-center space-y-4">
+            <CardContent className="p-5 flex-1 flex flex-col justify-center space-y-5">
               {/* SLA Benchmark 1 */}
               <div className="space-y-2">
-                <div className="flex justify-between text-xs font-semibold text-slate-200">
+                <div className="flex justify-between items-center text-xs font-semibold text-slate-200">
                   <span>Testing SLA (48h) Compliance Rate</span>
-                  <span className="text-emerald-400 font-mono">
-                    {analytics !== null ? `${analytics.testingSlaComplianceRate}%` : "Loading..."}
-                  </span>
+                  <div className="flex items-center space-x-2">
+                    {getSlabadge(analytics ? analytics.testingSlaComplianceRate : null)}
+                    <span className="text-emerald-400 font-mono">
+                      {analytics !== null ? `${analytics.testingSlaComplianceRate}%` : "Loading..."}
+                    </span>
+                  </div>
                 </div>
                 <div className="h-2.5 w-full bg-white/[0.04] border border-white/[0.06] rounded-full overflow-hidden p-[1px]">
                   <motion.div 
@@ -472,11 +561,14 @@ export default function Reports() {
 
               {/* SLA Benchmark 2 */}
               <div className="space-y-2">
-                <div className="flex justify-between text-xs font-semibold text-slate-200">
+                <div className="flex justify-between items-center text-xs font-semibold text-slate-200">
                   <span>Approval SLA (24h) Compliance Rate</span>
-                  <span className="text-cyan-400 font-mono">
-                    {analytics !== null ? `${analytics.approvalSlaComplianceRate}%` : "Loading..."}
-                  </span>
+                  <div className="flex items-center space-x-2">
+                    {getSlabadge(analytics ? analytics.approvalSlaComplianceRate : null)}
+                    <span className="text-cyan-400 font-mono">
+                      {analytics !== null ? `${analytics.approvalSlaComplianceRate}%` : "Loading..."}
+                    </span>
+                  </div>
                 </div>
                 <div className="h-2.5 w-full bg-white/[0.04] border border-white/[0.06] rounded-full overflow-hidden p-[1px]">
                   <motion.div 
@@ -490,11 +582,14 @@ export default function Reports() {
 
               {/* SLA Benchmark 3 */}
               <div className="space-y-2">
-                <div className="flex justify-between text-xs font-semibold text-slate-200">
+                <div className="flex justify-between items-center text-xs font-semibold text-slate-200">
                   <span>Sprint Task Completion Rate</span>
-                  <span className="text-amber-400 font-mono">
-                    {analytics !== null ? `${analytics.sprintTaskCompletionRate}%` : "Loading..."}
-                  </span>
+                  <div className="flex items-center space-x-2">
+                    {getSlabadge(analytics ? analytics.sprintTaskCompletionRate : null)}
+                    <span className="text-amber-400 font-mono">
+                      {analytics !== null ? `${analytics.sprintTaskCompletionRate}%` : "Loading..."}
+                    </span>
+                  </div>
                 </div>
                 <div className="h-2.5 w-full bg-white/[0.04] border border-white/[0.06] rounded-full overflow-hidden p-[1px]">
                   <motion.div 

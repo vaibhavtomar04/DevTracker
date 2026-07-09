@@ -10,6 +10,12 @@ import lombok.extern.slf4j.Slf4j;
 import net.javacrumbs.shedlock.spring.annotation.SchedulerLock;
 import org.apache.poi.ss.usermodel.*;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
+import org.apache.poi.xddf.usermodel.chart.*;
+import org.apache.poi.xssf.usermodel.XSSFChart;
+import org.apache.poi.xssf.usermodel.XSSFClientAnchor;
+import org.apache.poi.xssf.usermodel.XSSFDrawing;
+import org.apache.poi.xssf.usermodel.XSSFSheet;
+import org.apache.poi.ss.util.CellRangeAddress;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
@@ -327,6 +333,47 @@ public class AsyncReportService {
         }
         for (int i = 0; i < pCols.length; i++) devSheet.autoSizeColumn(i);
 
+        if (devRowIdx > 1) {
+            try {
+                XSSFSheet xssfSheet = (XSSFSheet) devSheet;
+                XSSFDrawing drawing = xssfSheet.createDrawingPatriarch();
+                if (drawing == null) drawing = xssfSheet.createDrawingPatriarch();
+                XSSFClientAnchor anchor = drawing.createAnchor(0, 0, 0, 0, 5, 1, 15, 18);
+                XSSFChart chart = drawing.createChart(anchor);
+                chart.setTitleText("Developer Productivity Analysis");
+                chart.setTitleOverlay(false);
+
+                XDDFCategoryAxis categoryAxis = chart.createCategoryAxis(AxisPosition.BOTTOM);
+                categoryAxis.setTitle("Developer");
+                XDDFValueAxis valueAxis = chart.createValueAxis(AxisPosition.LEFT);
+                valueAxis.setTitle("Efforts (Days) / Tasks");
+                valueAxis.setCrosses(AxisCrosses.AUTO_ZERO);
+
+                XDDFDataSource<String> devs = XDDFDataSourcesFactory.fromStringCellRange(xssfSheet, 
+                        new CellRangeAddress(1, devRowIdx - 1, 0, 0));
+                XDDFNumericalDataSource<Double> efforts = XDDFDataSourcesFactory.fromNumericCellRange(xssfSheet, 
+                        new CellRangeAddress(1, devRowIdx - 1, 1, 1));
+                XDDFNumericalDataSource<Double> tasksData = XDDFDataSourcesFactory.fromNumericCellRange(xssfSheet, 
+                        new CellRangeAddress(1, devRowIdx - 1, 2, 2));
+
+                XDDFChartData chartData = chart.createData(ChartTypes.BAR, categoryAxis, valueAxis);
+                ((XDDFBarChartData) chartData).setBarDirection(BarDirection.COL);
+                ((XDDFBarChartData) chartData).setBarGrouping(BarGrouping.CLUSTERED);
+                
+                XDDFChartData.Series series1 = chartData.addSeries(devs, efforts);
+                series1.setTitle("Logged Efforts (Days)", null);
+                XDDFChartData.Series series2 = chartData.addSeries(devs, tasksData);
+                series2.setTitle("Completed Tasks", null);
+
+                chart.plot(chartData);
+
+                XDDFChartLegend legend = chart.getOrAddLegend();
+                legend.setPosition(LegendPosition.BOTTOM);
+            } catch (Exception e) {
+                log.error("Failed to generate Developer Productivity Excel chart", e);
+            }
+        }
+
         // 3. Sheet: Defect Resolution
         Sheet defectSheet = workbook.createSheet("Defects Resolution");
         defectSheet.setDisplayGridlines(true);
@@ -385,6 +432,45 @@ public class AsyncReportService {
         }
         for (int i = 0; i < dCols.length; i++) defectSheet.autoSizeColumn(i);
 
+        if (defectRowIdx > 1) {
+            try {
+                XSSFSheet xssfSheet = (XSSFSheet) defectSheet;
+                XSSFDrawing drawing = xssfSheet.createDrawingPatriarch();
+                if (drawing == null) drawing = xssfSheet.createDrawingPatriarch();
+                XSSFClientAnchor anchor = drawing.createAnchor(0, 0, 0, 0, 6, 1, 16, 18);
+                XSSFChart chart = drawing.createChart(anchor);
+                chart.setTitleText("Defect Resolution Metrics");
+                chart.setTitleOverlay(false);
+
+                XDDFCategoryAxis categoryAxis = chart.createCategoryAxis(AxisPosition.BOTTOM);
+                categoryAxis.setTitle("Developer");
+                XDDFValueAxis valueAxis = chart.createValueAxis(AxisPosition.LEFT);
+                valueAxis.setTitle("Bugs Count");
+                valueAxis.setCrosses(AxisCrosses.AUTO_ZERO);
+
+                XDDFDataSource<String> devs = XDDFDataSourcesFactory.fromStringCellRange(xssfSheet, 
+                        new CellRangeAddress(1, defectRowIdx - 1, 0, 0));
+                XDDFNumericalDataSource<Double> raised = XDDFDataSourcesFactory.fromNumericCellRange(xssfSheet, 
+                        new CellRangeAddress(1, defectRowIdx - 1, 1, 1));
+                XDDFNumericalDataSource<Double> resolved = XDDFDataSourcesFactory.fromNumericCellRange(xssfSheet, 
+                        new CellRangeAddress(1, defectRowIdx - 1, 2, 2));
+
+                XDDFChartData chartData = chart.createData(ChartTypes.LINE, categoryAxis, valueAxis);
+                
+                XDDFChartData.Series series1 = chartData.addSeries(devs, raised);
+                series1.setTitle("Bugs Raised", null);
+                XDDFChartData.Series series2 = chartData.addSeries(devs, resolved);
+                series2.setTitle("Bugs Resolved", null);
+
+                chart.plot(chartData);
+
+                XDDFChartLegend legend = chart.getOrAddLegend();
+                legend.setPosition(LegendPosition.BOTTOM);
+            } catch (Exception e) {
+                log.error("Failed to generate Defect Resolution Excel chart", e);
+            }
+        }
+
         // 4. Sheet: Active Sprint Burndown
         Sheet burndownSheet = workbook.createSheet("Sprint Burndown");
         burndownSheet.setDisplayGridlines(true);
@@ -435,6 +521,45 @@ public class AsyncReportService {
             }
         }
         for (int i = 0; i < bCols.length; i++) burndownSheet.autoSizeColumn(i);
+
+        if (burnRowIdx > 1) {
+            try {
+                XSSFSheet xssfSheet = (XSSFSheet) burndownSheet;
+                XSSFDrawing drawing = xssfSheet.createDrawingPatriarch();
+                if (drawing == null) drawing = xssfSheet.createDrawingPatriarch();
+                XSSFClientAnchor anchor = drawing.createAnchor(0, 0, 0, 0, 5, 1, 15, 18);
+                XSSFChart chart = drawing.createChart(anchor);
+                chart.setTitleText("Active Sprint Burndown Chart");
+                chart.setTitleOverlay(false);
+
+                XDDFCategoryAxis categoryAxis = chart.createCategoryAxis(AxisPosition.BOTTOM);
+                categoryAxis.setTitle("Day");
+                XDDFValueAxis valueAxis = chart.createValueAxis(AxisPosition.LEFT);
+                valueAxis.setTitle("Story Points");
+                valueAxis.setCrosses(AxisCrosses.AUTO_ZERO);
+
+                XDDFDataSource<String> days = XDDFDataSourcesFactory.fromStringCellRange(xssfSheet, 
+                        new CellRangeAddress(1, burnRowIdx - 1, 0, 0));
+                XDDFNumericalDataSource<Double> remaining = XDDFDataSourcesFactory.fromNumericCellRange(xssfSheet, 
+                        new CellRangeAddress(1, burnRowIdx - 1, 1, 1));
+                XDDFNumericalDataSource<Double> ideal = XDDFDataSourcesFactory.fromNumericCellRange(xssfSheet, 
+                        new CellRangeAddress(1, burnRowIdx - 1, 2, 2));
+
+                XDDFChartData chartData = chart.createData(ChartTypes.LINE, categoryAxis, valueAxis);
+                
+                XDDFChartData.Series series1 = chartData.addSeries(days, remaining);
+                series1.setTitle("Remaining Story Points", null);
+                XDDFChartData.Series series2 = chartData.addSeries(days, ideal);
+                series2.setTitle("Ideal Story Points", null);
+
+                chart.plot(chartData);
+
+                XDDFChartLegend legend = chart.getOrAddLegend();
+                legend.setPosition(LegendPosition.BOTTOM);
+            } catch (Exception e) {
+                log.error("Failed to generate Sprint Burndown Excel chart", e);
+            }
+        }
 
         // 5. Sheet: Category & Response Times
         Sheet timesSheet = workbook.createSheet("Categories & Response");
