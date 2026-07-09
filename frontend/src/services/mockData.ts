@@ -8,6 +8,7 @@ export interface User {
   mfaEnabled?: boolean
   avatar?: string
   theme?: string
+  mustChangePassword?: boolean
 }
 
 export interface TaskType {

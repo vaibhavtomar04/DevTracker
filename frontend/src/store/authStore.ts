@@ -97,7 +97,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
           if (data && data.theme) {
             useThemeStore.getState().setTheme(data.theme as "light" | "dark");
           }
-          set({ user: data, token: storedToken, initialized: true });
+          set({ user: data, token: storedToken, initialized: true, mustChangePassword: !!data.mustChangePassword });
           get().startInactivityTracking();
           return;
         }
@@ -122,7 +122,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         if (data && data.theme) {
           useThemeStore.getState().setTheme(data.theme as "light" | "dark");
         }
-        set({ user: data, token: data.token, initialized: true });
+        set({ user: data, token: data.token, initialized: true, mustChangePassword: !!data.mustChangePassword });
         get().startInactivityTracking();
       } else {
         localStorage.removeItem("token");

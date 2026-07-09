@@ -55,7 +55,7 @@ interface ProtectedRouteProps {
 }
 
 function ProtectedRoute({ children, allowedRoles }: ProtectedRouteProps) {
-  const { user, initialized } = useAuthStore()
+  const { user, initialized, mustChangePassword } = useAuthStore()
 
   if (!initialized) {
     return <LoadingSpinner />
@@ -63,6 +63,10 @@ function ProtectedRoute({ children, allowedRoles }: ProtectedRouteProps) {
 
   if (!user) {
     return <Navigate to="/login" replace />
+  }
+
+  if (mustChangePassword || user.mustChangePassword) {
+    return <Navigate to="/set-new-password" replace />
   }
 
   if (allowedRoles && !allowedRoles.some(role => user.roles.includes(role))) {
