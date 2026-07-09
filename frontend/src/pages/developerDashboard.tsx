@@ -103,13 +103,82 @@ export default function DeveloperDashboard() {
     sprintTasks.forEach(t => {
       const sp = t.efforts && t.efforts > 0 ? Math.round(t.efforts) : 3
       total += sp
-      if (t.status === "CLOSED") {
+      if (["CLOSED", "PROD_COMPLETED", "PROD_DEPLOYED"].includes(t.status)) {
         completed += sp
       }
     })
     const percent = total > 0 ? Math.round((completed / total) * 100) : 0
     return { completed, total, percent }
   }, [activeSprint, tasks])
+
+  const burndownPoints = useMemo(() => {
+    if (!activeSprint || !activeSprint.startDate || !activeSprint.endDate) return []
+    
+    const start = new Date(activeSprint.startDate)
+    const end = new Date(activeSprint.endDate)
+    const diffTime = end.getTime() - start.getTime()
+    const sprintDays = Math.max(1, Math.ceil(diffTime / (1000 * 60 * 60 * 24)))
+    
+    const sprintTasks = tasks.filter(t => t.sprintId === activeSprint.id)
+    const totalStoryPoints = sprintTasks.reduce((sum, t) => sum + (t.efforts && t.efforts > 0 ? Math.round(t.efforts) : 3), 0)
+    
+    const points: { day: string; remaining: number; ideal: number }[] = []
+    
+    for (let d = 0; d <= sprintDays; d++) {
+      const currentDayDate = new Date(start)
+      currentDayDate.setDate(start.getDate() + d)
+      
+      const ideal = Math.max(0, totalStoryPoints - (d * totalStoryPoints / sprintDays))
+      
+      let remaining = 0
+      sprintTasks.forEach(t => {
+        const pts = t.efforts && t.efforts > 0 ? Math.round(t.efforts) : 3
+        const isCompleted = ["CLOSED", "PROD_COMPLETED", "PROD_DEPLOYED"].includes(t.status)
+        if (isCompleted) {
+          const compDateStr = t.productionDate || t.updatedDate?.split("T")[0]
+          const compDate = compDateStr ? new Date(compDateStr) : new Date(activeSprint.startDate)
+          const compDateZero = new Date(compDate.getFullYear(), compDate.getMonth(), compDate.getDate())
+          const currentZero = new Date(currentDayDate.getFullYear(), currentDayDate.getMonth(), currentDayDate.getDate())
+          if (compDateZero.getTime() > currentZero.getTime()) {
+            remaining += pts
+          }
+        } else {
+          remaining += pts
+        }
+      })
+      
+      points.push({
+        day: `Day ${d + 1}`,
+        remaining: Math.round(remaining * 10) / 10,
+        ideal: Math.round(ideal * 10) / 10
+      })
+    }
+    
+    return points
+  }, [activeSprint, tasks])
+
+  const burndownLabels = useMemo(() => {
+    if (burndownPoints.length === 0) return []
+    const len = burndownPoints.length
+    if (len <= 4) {
+      return burndownPoints.map(p => p.day)
+    }
+    return [
+      burndownPoints[0].day,
+      burndownPoints[Math.floor(len * 0.33)].day,
+      burndownPoints[Math.floor(len * 0.66)].day,
+      burndownPoints[len - 1].day
+    ]
+  }, [burndownPoints])
+
+  const elapsedDays = useMemo(() => {
+    if (!activeSprint || !activeSprint.startDate) return 0
+    const start = new Date(activeSprint.startDate)
+    const today = new Date()
+    const todayZero = new Date(today.getFullYear(), today.getMonth(), today.getDate())
+    const startZero = new Date(start.getFullYear(), start.getMonth(), start.getDate())
+    return Math.max(0, Math.ceil((todayZero.getTime() - startZero.getTime()) / (1000 * 60 * 60 * 24)))
+  }, [activeSprint])
 
   // Fetch document list for selected task
   useEffect(() => {
@@ -1292,19 +1361,74 @@ export default function DeveloperDashboard() {
                           <div className="space-y-2 col-span-2 text-left">
                             <span className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest block">Sprint Burndown</span>
                             <div className="h-28 bg-[#0f0f11] border border-white/[0.04] rounded-2xl p-3 flex flex-col justify-between">
-                              <div className="flex-1 flex items-end justify-between relative px-2">
-                                {/* Diagonal ideal line */}
-                                <svg className="absolute inset-0 w-full h-full" preserveAspectRatio="none">
-                                  <line x1="0" y1="0" x2="100%" y2="100%" stroke="rgba(255,255,255,0.06)" strokeDasharray="3,3" strokeWidth="1" />
-                                  <polyline points="0,5 40,30 80,45 120,48 160,80 200,90" fill="none" stroke="#06b6d4" strokeWidth="2" />
-                                </svg>
-                              </div>
-                              <div className="flex justify-between text-[8px] text-zinc-600 font-bold uppercase pt-2">
-                                <span>Day 1</span>
-                                <span>Day 5</span>
-                                <span>Day 10</span>
-                                <span>Day 14</span>
-                              </div>
+                              {burndownPoints.length === 0 ? (
+                                <div className="flex-1 flex items-center justify-center text-zinc-600 italic text-[10px]">
+                                  No active sprint data
+                                </div>
+                              ) : (() => {
+                                const maxVal = Math.max(...burndownPoints.map(p => Math.max(p.remaining, p.ideal)), 1)
+                                const svgWidth = 300
+                                const svgHeight = 80
+
+                                const idealPointsStr = burndownPoints.map((p, index) => {
+                                  const x = (index / (burndownPoints.length - 1)) * svgWidth
+                                  const y = svgHeight - (p.ideal / maxVal) * svgHeight
+                                  return `${x},${y}`
+                                }).join(" ")
+
+                                const actualPointsStr = burndownPoints
+                                  .slice(0, Math.min(elapsedDays + 1, burndownPoints.length))
+                                  .map((p, index) => {
+                                    const x = (index / (burndownPoints.length - 1)) * svgWidth
+                                    const y = svgHeight - (p.remaining / maxVal) * svgHeight
+                                    return `${x},${y}`
+                                  }).join(" ")
+
+                                return (
+                                  <>
+                                    <div className="flex-1 flex items-end justify-between relative px-2">
+                                      <svg className="absolute inset-0 w-full h-full" viewBox={`0 0 ${svgWidth} ${svgHeight}`} preserveAspectRatio="none">
+                                        {/* Ideal line */}
+                                        <polyline
+                                          points={idealPointsStr}
+                                          fill="none"
+                                          stroke="rgba(255, 255, 255, 0.1)"
+                                          strokeDasharray="3,3"
+                                          strokeWidth="1.5"
+                                        />
+                                        {/* Actual line */}
+                                        {actualPointsStr && (
+                                          <polyline
+                                            points={actualPointsStr}
+                                            fill="none"
+                                            stroke="#06b6d4"
+                                            strokeWidth="2"
+                                          />
+                                        )}
+                                        {/* Data points */}
+                                        {burndownPoints.slice(0, Math.min(elapsedDays + 1, burndownPoints.length)).map((p, index) => {
+                                          const x = (index / (burndownPoints.length - 1)) * svgWidth
+                                          const y = svgHeight - (p.remaining / maxVal) * svgHeight
+                                          return (
+                                            <circle
+                                              key={index}
+                                              cx={x}
+                                              cy={y}
+                                              r="2.5"
+                                              fill="#06b6d4"
+                                            />
+                                          )
+                                        })}
+                                      </svg>
+                                    </div>
+                                    <div className="flex justify-between text-[8px] text-zinc-500 font-bold uppercase pt-2">
+                                      {burndownLabels.map((lbl, idx) => (
+                                        <span key={idx}>{lbl}</span>
+                                      ))}
+                                    </div>
+                                  </>
+                                )
+                              })()}
                             </div>
                           </div>
 
