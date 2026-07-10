@@ -3,6 +3,9 @@ package com.devtrack.api.services;
 import java.net.URI;
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Map;
+import java.util.HashMap;
+import java.util.ArrayList;
 
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpEntity;
@@ -14,6 +17,8 @@ import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 import org.springframework.web.context.annotation.RequestScope;
+import org.thymeleaf.TemplateEngine;
+import org.thymeleaf.context.Context;
 
 import com.devtrack.api.dto.EmailRequestVo;
 import com.devtrack.api.dto.ResponseVo;
@@ -42,21 +47,6 @@ public class EmailNotificationService {
 	@Value("${testing.mail.sender}")
 	private String testingSender;
 
-	@Value("${bug.mail.body}")
-	private String bugMailBody;
-
-	@Value("${mail.updatebug.body}")
-	private String updateBugBody;
-
-	@Value("${codereview.mail.body}")
-	private String codereviewBody;
-
-	@Value("${codereview.approval.mail.body}")
-	private String codereviewApprovalBody;
-
-	@Value("${uat.testing.mail.body}")
-	private String uatTestingMailBody;
-
 	@Value("${uat.testComplete.mail.body}")
 	private String uatTestCompleteMailBody;
 
@@ -72,10 +62,17 @@ public class EmailNotificationService {
 	@Value("${review.mail.cc}")
 	private String reviewCc;
 
+	@Value("${devtrack.mail.logo-url:https://raw.githubusercontent.com/devtrack/assets/main/logo.png}")
+	private String appLogoUrl;
+
+	@Value("${devtrack.mail.base-url:http://localhost:5173}")
+	private String baseUrl;
+
 	private final UserRepository userRepository;
 	private final BugTaskRepository bugTaskRepository;
 	private final TaskRepository taskRepository;
 	private final BugMailThreadRepo mailThreadRepo;
+	private final TemplateEngine templateEngine;
 
 	@Async
 	public void sendNotificationOnCreation(Bug bug) {
@@ -86,10 +83,20 @@ public class EmailNotificationService {
 			if(bug.getBugTask()!=null)
 				task = taskRepository.findById(bug.getBugTask().getId()).get();
 
-			bugMailBody = bugMailBody.replace("ASSIGNED_TO", user.getFullName()).replaceAll("BUG_ID", bug.getId().toString())
-					.replace("BUG_TITLE", bug.getTitle()).replace("BUG_DESC", bug.getDescription())
-					.replace("BUG_PRIORITY", bug.getPriority()).replace("CURRENT_USER", bug.getRaisedBy().getFullName())
-					.replace("BUG_STATUS", bug.getStatus());
+			Context context = new Context();
+			Map<String, Object> bugMap = new HashMap<>();
+			bugMap.put("id", bug.getId());
+			bugMap.put("title", bug.getTitle());
+			bugMap.put("description", bug.getDescription());
+			bugMap.put("environment", task != null && task.getEnvironment() != null ? task.getEnvironment() : "PRODUCTION");
+			bugMap.put("priority", bug.getPriority() != null ? bug.getPriority() : "MEDIUM");
+			bugMap.put("assignedTo", user.getFullName());
+			bugMap.put("url", baseUrl + "/dashboard");
+			context.setVariable("bug", bugMap);
+			context.setVariable("currentUser", bug.getRaisedBy().getFullName());
+			context.setVariable("appLogoUrl", appLogoUrl);
+
+			String renderedHtml = templateEngine.process("email/bug-notification", context);
 
 			String subject = "Bug Details || ";
 
@@ -105,7 +112,7 @@ public class EmailNotificationService {
 				subject = subject+bug.getTitle();
 			}
 
-			EmailRequestVo requestMap = createEmailRequestMap(bugMailBody, subject, user.getEmail(), null, testingSender, testingCc);
+			EmailRequestVo requestMap = createEmailRequestMap(renderedHtml, subject, user.getEmail(), null, testingSender, testingCc);
 
 			if(requestMap!=null) {
 				ResponseVo response = callSendNotificationApi(requestMap);
@@ -140,17 +147,26 @@ public class EmailNotificationService {
 			}else {
 
 				User user = userRepository.findById(bug.getAssignedDeveloper().getId()).get();
-				updateBugBody=updateBugBody.replace("BUG_STATUS", bug.getStatus())
-						.replace("UPDATE_REMARKS", remarks)
-						.replace("CURRENT_USER", bug.getRaisedBy().getFullName())
-						.replace("BUG_DESC", bug.getDescription())
-						.replace("ASSIGNED_TO", user.getFullName())
-						.replaceAll("BUG_ID", bug.getId().toString())
-						.replace("BUG_TITLE", bug.getTitle())
-						.replace("BUG_PRIORITY", bug.getPriority())
-						.replace("RAISED_BY", bug.getRaisedBy().getFullName());
 
-				EmailRequestVo requestMap = createEmailRequestMap(updateBugBody, mailThread.getSubject(), testingSender, mailThread.getMessageId(), developersMail, testingCc);
+				Context context = new Context();
+				Map<String, Object> bugMap = new HashMap<>();
+				bugMap.put("id", bug.getId());
+				bugMap.put("title", bug.getTitle());
+				bugMap.put("description", bug.getDescription());
+				bugMap.put("environment", "PRODUCTION");
+				bugMap.put("status", bug.getStatus());
+				bugMap.put("priority", bug.getPriority() != null ? bug.getPriority() : "MEDIUM");
+				bugMap.put("assignedTo", user.getFullName());
+				bugMap.put("raisedBy", bug.getRaisedBy().getFullName());
+				bugMap.put("updateRemarks", remarks);
+				bugMap.put("url", baseUrl + "/dashboard");
+				context.setVariable("bug", bugMap);
+				context.setVariable("currentUser", bug.getRaisedBy().getFullName());
+				context.setVariable("appLogoUrl", appLogoUrl);
+
+				String renderedHtml = templateEngine.process("email/bug-update", context);
+
+				EmailRequestVo requestMap = createEmailRequestMap(renderedHtml, mailThread.getSubject(), testingSender, mailThread.getMessageId(), developersMail, testingCc);
 
 				if(requestMap!=null)
 					callSendNotificationApi(requestMap);
@@ -169,20 +185,21 @@ public class EmailNotificationService {
 		try {
 			log.info("bug sendMailOnCodeReview ");
 			User user = userRepository.findById(task.getAssignedDeveloper().getId()).get();
-			String formattedLink="";
-			if(task.getGitLinks()!=null && !task.getGitLinks().isBlank()) {
-				String[] gitlinks = task.getGitLinks().split(",");
-				formattedLink = "<ul>";
-				for(int i=0;i<gitlinks.length;i++) {
-					formattedLink = formattedLink+"<li><a href="+gitlinks[i]+">GitLink_"+(i+1)+"</a></li>";
-				}
-				formattedLink=formattedLink+"</ul>";
-			}
-			codereviewBody = codereviewBody.replace("JTRACK_ID", (task.getJtrackId()!=null && !task.getJtrackId().isBlank())?task.getJtrackId():"NA")
-					.replace("BRANCH_NAME", (task.getBranchName()!=null && !task.getBranchName().isBlank())?task.getBranchName():"NA")
-					.replace("DEVELOPER_NAME", user.getFullName())
-					.replace("SUMMARY_CHANGES", remarks)
-					.replace("GIT_LINKS", formattedLink!=null && !formattedLink.isBlank()?formattedLink:"NA");
+			
+			Context context = new Context();
+			Map<String, Object> crMap = new HashMap<>();
+			crMap.put("jtrackId", task.getJtrackId() != null && !task.getJtrackId().isBlank() ? task.getJtrackId() : "NA");
+			crMap.put("branchName", task.getBranchName() != null && !task.getBranchName().isBlank() ? task.getBranchName() : "NA");
+			crMap.put("developerName", user.getFullName());
+			crMap.put("gitLinks", task.getGitLinks() != null && !task.getGitLinks().isBlank() ? task.getGitLinks() : "NA");
+			crMap.put("summaryOfChanges", remarks != null ? remarks : "NA");
+			crMap.put("reviewUrl", baseUrl + "/dashboard/code-review");
+			
+			context.setVariable("cr", crMap);
+			context.setVariable("reviewerNames", "Nilesh Sir / Dvija Ma'am");
+			context.setVariable("appLogoUrl", appLogoUrl);
+
+			String renderedHtml = templateEngine.process("email/codereview-request", context);
 
 			String subject = "Code Review || ";
 
@@ -193,7 +210,7 @@ public class EmailNotificationService {
 				subject = subject+task.getTitle();
 			}
 
-			EmailRequestVo requestMap = createEmailRequestMap(codereviewBody, subject, reviewerMail, null, developersMail, reviewCc);
+			EmailRequestVo requestMap = createEmailRequestMap(renderedHtml, subject, reviewerMail, null, developersMail, reviewCc);
 
 			if(requestMap!=null) {
 				ResponseVo response = callSendNotificationApi(requestMap);
@@ -225,10 +242,28 @@ public class EmailNotificationService {
 				sendMailOnCodeReview(task, remarks);
 			}else {
 				User user = userRepository.findById(task.getAssignedDeveloper().getId()).get();
-				codereviewApprovalBody=codereviewApprovalBody.replace("DEVELOPER_NAME", user.getFullName())
-						.replace("REVIEWER_NAME", approver.getFullName());
+				
+				Context context = new Context();
+				Map<String, Object> crMap = new HashMap<>();
+				crMap.put("reviewUrl", baseUrl + "/dashboard/crs");
+				
+				// Generate review checklist
+				List<Map<String, Object>> checklist = List.of(
+					Map.of("srNo", 1, "question", "Does the source code conform to the standards and guidelines?", "comment", "YES"),
+					Map.of("srNo", 2, "question", "Are unit tests executed and passed?", "comment", "YES"),
+					Map.of("srNo", 3, "question", "Are database queries optimized?", "comment", "YES"),
+					Map.of("srNo", 4, "question", "Has SonarQube quality gate passed?", "comment", "YES")
+				);
+				crMap.put("checklist", checklist);
+				
+				context.setVariable("cr", crMap);
+				context.setVariable("reviewerName", approver.getFullName());
+				context.setVariable("developerName", user.getFullName());
+				context.setVariable("appLogoUrl", appLogoUrl);
 
-				EmailRequestVo requestMap = createEmailRequestMap(codereviewApprovalBody, mailThread.get(0).getSubject(), 
+				String renderedHtml = templateEngine.process("email/codereview-approval", context);
+
+				EmailRequestVo requestMap = createEmailRequestMap(renderedHtml, mailThread.get(0).getSubject(), 
 						user.getEmail(), mailThread.get(0).getMessageId(), developersMail, reviewCc);
 
 				if(requestMap!=null)
@@ -247,9 +282,26 @@ public class EmailNotificationService {
 	public void sendMailForUatTesting(Task task, String remarks, User currentUser) {
 		log.info("Inside sendMailForUatTesting");
 		try {
+			User developer = task.getAssignedDeveloper();
+			String devName = developer != null ? developer.getFullName() : "Developer";
+			
+			Context context = new Context();
+			Map<String, Object> testMap = new HashMap<>();
+			testMap.put("environment", task.getEnvironment() != null ? task.getEnvironment() : "UAT");
+			testMap.put("jtrackId", task.getJtrackId());
+			testMap.put("title", task.getTitle());
+			testMap.put("branchName", task.getBranchName() != null ? task.getBranchName() : "NA");
+			testMap.put("buildVersion", "v2.0.0");
+			testMap.put("modulesAffected", task.getModule() != null ? task.getModule() : "All Modules");
+			testMap.put("deployedOn", task.getUatDate() != null ? task.getUatDate().toString() : LocalDate.now().toString());
+			testMap.put("developer", devName);
+			testMap.put("url", baseUrl + "/dashboard/testing");
+			testMap.put("remarks", remarks);
+			
+			context.setVariable("test", testMap);
+			context.setVariable("appLogoUrl", appLogoUrl);
 
-			uatTestingMailBody=uatTestingMailBody.replace("DEVELOPER", currentUser.getFullName())
-					.replace("REMARKS", remarks);
+			String renderedHtml = templateEngine.process("email/uat-testing", context);
 
 			String subject = "UAT Testing || ";
 			if(task!=null && task.getJtrackId()!=null && !task.getJtrackId().isBlank()) {
@@ -259,7 +311,7 @@ public class EmailNotificationService {
 				subject = subject+task.getTitle();
 			}
 
-			EmailRequestVo requestMap = createEmailRequestMap(uatTestingMailBody, subject, testingSender, null, developersMail, testingCc);
+			EmailRequestVo requestMap = createEmailRequestMap(renderedHtml, subject, testingSender, null, developersMail, testingCc);
 
 			if(requestMap!=null) {
 				ResponseVo response = callSendNotificationApi(requestMap);

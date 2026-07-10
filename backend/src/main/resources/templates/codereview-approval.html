@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+  <title>Code Review Approved</title>
+</head>
+<body style="margin:0; padding:0; background-color:#0f1419; font-family:'Segoe UI', Arial, Helvetica, sans-serif; -webkit-font-smoothing:antialiased;">
+
+  <!-- Preheader (hidden preview text) -->
+  <div style="display:none; max-height:0; overflow:hidden; opacity:0; color:transparent;"
+       th:text="'Your code review has been approved by ' + ${reviewerName} + '.'">
+    Your code review has been approved.
+  </div>
+
+  <!-- Outer background -->
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:linear-gradient(135deg,#0f1419 0%,#1a2620 100%); background-color:#0f1419; padding:32px 12px;">
+    <tr>
+      <td align="center">
+
+        <!-- Email card -->
+        <table role="presentation" width="640" cellpadding="0" cellspacing="0" style="width:640px; max-width:640px; background-color:#ffffff; border-radius:16px; overflow:hidden; box-shadow:0 12px 40px rgba(0,0,0,0.45);">
+
+          <!-- Header band with logo -->
+          <tr>
+            <td style="background:linear-gradient(135deg,#064e3b 0%,#065f46 55%,#047857 100%); background-color:#064e3b; padding:32px 40px; text-align:center;">
+              <img th:src="${appLogoUrl}" src="APP_LOGO_URL" alt="DevTrack" width="120" style="display:block; margin:0 auto 14px auto; max-width:120px; height:auto;" />
+              <div style="font-size:22px; font-weight:700; color:#ffffff; letter-spacing:0.4px;">
+                DevTrack
+              </div>
+              <div style="display:inline-block; margin-top:12px; padding:6px 16px; background-color:rgba(217,119,6,0.18); border:1px solid #d97706; border-radius:999px; font-size:12px; font-weight:600; letter-spacing:1.2px; text-transform:uppercase; color:#fbbf24;">
+                ✅ Review Approved
+              </div>
+            </td>
+          </tr>
+
+          <!-- Copper accent divider -->
+          <tr>
+            <td style="height:4px; background:linear-gradient(90deg,#d97706 0%,#f59e0b 50%,#d97706 100%); background-color:#d97706; font-size:0; line-height:0;">&nbsp;</td>
+          </tr>
+
+          <!-- Body -->
+          <tr>
+            <td style="padding:36px 40px 8px 40px;">
+              <h2 style="margin:0 0 18px 0; font-size:20px; color:#111827; font-weight:700;">
+                Code Review Approved
+              </h2>
+              <p style="margin:0 0 14px 0; font-size:15px; line-height:1.6; color:#374151;">
+                Hi <strong style="color:#065f46;" th:text="${developerName}">DEVELOPER_NAME</strong>,
+              </p>
+
+              <!-- Approved banner -->
+              <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color:#ecfdf5; border:1px solid #a7f3d0; border-radius:10px; margin:4px 0 8px 0;">
+                <tr>
+                  <td style="padding:14px 18px; font-size:15px; color:#065f46; font-weight:600;">
+                    🎉 The changes are as per expectation. Your code review has been approved.
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+
+          <!-- Summary callout -->
+          <tr>
+            <td style="padding:8px 40px 4px 40px;">
+              <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border-left:4px solid #047857; background-color:#f9f8f7; border-radius:8px;">
+                <tr>
+                  <td style="padding:14px 18px;">
+                    <p style="margin:0 0 4px 0; font-size:13px; font-weight:700; letter-spacing:0.4px; text-transform:uppercase; color:#065f46;">Summary</p>
+                    <p style="margin:0; font-size:14px; line-height:1.6; color:#374151;">Please find the review result below.</p>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+
+          <!-- Checklist result table -->
+          <tr>
+            <td style="padding:16px 40px 8px 40px;">
+              <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border-collapse:separate; border-spacing:0; border:1px solid #e5e7eb; border-radius:12px; overflow:hidden;">
+                <tr>
+                  <td colspan="3" style="background:linear-gradient(135deg,#064e3b 0%,#047857 100%); background-color:#065f46; padding:12px 16px; text-align:center; font-size:14px; letter-spacing:1.2px; text-transform:uppercase; font-weight:700; color:#ffffff;">
+                    Code Review Result
+                  </td>
+                </tr>
+                <tr>
+                  <th style="width:60px; background-color:#f3f4f6; padding:10px 12px; text-align:left; font-size:12px; letter-spacing:0.6px; text-transform:uppercase; color:#6b7280; border-bottom:1px solid #e5e7eb;">Sr. No.</th>
+                  <th style="background-color:#f3f4f6; padding:10px 12px; text-align:left; font-size:12px; letter-spacing:0.6px; text-transform:uppercase; color:#6b7280; border-bottom:1px solid #e5e7eb;">Checklist</th>
+                  <th style="width:120px; background-color:#f3f4f6; padding:10px 12px; text-align:left; font-size:12px; letter-spacing:0.6px; text-transform:uppercase; color:#6b7280; border-bottom:1px solid #e5e7eb;">Review Comments</th>
+                </tr>
+                <!-- One row per checklist item -->
+                <tr th:each="item, iter : ${cr.checklist}"
+                    th:with="c=${#strings.toUpperCase(item.comment)},
+                             cbg=${c == 'YES' ? '#ecfdf5' : (c == 'NO' ? '#fef2f2' : '#f3f4f6')},
+                             cfg=${c == 'YES' ? '#047857' : (c == 'NO' ? '#b91c1c' : '#374151')},
+                             cbd=${c == 'YES' ? '#a7f3d0' : (c == 'NO' ? '#fecaca' : '#e5e7eb')}"
+                    th:style="'background-color: ' + (${iter.odd} ? '#ffffff' : '#fafafa') + ';'">
+                  <td style="padding:12px; font-size:14px; font-weight:600; color:#111827; border-bottom:1px solid #eef0f2; vertical-align:top;" th:text="${item.srNo}">1</td>
+                  <td style="padding:12px; font-size:14px; color:#374151; line-height:1.55; border-bottom:1px solid #eef0f2; vertical-align:top;" th:text="${item.question}">Does the source code conform to the standards and guidelines?</td>
+                  <td style="padding:12px; border-bottom:1px solid #eef0f2; vertical-align:top;">
+                    <span th:style="'display:inline-block; padding:3px 12px; border-radius:999px; font-size:12px; font-weight:700; letter-spacing:0.3px;'
+                                    + 'background-color:' + ${cbg} + '; color:' + ${cfg} + '; border:1px solid ' + ${cbd} + ';'"
+                          th:text="${item.comment}">Yes</span>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+
+          <!-- CTA button (optional) -->
+          <tr>
+            <td style="padding:24px 40px 8px 40px;" align="left">
+              <table role="presentation" cellpadding="0" cellspacing="0">
+                <tr>
+                  <td style="border-radius:10px; background:linear-gradient(135deg,#065f46 0%,#047857 100%); background-color:#065f46;">
+                    <a th:href="${cr.reviewUrl}" href="REVIEW_URL" style="display:inline-block; padding:12px 28px; font-size:14px; font-weight:600; color:#ffffff; text-decoration:none; border-radius:10px;">
+                      View in DevTrack &rarr;
+                    </a>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+
+          <!-- Sign-off -->
+          <tr>
+            <td style="padding:16px 40px 32px 40px;">
+              <p style="margin:0; font-size:14px; line-height:1.6; color:#374151;">
+                Thanks &amp; Regards,<br />
+                <strong style="color:#065f46;" th:text="${reviewerName}">REVIEWER_NAME</strong>
+              </p>
+            </td>
+          </tr>
+
+          <!-- Footer -->
+          <tr>
+            <td style="background-color:#111827; padding:20px 40px; text-align:center;">
+              <p style="margin:0; font-size:12px; color:#9ca3af; line-height:1.6;">
+                This is an automated notification from <strong style="color:#d97706;">DevTrack</strong>.<br />
+                Please do not reply directly to this email.
+              </p>
+            </td>
+          </tr>
+
+        </table>
+        <!-- /Email card -->
+
+      </td>
+    </tr>
+  </table>
+
+</body>
+</html>
