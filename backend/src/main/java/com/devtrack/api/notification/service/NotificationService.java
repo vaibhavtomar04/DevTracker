@@ -1,20 +1,27 @@
 package com.devtrack.api.notification.service;
 
 import com.devtrack.api.model.User;
+import com.devtrack.api.dto.EmailRequestVo;
+import com.devtrack.api.dto.ResponseVo;
 import com.devtrack.api.notification.model.*;
 import com.devtrack.api.notification.repository.EmailAuditLogRepository;
 import com.devtrack.api.notification.repository.UserNotificationPreferencesRepository;
 import com.devtrack.api.repository.UserRepository;
-import jakarta.mail.internet.MimeMessage;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.mail.javamail.JavaMailSender;
-import org.springframework.mail.javamail.MimeMessageHelper;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.HttpEntity;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpMethod;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
+import org.springframework.web.client.RestTemplate;
 import org.thymeleaf.TemplateEngine;
 import org.thymeleaf.context.Context;
 
+import java.net.URI;
 import java.time.LocalDateTime;
 import java.util.*;
 
@@ -27,13 +34,18 @@ import java.util.*;
 @Slf4j
 public class NotificationService {
 
+    @Value("${send.notification.url}")
+    private String sendNotificationUrl;
+
+    @Value("${testing.mail.sender}")
+    private String testingSender;
+
     private final NotificationRecipientResolver recipientResolver;
     private final NotificationViewBuilder viewBuilder;
     private final UserNotificationPreferencesRepository preferencesRepository;
     private final EmailAuditLogRepository auditLogRepository;
     private final UserRepository userRepository;
     private final TemplateEngine templateEngine;
-    private final JavaMailSender mailSender;
 
     @Async("taskExecutor")
     public void sendNotification(
@@ -130,18 +142,39 @@ public class NotificationService {
         while (attempts < maxRetries && !sent) {
             attempts++;
             try {
-                MimeMessage message = mailSender.createMimeMessage();
-                MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
-                helper.setFrom("noreply@devtrack.com", "DevTrack 2.0");
-                helper.setTo(to.toArray(new String[0]));
-                if (cc != null && !cc.isEmpty()) helper.setCc(cc.toArray(new String[0]));
-                helper.setSubject(subject);
-                helper.setText(htmlContent, true);
+                EmailRequestVo emailRequestVo = new EmailRequestVo();
+                emailRequestVo.setRequestId("DevTrack_" + System.currentTimeMillis());
+                emailRequestVo.setTo(String.join(",", to));
+                if (cc != null && !cc.isEmpty()) {
+                    emailRequestVo.setCc(String.join(",", cc));
+                }
+                emailRequestVo.setSender(testingSender != null ? testingSender : "noreply@devtrack.com");
+                emailRequestVo.setReplyTo(testingSender != null ? testingSender : "noreply@devtrack.com");
+                emailRequestVo.setSubject(subject);
+                emailRequestVo.setBody(htmlContent);
 
-                mailSender.send(message);
-                sent = true;
-                messageId = message.getMessageID() != null ? message.getMessageID() : UUID.randomUUID().toString();
-                log.info("Email successfully sent to {} | Subject: {}", to, subject);
+                RestTemplate restTemplate = new RestTemplate();
+                HttpHeaders headers = new HttpHeaders();
+                headers.setContentType(MediaType.APPLICATION_JSON);
+                headers.add("Accept", "*/*");
+
+                HttpEntity<EmailRequestVo> entity = new HttpEntity<>(emailRequestVo, headers);
+                ResponseEntity<ResponseVo> responseEntity = restTemplate.exchange(
+                    new URI(sendNotificationUrl),
+                    HttpMethod.POST,
+                    entity,
+                    ResponseVo.class
+                );
+
+                ResponseVo response = responseEntity.getBody();
+                if (response != null && "0000".equalsIgnoreCase(response.getStatusCode())) {
+                    sent = true;
+                    messageId = response.getOriginalMessageId() != null ? response.getOriginalMessageId() : UUID.randomUUID().toString();
+                    log.info("Email successfully sent to {} | Subject: {}", to, subject);
+                } else {
+                    String errorMsg = response != null ? "API code: " + response.getStatusCode() : "Null response";
+                    throw new RuntimeException("API error: " + errorMsg);
+                }
             } catch (Exception e) {
                 lastError = e.getMessage();
                 log.warn("Attempt {}/{} failed sending email to {}: {}", attempts, maxRetries, to, e.getMessage());

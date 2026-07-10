@@ -98,12 +98,6 @@
             <artifactId>spring-boot-starter-websocket</artifactId>
         </dependency>
 
-        <!-- Spring Mail (Async Transactional Email) -->
-        <dependency>
-            <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter-mail</artifactId>
-        </dependency>
-
         <!-- Spring Thymeleaf (Email Template Rendering Engine) -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
