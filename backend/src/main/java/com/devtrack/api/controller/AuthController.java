@@ -633,4 +633,96 @@ public class AuthController {
                         user.getMfaEnabled(),
                         user.getTheme()));
     }
+
+    @PostMapping("/forgot-password")
+    @Operation(summary = "Request Password Reset", description = "Generates a reset token and sends an email with reset instructions.")
+    public ResponseEntity<?> forgotPassword(@RequestBody Map<String, String> body) {
+        String email = body.get("email");
+        if (email == null || email.isBlank()) {
+            return ResponseEntity.badRequest().body(new MessageResponse("Email is required"));
+        }
+
+        Optional<User> userOpt = userRepository.findByEmail(email);
+        if (userOpt.isPresent()) {
+            User user = userOpt.get();
+            PasswordResetToken token = passwordResetTokenService.createResetToken(user);
+            try {
+                org.thymeleaf.context.Context context = new org.thymeleaf.context.Context();
+                Map<String, Object> userMap = new HashMap<>();
+                userMap.put("fullName", user.getFullName());
+                userMap.put("email", user.getEmail());
+
+                context.setVariable("user", userMap);
+                context.setVariable("appLogoUrl", appLogoUrl);
+                context.setVariable("resetUrl", baseUrl + "/reset-password?token=" + token.getToken());
+
+                String htmlBody = templateEngine.process("email/password-reset", context);
+                eventPublisher.publishEvent(new EmailEvent(this, email, "DevTrack 2.0 - Password Reset Request", htmlBody));
+            } catch (Exception e) {
+                log.error("Failed to render or publish password reset email: {}", e.getMessage());
+                return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                        .body(new MessageResponse("Failed to send password reset email. Please try again."));
+            }
+        }
+
+        return ResponseEntity.ok(new MessageResponse("If that email address is registered, a password reset link has been sent."));
+    }
+
+    @PostMapping("/reset-password")
+    @Operation(summary = "Reset Password with Token", description = "Validates the reset token and establishes a new permanent password.")
+    public ResponseEntity<?> resetPassword(@RequestBody Map<String, String> body) {
+        String tokenStr = body.get("token");
+        String newPassword = body.get("password");
+        String confirmPassword = body.get("confirmPassword");
+
+        if (tokenStr == null || tokenStr.isBlank()) {
+            return ResponseEntity.badRequest().body(new MessageResponse("Token is required"));
+        }
+        if (newPassword == null || newPassword.isBlank() || confirmPassword == null || confirmPassword.isBlank()) {
+            return ResponseEntity.badRequest().body(new MessageResponse("Password and confirmPassword are required"));
+        }
+
+        if (!newPassword.equals(confirmPassword)) {
+            return ResponseEntity.badRequest().body(new MessageResponse("Passwords do not match"));
+        }
+
+        if (!isPasswordValid(newPassword)) {
+            return ResponseEntity.badRequest().body(new MessageResponse(
+                    "Error: Password must be at least 8 characters long and contain uppercase, lowercase, digit, and special character."));
+        }
+
+        Optional<PasswordResetToken> tokenOpt = passwordResetTokenService.findByToken(tokenStr);
+        if (tokenOpt.isEmpty()) {
+            return ResponseEntity.badRequest().body(new MessageResponse("Invalid or not found password reset token."));
+        }
+
+        PasswordResetToken resetToken = tokenOpt.get();
+        try {
+            passwordResetTokenService.verifyExpiration(resetToken);
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(new MessageResponse(e.getMessage()));
+        }
+
+        User user = resetToken.getUser();
+        user.setPassword(encoder.encode(newPassword));
+        user.setMustChangePassword(false);
+        user.setTempPasswordExpiresAt(null);
+        userRepository.save(user);
+
+        passwordResetTokenService.deleteToken(resetToken);
+
+        refreshTokenService.deleteByUserId(user.getId());
+
+        AuditLog auditLog = new AuditLog();
+        auditLog.setEntityType("USER");
+        auditLog.setEntityId(user.getId());
+        auditLog.setFieldName("password_reset_token");
+        auditLog.setNewValue("PASSWORD_RESET");
+        auditLog.setRemarks("Password reset successfully using reset token");
+        auditLog.setChangedBy(user);
+        AuditLogHelper.enrich(auditLog);
+        auditLogRepository.save(auditLog);
+
+        return ResponseEntity.ok(new MessageResponse("Password has been reset successfully. Please log in with your new password."));
+    }
 }
