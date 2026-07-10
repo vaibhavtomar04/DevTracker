@@ -33,7 +33,7 @@ public class EmailEventListener {
     private String testingSender;
 
     @Async("taskExecutor")
-    @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
+    @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT, fallbackExecution = true)
     public void handleEmailEvent(EmailEvent event) {
         try {
             log.info("Async dispatching email to {} | Subject: {}", event.getRecipient(), event.getSubject());
