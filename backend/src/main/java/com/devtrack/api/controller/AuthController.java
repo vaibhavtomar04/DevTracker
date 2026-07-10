@@ -84,6 +84,15 @@ public class AuthController {
     @Autowired
     ApplicationEventPublisher eventPublisher;
 
+    @Autowired
+    org.thymeleaf.TemplateEngine templateEngine;
+
+    @Value("${devtrack.mail.logo-url:https://raw.githubusercontent.com/devtrack/assets/main/logo.png}")
+    private String appLogoUrl;
+
+    @Value("${devtrack.mail.base-url:http://localhost:5173}")
+    private String baseUrl;
+
     private String decryptHex(String hex) {
         if (hex == null || hex.isEmpty()) return null;
         try {
@@ -341,12 +350,21 @@ public class AuthController {
         User saved = userRepository.save(user);
 
         try {
-            String mailBody = String.format(
-                    "Welcome to DevTrack 2.0!\n\nYour account has been created.\nUsername: %s\nTemporary Password: %s\n\nPlease log in and change your password immediately. This temporary password expires in %d hours.",
-                    username, tempPassword, tempPasswordTtlHours);
-            eventPublisher.publishEvent(new EmailEvent(this, email, "DevTrack 2.0 Account Created", mailBody));
+            org.thymeleaf.context.Context context = new org.thymeleaf.context.Context();
+            Map<String, Object> userMap = new HashMap<>();
+            userMap.put("fullName", fullName);
+            userMap.put("username", username);
+            userMap.put("tempPassword", tempPassword);
+            userMap.put("expiryHours", tempPasswordTtlHours);
+            
+            context.setVariable("user", userMap);
+            context.setVariable("appLogoUrl", appLogoUrl);
+            context.setVariable("loginUrl", baseUrl + "/login");
+            
+            String htmlBody = templateEngine.process("email/welcome", context);
+            eventPublisher.publishEvent(new EmailEvent(this, email, "DevTrack 2.0 Account Created", htmlBody));
         } catch (Exception e) {
-            log.error("Failed to publish email creation event: {}", e.getMessage());
+            log.error("Failed to render and publish welcome email event: {}", e.getMessage());
         }
 
         try {
