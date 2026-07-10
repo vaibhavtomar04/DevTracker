@@ -1,5 +1,7 @@
 package com.devtrack.api.controller;
 
+import jakarta.validation.ConstraintViolationException;
+import org.springframework.dao.DataAccessException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.AccessDeniedException;
@@ -53,13 +55,13 @@ public class GlobalExceptionHandler {
         return buildErrorResponse("A database processing error occurred.", HttpStatus.INTERNAL_SERVER_ERROR);
     }
 
-    @ExceptionHandler(org.springframework.dao.DataAccessException.class)
-    public ResponseEntity<Map<String, Object>> handleDataAccessException(org.springframework.dao.DataAccessException ex) {
+    @ExceptionHandler(DataAccessException.class)
+    public ResponseEntity<Map<String, Object>> handleDataAccessException(DataAccessException ex) {
         log.error("Database access error: ", ex);
-        return buildErrorResponse("An unexpected database error occurred.", HttpStatus.INTERNAL_SERVER_ERROR);
+        return buildErrorResponse("Unable to process your request at this time. Please try again later.", HttpStatus.INTERNAL_SERVER_ERROR);
     }
 
-    @ExceptionHandler(jakarta.validation.ConstraintViolationException.class)
+    @ExceptionHandler(ConstraintViolationException.class)
     public ResponseEntity<Map<String, Object>> handleConstraintViolation(jakarta.validation.ConstraintViolationException ex) {
         log.warn("Constraint violation: {}", ex.getMessage());
         return buildErrorResponse("Database constraint validation failed.", HttpStatus.BAD_REQUEST);

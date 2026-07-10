@@ -88,7 +88,7 @@ public class EmailNotificationService {
 			bugMap.put("id", bug.getId());
 			bugMap.put("title", bug.getTitle());
 			bugMap.put("description", bug.getDescription());
-			bugMap.put("environment", task != null && task.getEnvironment() != null ? task.getEnvironment() : "PRODUCTION");
+			bugMap.put("environment",  "PRODUCTION");
 			bugMap.put("priority", bug.getPriority() != null ? bug.getPriority() : "MEDIUM");
 			bugMap.put("assignedTo", user.getFullName());
 			bugMap.put("url", baseUrl + "/dashboard");
@@ -287,7 +287,7 @@ public class EmailNotificationService {
 			
 			Context context = new Context();
 			Map<String, Object> testMap = new HashMap<>();
-			testMap.put("environment", task.getEnvironment() != null ? task.getEnvironment() : "UAT");
+			testMap.put("environment",  "UAT");
 			testMap.put("jtrackId", task.getJtrackId());
 			testMap.put("title", task.getTitle());
 			testMap.put("branchName", task.getBranchName() != null ? task.getBranchName() : "NA");
