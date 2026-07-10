@@ -20,6 +20,7 @@ interface AuthState {
   changePassword: (currentPassword: string, newPassword: string) => Promise<void>
   forgotPassword: (email: string) => Promise<void>
   setNewPassword: (newPassword: string, confirmPassword: string) => Promise<void>
+  resetPasswordWithToken: (token: string, newPassword: string, confirmPassword: string) => Promise<void>
   startInactivityTracking: () => void
   stopInactivityTracking: () => void
 }
@@ -199,6 +200,32 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       set({ loading: false, mustChangePassword: false, user: null, token: null })
     } catch (err: any) {
       set({ error: err.message || "Failed to set new password", loading: false })
+      throw err
+    }
+  },
+
+  resetPasswordWithToken: async (token, password, confirmPassword) => {
+    set({ loading: true, error: null })
+    try {
+      const API_BASE = import.meta.env.VITE_API_URL || "";
+      const res = await window.fetch(`${API_BASE}/api/auth/reset-password`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ token, password, confirmPassword })
+      })
+      if (!res.ok) {
+        let errMessage = "Password reset failed";
+        try {
+          const errData = await res.json();
+          errMessage = errData.message || errMessage;
+        } catch {
+          errMessage = await res.text() || errMessage;
+        }
+        throw new Error(errMessage)
+      }
+      set({ loading: false })
+    } catch (err: any) {
+      set({ error: err.message || "Failed to reset password", loading: false })
       throw err
     }
   },

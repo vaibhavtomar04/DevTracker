@@ -67,7 +67,7 @@ public class User {
     private String status = "ACTIVE";
 
     @Column(name = "theme")
-    private String theme = "dark";
+    private String theme = "light";
 
     public User() {}
 

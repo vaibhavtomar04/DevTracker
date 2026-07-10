@@ -8,6 +8,7 @@ import DownloadPromptModal from "@/components/shared/DownloadPromptModal"
 // Lazy load page components for production code splitting
 const LoginPage = lazy(() => import("@/pages/login"))
 const SetNewPasswordPage = lazy(() => import("@/pages/setNewPassword"))
+const ResetPasswordPage = lazy(() => import("@/pages/resetPassword"))
 const AdminDashboard = lazy(() => import("@/pages/adminDashboard"))
 const DeveloperDashboard = lazy(() => import("@/pages/developerDashboard"))
 const TesterDashboard = lazy(() => import("@/pages/testerDashboard"))
@@ -223,6 +224,9 @@ function App() {
             
             {/* Set New Password — forced first-login password reset */}
             <Route path="/set-new-password" element={<SetNewPasswordPage />} />
+
+            {/* Reset Password — from email link */}
+            <Route path="/reset-password" element={<ResetPasswordPage />} />
 
             {/* Protected Dashboard Routes */}
             <Route

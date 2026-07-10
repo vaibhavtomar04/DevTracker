@@ -77,7 +77,7 @@ CREATE TABLE `users` (
   `failed_mfa_attempts` int DEFAULT '0',
   `mfa_enabled_at` datetime DEFAULT NULL,
   `status` varchar(50) DEFAULT 'ACTIVE',
-  `theme` varchar(50) DEFAULT 'dark',
+  `theme` varchar(50) DEFAULT 'light',
   PRIMARY KEY (`id`),
   UNIQUE KEY `username` (`username`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
