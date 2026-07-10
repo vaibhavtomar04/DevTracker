@@ -1,49 +1,70 @@
 package com.devtrack.api.event;
 
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.mail.SimpleMailMessage;
-import org.springframework.mail.javamail.JavaMailSender;
-import org.springframework.mail.javamail.MimeMessageHelper;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.HttpEntity;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpMethod;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.event.TransactionPhase;
 import org.springframework.transaction.event.TransactionalEventListener;
+import org.springframework.web.client.RestTemplate;
 
-import jakarta.mail.internet.MimeMessage;
+import com.devtrack.api.dto.EmailRequestVo;
+import com.devtrack.api.dto.ResponseVo;
+
+import java.net.URI;
 
 /**
  * Listens for EmailEvents and dispatches messages asynchronously ONLY AFTER
- * database transactions commit successfully.
+ * database transactions commit successfully using the external email notification API.
  */
 @Component
-@RequiredArgsConstructor
 @Slf4j
 public class EmailEventListener {
 
-    private final JavaMailSender mailSender;
+    @Value("${send.notification.url}")
+    private String sendNotificationUrl;
+
+    @Value("${testing.mail.sender}")
+    private String testingSender;
 
     @Async("taskExecutor")
     @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
     public void handleEmailEvent(EmailEvent event) {
         try {
             log.info("Async dispatching email to {} | Subject: {}", event.getRecipient(), event.getSubject());
-            String body = event.getBody();
-            if (body != null && (body.trim().startsWith("<!DOCTYPE html>") || body.trim().startsWith("<html"))) {
-                MimeMessage mimeMessage = mailSender.createMimeMessage();
-                MimeMessageHelper helper = new MimeMessageHelper(mimeMessage, true, "UTF-8");
-                helper.setTo(event.getRecipient());
-                helper.setSubject(event.getSubject());
-                helper.setText(body, true);
-                mailSender.send(mimeMessage);
+            
+            EmailRequestVo emailRequestVo = new EmailRequestVo();
+            emailRequestVo.setRequestId("DevTrack_" + System.currentTimeMillis());
+            emailRequestVo.setTo(event.getRecipient());
+            emailRequestVo.setSender(testingSender);
+            emailRequestVo.setReplyTo(testingSender);
+            emailRequestVo.setSubject(event.getSubject());
+            emailRequestVo.setBody(event.getBody() != null ? event.getBody() : "");
+
+            RestTemplate restTemplate = new RestTemplate();
+            HttpHeaders headers = new HttpHeaders();
+            headers.setContentType(MediaType.APPLICATION_JSON);
+            headers.add("Accept", "*/*");
+
+            HttpEntity<EmailRequestVo> entity = new HttpEntity<>(emailRequestVo, headers);
+            ResponseEntity<ResponseVo> responseEntity = restTemplate.exchange(
+                new URI(sendNotificationUrl),
+                HttpMethod.POST,
+                entity,
+                ResponseVo.class
+            );
+
+            ResponseVo response = responseEntity.getBody();
+            if (response != null && "0000".equalsIgnoreCase(response.getStatusCode())) {
+                log.info("Email successfully sent to {} | MessageId: {}", event.getRecipient(), response.getOriginalMessageId());
             } else {
-                SimpleMailMessage message = new SimpleMailMessage();
-                message.setTo(event.getRecipient());
-                message.setSubject(event.getSubject());
-                message.setText(body != null ? body : "");
-                mailSender.send(message);
+                log.warn("API returned response: {}", response);
             }
-            log.info("Email successfully sent to {}", event.getRecipient());
         } catch (Exception e) {
             log.error("Failed to send email to {}: {}", event.getRecipient(), e.getMessage());
         }
