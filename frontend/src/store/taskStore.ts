@@ -121,6 +121,9 @@ interface TaskState {
   // Comments
   addComment: (entityType: "TASK" | "BUG", entityId: number, text: string, user: User) => Promise<Comment>
 
+
+  fetchComments: (entityType: "TASK" | "BUG", entityId: number ) => Promise<Comment[]>
+
   // Configurations
   updateConfig: (key: string, value: string) => Promise<void>
 
@@ -179,11 +182,11 @@ export const useTaskStore = create<TaskState>((set, get) => ({
     }
     set({ error: null })
     try {
-      const [tasksRes, bugsRes, auditRes, commentsRes, configsRes, testCasesRes, notificationsRes, usersRes, bugReviewsRes, sprintTasksRes] = await Promise.all([
+      const [tasksRes, bugsRes, auditRes, configsRes, testCasesRes, notificationsRes, usersRes, bugReviewsRes, sprintTasksRes] = await Promise.all([
         apiClient("/api/tasks").catch(err => { console.error(err); return []; }),
         apiClient("/api/bugs").catch(err => { console.error(err); return []; }),
         apiClient("/api/audit").catch(err => { console.error(err); return []; }),
-        apiClient("/api/comments").catch(err => { console.error(err); return []; }),
+        //apiClient("/api/comments").catch(err => { console.error(err); return []; }),
         apiClient("/api/configs").catch(err => { console.error(err); return []; }),
         apiClient("/api/test-cases").catch(err => { console.error(err); return []; }),
         apiClient("/api/notifications").catch(err => { console.error(err); return []; }),
@@ -199,7 +202,7 @@ export const useTaskStore = create<TaskState>((set, get) => ({
           tasks: tasksRes,
           bugs: bugsRes,
           auditLogs: auditRes,
-          comments: commentsRes,
+          comments: [],
           configs: configsRes,
           testCases: testCasesRes,
           notifications: notificationsRes,
@@ -463,6 +466,14 @@ export const useTaskStore = create<TaskState>((set, get) => ({
     set(state => ({ comments: [...state.comments, newComment] }))
     return newComment
   },
+
+
+  fetchComments: async (entityType, entityId) => {
+    const comments = await apiClient( `/api/comments/${entityType}/${entityId}`)
+    set({ comments })
+     return comments
+  },
+
 
   updateConfig: async (key, value) => {
     const updatedConfig = await apiClient(`/api/configs/${key}`, {

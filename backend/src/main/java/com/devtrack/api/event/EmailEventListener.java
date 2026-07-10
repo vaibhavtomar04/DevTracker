@@ -37,7 +37,7 @@ public class EmailEventListener {
     public void handleEmailEvent(EmailEvent event) {
         try {
             log.info("Async dispatching email to {} | Subject: {}", event.getRecipient(), event.getSubject());
-            
+
             EmailRequestVo emailRequestVo = new EmailRequestVo();
             emailRequestVo.setRequestId("DevTrack_" + System.currentTimeMillis());
             emailRequestVo.setTo(event.getRecipient());
@@ -53,10 +53,10 @@ public class EmailEventListener {
 
             HttpEntity<EmailRequestVo> entity = new HttpEntity<>(emailRequestVo, headers);
             ResponseEntity<ResponseVo> responseEntity = restTemplate.exchange(
-                new URI(sendNotificationUrl),
-                HttpMethod.POST,
-                entity,
-                ResponseVo.class
+                    new URI(sendNotificationUrl),
+                    HttpMethod.POST,
+                    entity,
+                    ResponseVo.class
             );
 
             ResponseVo response = responseEntity.getBody();
