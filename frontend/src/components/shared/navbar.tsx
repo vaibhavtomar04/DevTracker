@@ -112,7 +112,7 @@ export default function Navbar() {
 
   return (
     <>
-      <header className="sticky top-0 z-20 flex h-16 w-full items-center justify-between border-b border-white/[0.06] bg-background/60 backdrop-blur-xl px-6 shadow-[0_1px_0_rgba(255,255,255,0.04)]">
+      <header className="sticky top-0 z-20 flex h-16 w-full items-center justify-between border-b border-border dark:border-white/[0.06] bg-background/60 backdrop-blur-xl px-6 shadow-sm dark:shadow-[0_1px_0_rgba(255,255,255,0.04)]">
 
         {/* ── Left: Breadcrumbs ──────────────────────────────── */}
         <div className="flex items-center space-x-1 overflow-hidden">
@@ -161,7 +161,7 @@ export default function Navbar() {
             <Button
               variant="ghost"
               size="icon"
-              className="relative rounded-full h-9 w-9 bg-white/[0.04] border border-white/[0.08] hover:bg-primary/[0.08] hover:border-primary/30 transition-all"
+              className="relative rounded-full h-9 w-9 bg-slate-100 dark:bg-zinc-800/30 border border-slate-300/80 dark:border-zinc-700/50 hover:bg-slate-200 dark:hover:bg-zinc-800 transition-all text-slate-700 dark:text-zinc-200"
               onClick={() => setNotifPanelOpen(true)}
               title="Notifications"
             >
@@ -208,7 +208,7 @@ export default function Navbar() {
           <Button
             variant="ghost"
             size="icon"
-            className="rounded-full h-9 w-9 bg-slate-100 dark:bg-white/[0.04] border border-slate-200 dark:border-white/[0.08] hover:bg-slate-200 hover:text-slate-900 dark:hover:bg-primary/[0.08] dark:hover:border-primary/30 overflow-hidden transition-all text-slate-800 dark:text-white"
+            className="rounded-full h-9 w-9 bg-slate-100 dark:bg-zinc-800/30 border border-slate-300/80 dark:border-zinc-700/50 hover:bg-slate-200 dark:hover:bg-zinc-800 overflow-hidden transition-all text-slate-700 dark:text-zinc-200"
             onClick={toggleTheme}
             title={theme === "light" ? "Switch to dark mode" : "Switch to light mode"}
           >
@@ -231,7 +231,7 @@ export default function Navbar() {
           </Button>
 
           {/* Divider */}
-          <div className="h-5 w-px bg-white/[0.08]" />
+          <div className="h-5 w-px bg-border dark:bg-white/[0.08]" />
 
           {/* User Profile Chip */}
           <div
@@ -272,10 +272,10 @@ export default function Navbar() {
             </Button>
           ) : (
             <Button
-              variant="outline"
+              variant="default"
               size="sm"
               onClick={() => setMfaWizardOpen(true)}
-              className="h-8 rounded-xl bg-violet-600/10 dark:bg-violet-600/15 hover:bg-violet-600/20 border border-violet-500/20 dark:border-violet-500/30 text-violet-700 dark:text-violet-300 hover:text-violet-800 dark:hover:text-violet-200 text-xs font-bold gap-1.5 transition-all cursor-pointer"
+              className="h-8 rounded-xl text-xs font-bold gap-1.5 transition-all cursor-pointer shadow-sm"
             >
               <ShieldCheck className="h-3.5 w-3.5" />
               <span>MFA Setup</span>

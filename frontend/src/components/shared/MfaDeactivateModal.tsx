@@ -1,7 +1,8 @@
 import React, { useState } from "react";
-import { X, ShieldCheck, ShieldAlert, Lock, ArrowRight, AlertCircle, RefreshCw } from "lucide-react";
+import { X, ShieldCheck, ShieldAlert, Lock, ArrowRight, RefreshCw } from "lucide-react";
 import { apiClient } from "@/utils/apiClient";
 import { useAuthStore } from "@/store/authStore";
+import { useTaskStore } from "@/store/taskStore";
 
 interface MfaDeactivateModalProps {
   isOpen: boolean;
@@ -14,20 +15,19 @@ export const MfaDeactivateModal: React.FC<MfaDeactivateModalProps> = ({
   onClose,
   onSuccess
 }) => {
+  const { addToast } = useTaskStore();
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
 
   if (!isOpen) return null;
 
   const handleDeactivate = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!password) {
-      setError("Please enter your current password to confirm deactivation.");
+      addToast("Please enter your current password to confirm deactivation.", "error");
       return;
     }
     setLoading(true);
-    setError(null);
 
     try {
       await apiClient("/mfa/disable", {
@@ -44,7 +44,7 @@ export const MfaDeactivateModal: React.FC<MfaDeactivateModalProps> = ({
       onSuccess();
       onClose();
     } catch (err: any) {
-      setError(err.message || "Failed to deactivate MFA. Verify your password.");
+      addToast(err.message || "Failed to deactivate MFA. Verify your password.", "error");
     } finally {
       setLoading(false);
     }
@@ -73,12 +73,7 @@ export const MfaDeactivateModal: React.FC<MfaDeactivateModalProps> = ({
           </button>
         </div>
 
-        {error && (
-          <div className="mt-4 p-3 rounded-xl bg-rose-500/10 border border-rose-500/30 text-rose-500 dark:text-rose-300 text-xs flex items-center gap-2">
-            <AlertCircle className="h-4 w-4 text-rose-500 dark:text-rose-450 shrink-0" />
-            <span>{error}</span>
-          </div>
-        )}
+
 
         <form onSubmit={handleDeactivate} className="py-5 space-y-5">
           <div className="p-4 rounded-2xl bg-muted border border-border space-y-2.5">
