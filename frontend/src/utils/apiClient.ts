@@ -2,6 +2,27 @@ import { useAuthStore } from "@/store/authStore";
 
 const API_BASE = import.meta.env.VITE_API_URL || "";
 
+function extractErrorMessage(text: string, status: number): string {
+  if (!text || !text.trim()) {
+    return `API error (${status})`;
+  }
+  try {
+    const parsed = JSON.parse(text);
+    if (parsed.message) {
+      return parsed.message;
+    }
+    if (parsed.error) {
+      return parsed.error;
+    }
+    if (parsed.errors && Array.isArray(parsed.errors)) {
+      return parsed.errors.map((e: any) => e.defaultMessage || e.message || JSON.stringify(e)).join(", ");
+    }
+    return text;
+  } catch (e) {
+    return text;
+  }
+}
+
 interface RequestOptions extends RequestInit {
   params?: Record<string, string | number | boolean>;
 }
@@ -104,7 +125,7 @@ export async function apiClient(endpoint: string, options: RequestOptions = {}):
           const retryResponse = await fetch(url, retryOptions);
           const retryText = await retryResponse.text();
           if (!retryResponse.ok) {
-            reject(new Error(retryText || `API error (${retryResponse.status})`));
+            reject(new Error(extractErrorMessage(retryText, retryResponse.status)));
           } else if (retryResponse.status === 204 || !retryText.trim()) {
             resolve(null);
           } else {
@@ -133,7 +154,7 @@ export async function apiClient(endpoint: string, options: RequestOptions = {}):
 
   const text = await response.text();
   if (!response.ok) {
-    throw new Error(text || `API error (${response.status})`);
+    throw new Error(extractErrorMessage(text, response.status));
   }
 
   if (!text.trim()) {

@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from "react";
-import { X, ShieldCheck, Copy, Check, Download, ArrowRight, AlertCircle, RefreshCw } from "lucide-react";
+import { X, ShieldCheck, Copy, Check, Download, ArrowRight, RefreshCw } from "lucide-react";
 import { QRCodeSVG } from "qrcode.react";
 import { apiClient } from "@/utils/apiClient";
+import { useTaskStore } from "@/store/taskStore";
 
 interface MfaWizardProps {
   isOpen: boolean;
@@ -16,14 +17,13 @@ export const MfaWizard: React.FC<MfaWizardProps> = ({ isOpen, onClose, onSuccess
   const [otpCode, setOtpCode] = useState("");
   const [backupCodes, setBackupCodes] = useState<string[]>([]);
 
+  const { addToast } = useTaskStore();
   const [copied, setCopied] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     if (isOpen) {
       setStep("intro");
-      setError(null);
     }
   }, [isOpen]);
 
@@ -31,7 +31,6 @@ export const MfaWizard: React.FC<MfaWizardProps> = ({ isOpen, onClose, onSuccess
 
   const startEnrollment = async () => {
     setLoading(true);
-    setError(null);
     try {
       const res = await apiClient("/mfa/enable", { method: "POST" });
       if (res && res.secretKey) {
@@ -40,7 +39,7 @@ export const MfaWizard: React.FC<MfaWizardProps> = ({ isOpen, onClose, onSuccess
         setStep("qr");
       }
     } catch (err: any) {
-      setError(err.message || "Failed to initialize MFA setup.");
+      addToast(err.message || "Failed to initialize MFA setup.", "error");
     } finally {
       setLoading(false);
     }
@@ -55,11 +54,10 @@ export const MfaWizard: React.FC<MfaWizardProps> = ({ isOpen, onClose, onSuccess
   const verifySetup = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!otpCode || otpCode.length < 6) {
-      setError("Enter 6-digit code.");
+      addToast("Enter 6-digit code.", "error");
       return;
     }
     setLoading(true);
-    setError(null);
 
     try {
       await apiClient("/mfa/verify", {
@@ -73,7 +71,7 @@ export const MfaWizard: React.FC<MfaWizardProps> = ({ isOpen, onClose, onSuccess
       }
       setStep("backup");
     } catch (err: any) {
-      setError(err.message || "Verification code incorrect. Please try again.");
+      addToast(err.message || "Verification code incorrect. Please try again.", "error");
     } finally {
       setLoading(false);
     }
@@ -118,12 +116,7 @@ export const MfaWizard: React.FC<MfaWizardProps> = ({ isOpen, onClose, onSuccess
           </button>
         </div>
 
-        {error && (
-          <div className="mt-4 p-3 rounded-xl bg-rose-500/10 border border-rose-500/30 text-rose-500 dark:text-rose-300 text-xs flex items-center gap-2">
-            <AlertCircle className="h-4 w-4 text-rose-500 dark:text-rose-450 shrink-0" />
-            <span>{error}</span>
-          </div>
-        )}
+
 
         {/* Step 1: Intro */}
         {step === "intro" && (

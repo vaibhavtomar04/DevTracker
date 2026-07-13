@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from "react";
-import { ShieldCheck, ArrowRight, Clock, KeyRound, AlertCircle, RefreshCw } from "lucide-react";
+import { ShieldCheck, ArrowRight, Clock, KeyRound, RefreshCw } from "lucide-react";
 import { apiClient } from "@/utils/apiClient";
+import { useTaskStore } from "@/store/taskStore";
 
 interface OtpVerificationModalProps {
   isOpen: boolean;
@@ -15,6 +16,7 @@ export const OtpVerificationModal: React.FC<OtpVerificationModalProps> = ({
   onSuccess,
   onCancel
 }) => {
+  const { addToast } = useTaskStore();
   const [digits, setDigits] = useState<string[]>(["", "", "", "", "", ""]);
   const [useBackupCode, setUseBackupCode] = useState(false);
   const [backupCodeInput, setBackupCodeInput] = useState("");
@@ -23,7 +25,6 @@ export const OtpVerificationModal: React.FC<OtpVerificationModalProps> = ({
 
   const [timeLeft, setTimeLeft] = useState(30);
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
 
   const inputRefs = useRef<(HTMLInputElement | null)[]>([]);
 
@@ -57,7 +58,6 @@ export const OtpVerificationModal: React.FC<OtpVerificationModalProps> = ({
     const newDigits = [...digits];
     newDigits[index] = cleanVal.slice(-1);
     setDigits(newDigits);
-    setError(null);
 
     // Auto advance
     if (cleanVal && index < 5) {
@@ -76,20 +76,18 @@ export const OtpVerificationModal: React.FC<OtpVerificationModalProps> = ({
     const pasted = e.clipboardData.getData("text").replace(/\D/g, "").slice(0, 6);
     if (pasted.length === 6) {
       setDigits(pasted.split(""));
-      setError(null);
       inputRefs.current[5]?.focus();
     }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setError(null);
     setLoading(true);
 
     try {
       if (useBackupCode) {
         if (!backupCodeInput.trim()) {
-          setError("Please enter a backup recovery code.");
+          addToast("Please enter a backup recovery code.", "error");
           setLoading(false);
           return;
         }
@@ -101,7 +99,7 @@ export const OtpVerificationModal: React.FC<OtpVerificationModalProps> = ({
       } else {
         const otpCode = digits.join("");
         if (otpCode.length < 6) {
-          setError("Please enter all 6 digits.");
+          addToast("Please enter all 6 digits.", "error");
           setLoading(false);
           return;
         }
@@ -117,7 +115,7 @@ export const OtpVerificationModal: React.FC<OtpVerificationModalProps> = ({
         onSuccess(res);
       }
     } catch (err: any) {
-      setError(err.message || "Verification failed. Invalid code.");
+      addToast(err.message || "Verification failed. Invalid code.", "error");
     } finally {
       setLoading(false);
     }
@@ -142,12 +140,7 @@ export const OtpVerificationModal: React.FC<OtpVerificationModalProps> = ({
           </p>
         </div>
 
-        {error && (
-          <div className="mb-5 p-3.5 rounded-2xl bg-rose-500/10 border border-rose-500/30 text-rose-600 dark:text-rose-350 text-xs flex items-center gap-2.5 shadow-sm">
-            <AlertCircle className="h-4 w-4 text-rose-500 shrink-0" />
-            <span>{error}</span>
-          </div>
-        )}
+
 
         <form onSubmit={handleSubmit} className="space-y-6">
           {!useBackupCode ? (
@@ -236,7 +229,7 @@ export const OtpVerificationModal: React.FC<OtpVerificationModalProps> = ({
         <div className="mt-6 pt-4 border-t border-border flex items-center justify-between text-xs">
           <button
             type="button"
-            onClick={() => { setUseBackupCode(!useBackupCode); setError(null); }}
+            onClick={() => { setUseBackupCode(!useBackupCode); }}
             className="text-violet-600 dark:text-violet-400 hover:text-violet-500 dark:hover:text-violet-300 font-semibold flex items-center gap-1 cursor-pointer bg-transparent border-none"
           >
             <KeyRound className="h-3.5 w-3.5" />

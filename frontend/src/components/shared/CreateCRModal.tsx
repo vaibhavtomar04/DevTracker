@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { X, Upload, Users, FileText, CheckCircle2, AlertCircle, Sparkles, Code2, Layers, Cpu, Clock, Trash2 } from "lucide-react";
+import { X, Upload, Users, FileText, CheckCircle2, Sparkles, Code2, Layers, Cpu, Clock, Trash2 } from "lucide-react";
 import { useTaskStore } from "@/store/taskStore";
 import { useSprintStore } from "@/store/sprintStore";
 import { apiClient } from "@/utils/apiClient";
@@ -32,7 +32,6 @@ export const CreateCRModal: React.FC<CreateCRModalProps> = ({ isOpen, onClose, o
   const [selectedWorkflowId, setSelectedWorkflowId] = useState<number | null>(null);
 
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   useEffect(() => {
     if (isOpen) {
@@ -97,10 +96,9 @@ export const CreateCRModal: React.FC<CreateCRModalProps> = ({ isOpen, onClose, o
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setErrorMessage(null);
 
     if (!title.trim() || !description.trim() || !jtrackId.trim()) {
-      setErrorMessage("CR Title, Description, and CR ID are mandatory.");
+      addToast("CR Title, Description, and CR ID are mandatory.", "error");
       return;
     }
 
@@ -175,7 +173,7 @@ export const CreateCRModal: React.FC<CreateCRModalProps> = ({ isOpen, onClose, o
       addToast(`CR ${finalJtrackId} got created successfully.`, "success");
       onClose();
     } catch (err: any) {
-      setErrorMessage(err.message || "Failed to create Change Request.");
+      addToast(err.message || "Failed to create Change Request.", "error");
     } finally {
       setIsSubmitting(false);
     }
@@ -214,12 +212,7 @@ export const CreateCRModal: React.FC<CreateCRModalProps> = ({ isOpen, onClose, o
 
         {/* Modal Body / Form */}
         <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto p-7 space-y-6 scrollbar-thin scrollbar-thumb-white/10">
-          {errorMessage && (
-            <div className="p-4 rounded-2xl bg-rose-500/10 border border-rose-500/30 text-rose-300 text-xs flex items-center gap-3 shadow-lg shadow-rose-950/20">
-              <AlertCircle className="h-4 w-4 text-rose-400 shrink-0" />
-              <span className="font-medium">{errorMessage}</span>
-            </div>
-          )}
+
 
           {/* Row 1: CR Type, CR ID, Sprint */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
