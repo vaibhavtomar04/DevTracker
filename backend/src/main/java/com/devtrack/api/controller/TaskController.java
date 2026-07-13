@@ -454,18 +454,20 @@ public class TaskController {
                         auditLogRepository.save(log);
                     }
                     
-//                    Task savedTask = ;
-//                    log.info("currentTargetStatus {}",currentTargetStatus);
-//                    if(currentTargetStatus.equals("CODE_REVIEW")) {
-//                    	emailNotificationService.sendMailOnCodeReview(savedTask, taskDetails.getRemarks());
-//                    }
-                    
                     Task saved = taskRepository.save(task);
 
                     if (taskDetails.getStatus() != null && !taskDetails.getStatus().equals(oldStatus)) {
                         notifyAllDevelopersAndTester(saved, saved.getJtrackId() + " Status Updated",
                             "Status changed from " + oldStatus + " to " + saved.getStatus() + " by " + currentUser.getFullName() + ". Remarks: " + taskDetails.getRemarks());
                         
+                        if ("CODE_REVIEW".equalsIgnoreCase(saved.getStatus())) {
+                            try {
+                                emailNotificationService.sendMailOnCodeReview(saved, taskDetails.getRemarks() != null ? taskDetails.getRemarks() : "Sent to Code Review");
+                            } catch (Exception e) {
+                                log.error("Failed to send Code Review mail", e);
+                            }
+                        }
+
                         try {
                             String triggeredEvent = "BUG_FOUND".equals(saved.getStatus()) ? "RETEST_RECORDED" : "STATUS_UPDATED";
                             qualityRiskService.evaluateCrRisk(saved.getId(), triggeredEvent);
@@ -1136,14 +1138,14 @@ public class TaskController {
             User currentUser = userRepository.findByUsername(username).orElseThrow();
             log.info("current step , next step {} {}",currentStep.getStepName(),nextStage);
             if( currentStep.getStepName().equalsIgnoreCase("SIT_COMPLETED")) {
-            	emailNotificationService.sendMailOnCodeReview(task, taskDetails.getRemarks());
+            	emailNotificationService.sendMailOnCodeReview(task, taskDetails != null ? taskDetails.getRemarks() : "SIT Completed");
             }
             
             if(currentStep.getStepName().equalsIgnoreCase("CODE_REVIEW"))
             	emailNotificationService.sendMailOnCodeReviewUpdate(task, taskDetails != null ? taskDetails.getRemarks() : "Approved", oldStatus, currentUser);
             
             if(nextStage!=null && nextStage.equalsIgnoreCase("UAT_TESTING")) {
-            	emailNotificationService.sendMailForUatTesting(task, taskDetails.getRemarks(), currentUser);
+            	emailNotificationService.sendMailForUatTesting(task, taskDetails != null ? taskDetails.getRemarks() : "Sent to UAT", currentUser);
             }
             
             
