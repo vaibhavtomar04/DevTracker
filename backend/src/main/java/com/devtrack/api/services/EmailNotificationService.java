@@ -297,6 +297,8 @@ public class EmailNotificationService {
 			testMap.put("developer", devName);
 			testMap.put("url", baseUrl + "/dashboard/testing");
 			testMap.put("remarks", remarks);
+			testMap.put("unitTestDocUrl", task.getUnitTestDocUrl());
+			testMap.put("unitTestDocName", task.getUnitTestDocName() != null ? task.getUnitTestDocName() : "unit-test-document");
 			
 			context.setVariable("test", testMap);
 			context.setVariable("appLogoUrl", appLogoUrl);
@@ -312,6 +314,11 @@ public class EmailNotificationService {
 			}
 
 			EmailRequestVo requestMap = createEmailRequestMap(renderedHtml, subject, testingSender, null, developersMail, testingCc);
+
+			if (requestMap != null && task.getUnitTestDocUrl() != null) {
+				requestMap.setAttachmentData(task.getUnitTestDocUrl());
+				requestMap.setAttachmentName(task.getUnitTestDocName() != null ? task.getUnitTestDocName() : "unit-test-document");
+			}
 
 			if(requestMap!=null) {
 				ResponseVo response = callSendNotificationApi(requestMap);

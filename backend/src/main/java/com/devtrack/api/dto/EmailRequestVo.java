@@ -18,6 +18,8 @@ public class EmailRequestVo {
 	private String body;
 	private String replyTo;
 	private String originalMessageId;
+	private String attachmentData;
+	private String attachmentName;
 	
 }
 
