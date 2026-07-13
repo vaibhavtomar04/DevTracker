@@ -61,6 +61,9 @@ public class BugValidationService {
     @Autowired
     private QualityRiskService qualityRiskService;
 
+    @Autowired
+    private EmailNotificationService emailNotificationService;
+
     private final ObjectMapper objectMapper = new ObjectMapper();
 
     @Transactional
@@ -267,6 +270,12 @@ public class BugValidationService {
         if (review.getRaisedByTester() != null) {
             createAndPushNotification(review.getRaisedByTester().getId(), "Bug Review Accepted",
                     "Your bug review for CR " + cr.getJtrackId() + " has been accepted. Bug " + savedBug.getJtrackId() + " is now active.");
+        }
+
+        try {
+            emailNotificationService.sendNotificationOnCreation(savedBug);
+        } catch (Exception e) {
+            log.error("Failed to send bug creation mail on review acceptance", e);
         }
 
         return savedBug;

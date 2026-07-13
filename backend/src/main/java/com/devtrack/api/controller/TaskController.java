@@ -468,6 +468,14 @@ public class TaskController {
                             }
                         }
 
+                        if ("TESTING_POOL".equalsIgnoreCase(saved.getStatus()) || "UAT_TESTING".equalsIgnoreCase(saved.getStatus()) || "MOVE_TO_UAT".equalsIgnoreCase(saved.getStatus())) {
+                            try {
+                                emailNotificationService.sendMailForUatTesting(saved, taskDetails.getRemarks() != null ? taskDetails.getRemarks() : "CR Pushed to UAT", currentUser);
+                            } catch (Exception e) {
+                                log.error("Failed to send UAT Testing mail", e);
+                            }
+                        }
+
                         try {
                             String triggeredEvent = "BUG_FOUND".equals(saved.getStatus()) ? "RETEST_RECORDED" : "STATUS_UPDATED";
                             qualityRiskService.evaluateCrRisk(saved.getId(), triggeredEvent);
@@ -1146,6 +1154,14 @@ public class TaskController {
             
             if(nextStage!=null && nextStage.equalsIgnoreCase("UAT_TESTING")) {
             	emailNotificationService.sendMailForUatTesting(task, taskDetails != null ? taskDetails.getRemarks() : "Sent to UAT", currentUser);
+            }
+
+            if (currentStep.getStepName().equalsIgnoreCase("UAT_TESTING") || "UAT_COMPLETED".equalsIgnoreCase(nextStage)) {
+                try {
+                    emailNotificationService.sendMailOnUATTestingComplete(task, taskDetails != null ? taskDetails.getRemarks() : "UAT Testing Completed", currentUser);
+                } catch (Exception e) {
+                    log.error("Failed to send UAT Complete mail", e);
+                }
             }
             
             
