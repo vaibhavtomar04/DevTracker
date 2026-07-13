@@ -23,12 +23,11 @@
           
           <!-- Emerald Header Band -->
           <tr>
-            <td align="center" valign="top" style="background-color: #064e3b; background-image: linear-gradient(135deg, #064e3b 0%, #047857 100%); padding: 32px 24px; text-align: center;">
-              <!-- App Logo -->
-              <img src="https://via.placeholder.com/64" th:src="${appLogoUrl}" width="64" height="64" alt="DevTrack Logo" style="display: inline-block; border: 0; outline: none; text-decoration: none; margin-bottom: 12px; border-radius: 12px;"/>
-              
-              <!-- Wordmark -->
-              <div style="font-size: 26px; font-weight: 800; color: #ffffff; letter-spacing: -0.5px; margin-bottom: 12px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;">DevTrack</div>
+            <td align="center" valign="top" style="background:linear-gradient(200deg,#220046 0%,#6B00DD 50%,#F27ECE 100%); background-color:#2ed767; padding:36px 40px; text-align:center;">
+              <!-- CSS-based text logo that will not break in Outlook -->
+              <div style="display:inline-block; font-family:'Outfit', 'Inter', 'Segoe UI', sans-serif; font-size:30px; font-weight:800; color:#ffffff; margin-bottom:12px; text-shadow:0 2px 4px rgba(0,0,0,0.15);">
+                <span style="background-color:#B11EEB; padding:3px 10px; border-radius:6px; margin-right:4px;">Dev</span><span style="color:#ffffff;">Track</span>
+              </div>
               
               <!-- Copper Badge -->
               <table role="presentation" border="0" cellspacing="0" cellpadding="0" style="display: inline-block; margin: 0 auto;">
@@ -43,7 +42,7 @@
 
           <!-- Thin Copper Divider (4px) under header -->
           <tr>
-            <td height="4" style="background-color: #d97706; background-image: linear-gradient(90deg, #d97706 0%, #f59e0b 50%, #fbbf24 100%); height: 4px; line-height: 4px; font-size: 4px;">&nbsp;</td>
+            <td height="4" style="height:4px; background:linear-gradient(150deg,#064e3b 0%,#7ECF67 50%,#064e3b 100%); background-color:#68ac54; font-size:0; line-height:0;">&nbsp;</td>
           </tr>
 
           <!-- Card Body Content -->
@@ -163,7 +162,7 @@
                   <td align="center">
                     <table role="presentation" border="0" cellspacing="0" cellpadding="0">
                       <tr>
-                        <td align="center" style="border-radius: 8px; background-color: #047857; background-image: linear-gradient(135deg, #065f46 0%, #047857 100%);">
+                        <td align="center" style="border-radius: 8px; background:linear-gradient(210deg,#220046 0%,#6B00DD 50%,#F27ECE 100%); background-color:#065f46;">
                           <a href="https://devtrack.example.com" th:href="${bug.url}" target="_blank" style="border: 1px solid #047857; border-radius: 8px; color: #ffffff; display: inline-block; font-size: 15px; font-weight: 600; padding: 14px 28px; text-decoration: none; text-shadow: 0 -1px 0 rgba(0, 0, 0, 0.1); line-height: 1.2;">
                             View Bug in DevTrack &rarr;
                           </a>
