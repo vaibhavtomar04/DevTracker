@@ -168,10 +168,10 @@ export const CreateCRModal: React.FC<CreateCRModalProps> = ({ isOpen, onClose, o
         }
       }
 
-      await fetchData();
-      if (onSuccess) onSuccess();
-      addToast(`CR ${finalJtrackId} got created successfully.`, "success");
       onClose();
+      addToast(`CR ${finalJtrackId} got created successfully.`, "success");
+      if (onSuccess) onSuccess();
+      fetchData();
     } catch (err: any) {
       addToast(err.message || "Failed to create Change Request.", "error");
     } finally {

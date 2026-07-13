@@ -24,26 +24,26 @@ interface NotificationPopupToastProps {
 
 function getIcon(type: PopupNotif['type']) {
   switch (type) {
-    case 'success': return <CheckCircle className="h-4 w-4 text-emerald-400 shrink-0" />
-    case 'warning': return <AlertTriangle className="h-4 w-4 text-amber-400 shrink-0" />
-    case 'info': return <Info className="h-4 w-4 text-primary shrink-0" />
-    default: return <Bell className="h-4 w-4 text-secondary shrink-0" />
+    case 'success': return <CheckCircle className="h-4.5 w-4.5 text-emerald-600 dark:text-emerald-400 shrink-0" />
+    case 'warning': return <AlertTriangle className="h-4.5 w-4.5 text-amber-600 dark:text-amber-400 shrink-0" />
+    case 'info': return <Info className="h-4.5 w-4.5 text-primary shrink-0" />
+    default: return <Bell className="h-4.5 w-4.5 text-secondary shrink-0" />
   }
 }
 
 function getAccentClass(type: PopupNotif['type']) {
   switch (type) {
-    case 'success': return 'from-emerald-500/20 border-emerald-500/30'
-    case 'warning': return 'from-amber-500/20 border-amber-500/30'
-    case 'info': return 'from-primary/20 border-primary/30'
-    default: return 'from-secondary/20 border-secondary/30'
+    case 'success': return 'from-emerald-500/10 dark:from-emerald-500/20 border-emerald-500/30'
+    case 'warning': return 'from-amber-500/10 dark:from-amber-500/20 border-amber-500/30'
+    case 'info': return 'from-primary/10 dark:from-primary/20 border-primary/30'
+    default: return 'from-secondary/10 dark:from-secondary/20 border-secondary/30'
   }
 }
 
 function getDotClass(type: PopupNotif['type']) {
   switch (type) {
-    case 'success': return 'bg-emerald-400'
-    case 'warning': return 'bg-amber-400'
+    case 'success': return 'bg-emerald-500'
+    case 'warning': return 'bg-amber-500'
     case 'info': return 'bg-primary'
     default: return 'bg-secondary'
   }
@@ -63,7 +63,7 @@ const PopupItem: React.FC<{ notif: PopupNotif; onDismiss: () => void }> = ({ not
       console.log("PopupItem unmounting, clearing timeout for:", notif.id);
       clearTimeout(timer)
     }
-  }, [])
+  }, [notif.id])
 
   return (
     <motion.div
@@ -72,7 +72,7 @@ const PopupItem: React.FC<{ notif: PopupNotif; onDismiss: () => void }> = ({ not
       animate={{ opacity: 1, x: 0, scale: 1 }}
       exit={{ opacity: 0, x: 80, scale: 0.9 }}
       transition={{ type: 'spring', stiffness: 320, damping: 28 }}
-      className={`relative w-[360px] max-w-[calc(100vw-2rem)] bg-gradient-to-r ${getAccentClass(notif.type)} to-[#0d1120]/95 border backdrop-blur-xl rounded-2xl shadow-[0_8px_32px_rgba(0,0,0,0.5),0_0_0_1px_rgba(255,255,255,0.04)] overflow-hidden cursor-default`}
+      className={`relative w-[360px] max-w-[calc(100vw-2rem)] bg-gradient-to-r ${getAccentClass(notif.type)} to-card/95 border border-border/80 backdrop-blur-xl rounded-2xl shadow-[0_8px_32px_rgba(0,0,0,0.08)] dark:shadow-[0_8px_32px_rgba(0,0,0,0.5)] overflow-hidden cursor-default`}
     >
       {/* Progress bar — shrinks over 6 seconds */}
       <motion.div
@@ -90,17 +90,17 @@ const PopupItem: React.FC<{ notif: PopupNotif; onDismiss: () => void }> = ({ not
 
         {/* Content */}
         <div className="flex-1 min-w-0">
-          <p className="text-sm font-bold text-zinc-100 leading-snug">{notif.title}</p>
+          <p className="text-sm font-bold text-foreground leading-snug">{notif.title}</p>
           {notif.desc && (
-            <p className="text-xs text-zinc-400 mt-0.5 leading-relaxed line-clamp-2">{notif.desc}</p>
+            <p className="text-xs text-muted-foreground mt-1 leading-relaxed line-clamp-3">{notif.desc}</p>
           )}
-          <p className="text-[10px] text-zinc-600 mt-1.5 font-mono">Just now</p>
+          <p className="text-[10px] text-muted-foreground/60 mt-2 font-mono">Just now</p>
         </div>
 
         {/* Dismiss button */}
         <button
           onClick={onDismiss}
-          className="shrink-0 p-1 rounded-lg hover:bg-white/10 text-zinc-500 hover:text-zinc-200 transition-all"
+          className="shrink-0 p-1 rounded-lg hover:bg-muted text-muted-foreground hover:text-foreground transition-all cursor-pointer"
           aria-label="Dismiss notification"
         >
           <X className="h-3.5 w-3.5" />

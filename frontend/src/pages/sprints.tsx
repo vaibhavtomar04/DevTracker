@@ -1219,7 +1219,7 @@ export default function SprintsPage() {
       if (data.sprintId !== undefined && data.sprintId !== task.sprintId) {
         await assignTaskToSprint(taskId, data.sprintId ?? null)
       }
-      await fetchData()
+      fetchData()
       addToast(`Task "${task.jtrackId}" updated successfully`, "success")
     } catch (e: any) {
       addToast(e.message || "Failed to update task", "error")
