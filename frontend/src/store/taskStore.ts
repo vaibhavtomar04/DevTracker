@@ -353,16 +353,15 @@ export const useTaskStore = create<TaskState>((set, get) => ({
       body: JSON.stringify({ remarks })
     })
 
-    // Refresh tasks and audit logs after approval
-    try {
-      const [tasksRes, auditRes] = await Promise.all([
-        apiClient("/api/tasks"),
-        apiClient("/api/audit")
-      ])
+    // Refresh tasks and audit logs after approval in the background
+    Promise.all([
+      apiClient("/api/tasks"),
+      apiClient("/api/audit")
+    ]).then(([tasksRes, auditRes]) => {
       set({ tasks: tasksRes, auditLogs: auditRes })
-    } catch (err) {
+    }).catch(err => {
       console.error("Failed to refresh data after approve:", err)
-    }
+    })
 
     return res
   },
@@ -375,15 +374,14 @@ export const useTaskStore = create<TaskState>((set, get) => ({
     })
 
     // Refresh tasks and audit logs after rejection so "Sent Back By Admin" tag appears
-    try {
-      const [tasksRes, auditRes] = await Promise.all([
-        apiClient("/api/tasks"),
-        apiClient("/api/audit")
-      ])
+    Promise.all([
+      apiClient("/api/tasks"),
+      apiClient("/api/audit")
+    ]).then(([tasksRes, auditRes]) => {
       set({ tasks: tasksRes, auditLogs: auditRes })
-    } catch (err) {
+    }).catch(err => {
       console.error("Failed to refresh data after reject:", err)
-    }
+    })
 
     return res
   },
@@ -551,16 +549,22 @@ export const useTaskStore = create<TaskState>((set, get) => ({
       method: "POST",
       body: JSON.stringify(reviewData)
     })
-    try {
-      const tasksRes = await apiClient("/api/tasks")
-      set({ tasks: tasksRes })
-      if (reviewData.crTaskId) {
-        const revs = await apiClient(`/api/bug-reviews/cr/${reviewData.crTaskId}`)
-        set({ bugReviews: mapBugReviews(revs) })
-      }
-    } catch (err) {
-      console.error("Failed to refresh tasks after proposing bug review:", err)
-    }
+    
+    // Background refresh
+    apiClient("/api/tasks")
+      .then(tasksRes => {
+        set({ tasks: tasksRes })
+        if (reviewData.crTaskId) {
+          return apiClient(`/api/bug-reviews/cr/${reviewData.crTaskId}`)
+        }
+      })
+      .then(revs => {
+        if (revs) set({ bugReviews: mapBugReviews(revs) })
+      })
+      .catch(err => {
+        console.error("Failed to refresh tasks after proposing bug review:", err)
+      })
+
     return res;
   },
 
@@ -568,17 +572,22 @@ export const useTaskStore = create<TaskState>((set, get) => ({
     const res = await apiClient(`/api/bug-reviews/${reviewId}/accept`, {
       method: "POST"
     })
-    try {
-      const tasksRes = await apiClient("/api/tasks")
-      const bugsRes = await apiClient("/api/bugs")
+    
+    // Background refresh
+    Promise.all([
+      apiClient("/api/tasks"),
+      apiClient("/api/bugs")
+    ]).then(([tasksRes, bugsRes]) => {
       set({ tasks: tasksRes, bugs: bugsRes })
       if (res.bugTask && res.bugTask.id) {
-        const revs = await apiClient(`/api/bug-reviews/cr/${res.bugTask.id}`)
-        set({ bugReviews: mapBugReviews(revs) })
+        return apiClient(`/api/bug-reviews/cr/${res.bugTask.id}`)
       }
-    } catch (err) {
+    }).then(revs => {
+      if (revs) set({ bugReviews: mapBugReviews(revs) })
+    }).catch(err => {
       console.error("Failed to refresh tasks after accepting bug review:", err)
-    }
+    })
+
     return res;
   },
 
@@ -587,16 +596,22 @@ export const useTaskStore = create<TaskState>((set, get) => ({
       method: "POST",
       body: JSON.stringify(dto)
     })
-    try {
-      const tasksRes = await apiClient("/api/tasks")
-      set({ tasks: tasksRes })
-      if (res.crId) {
-        const revs = await apiClient(`/api/bug-reviews/cr/${res.crId}`)
-        set({ bugReviews: mapBugReviews(revs) })
-      }
-    } catch (err) {
-      console.error("Failed to refresh after rejecting bug review:", err)
-    }
+    
+    // Background refresh
+    apiClient("/api/tasks")
+      .then(tasksRes => {
+        set({ tasks: tasksRes })
+        if (res.crId) {
+          return apiClient(`/api/bug-reviews/cr/${res.crId}`)
+        }
+      })
+      .then(revs => {
+        if (revs) set({ bugReviews: mapBugReviews(revs) })
+      })
+      .catch(err => {
+        console.error("Failed to refresh after rejecting bug review:", err)
+      })
+
     return res;
   },
 
@@ -604,16 +619,22 @@ export const useTaskStore = create<TaskState>((set, get) => ({
     const res = await apiClient(`/api/bug-reviews/${reviewId}/tester-accept`, {
       method: "POST"
     })
-    try {
-      const tasksRes = await apiClient("/api/tasks")
-      set({ tasks: tasksRes })
-      if (res.crId) {
-        const revs = await apiClient(`/api/bug-reviews/cr/${res.crId}`)
-        set({ bugReviews: mapBugReviews(revs) })
-      }
-    } catch (err) {
-      console.error("Failed to refresh after tester accepting explanation:", err)
-    }
+    
+    // Background refresh
+    apiClient("/api/tasks")
+      .then(tasksRes => {
+        set({ tasks: tasksRes })
+        if (res.crId) {
+          return apiClient(`/api/bug-reviews/cr/${res.crId}`)
+        }
+      })
+      .then(revs => {
+        if (revs) set({ bugReviews: mapBugReviews(revs) })
+      })
+      .catch(err => {
+        console.error("Failed to refresh after tester accepting explanation:", err)
+      })
+
     return res;
   },
 
@@ -621,16 +642,22 @@ export const useTaskStore = create<TaskState>((set, get) => ({
     const res = await apiClient(`/api/bug-reviews/${reviewId}/raise-again`, {
       method: "POST"
     })
-    try {
-      const tasksRes = await apiClient("/api/tasks")
-      set({ tasks: tasksRes })
-      if (res.crId) {
-        const revs = await apiClient(`/api/bug-reviews/cr/${res.crId}`)
-        set({ bugReviews: mapBugReviews(revs) })
-      }
-    } catch (err) {
-      console.error("Failed to refresh after raising bug review again:", err)
-    }
+    
+    // Background refresh
+    apiClient("/api/tasks")
+      .then(tasksRes => {
+        set({ tasks: tasksRes })
+        if (res.crId) {
+          return apiClient(`/api/bug-reviews/cr/${res.crId}`)
+        }
+      })
+      .then(revs => {
+        if (revs) set({ bugReviews: mapBugReviews(revs) })
+      })
+      .catch(err => {
+        console.error("Failed to refresh after raising bug review again:", err)
+      })
+
     return res;
   },
 
@@ -638,16 +665,22 @@ export const useTaskStore = create<TaskState>((set, get) => ({
     const res = await apiClient(`/api/bug-reviews/${reviewId}/challenge`, {
       method: "POST"
     })
-    try {
-      const tasksRes = await apiClient("/api/tasks")
-      set({ tasks: tasksRes })
-      if (res.crId) {
-        const revs = await apiClient(`/api/bug-reviews/cr/${res.crId}`)
-        set({ bugReviews: mapBugReviews(revs) })
-      }
-    } catch (err) {
-      console.error("Failed to refresh after challenging bug review rejection:", err)
-    }
+    
+    // Background refresh
+    apiClient("/api/tasks")
+      .then(tasksRes => {
+        set({ tasks: tasksRes })
+        if (res.crId) {
+          return apiClient(`/api/bug-reviews/cr/${res.crId}`)
+        }
+      })
+      .then(revs => {
+        if (revs) set({ bugReviews: mapBugReviews(revs) })
+      })
+      .catch(err => {
+        console.error("Failed to refresh after challenging bug review rejection:", err)
+      })
+
     return res;
   },
 
@@ -655,16 +688,22 @@ export const useTaskStore = create<TaskState>((set, get) => ({
     const res = await apiClient(`/api/bug-reviews/${reviewId}/admin-accept`, {
       method: "POST"
     })
-    try {
-      const tasksRes = await apiClient("/api/tasks")
-      set({ tasks: tasksRes })
-      if (res.crId) {
-        const revs = await apiClient(`/api/bug-reviews/cr/${res.crId}`)
-        set({ bugReviews: mapBugReviews(revs) })
-      }
-    } catch (err) {
-      console.error("Failed to refresh after admin accepting rejection:", err)
-    }
+    
+    // Background refresh
+    apiClient("/api/tasks")
+      .then(tasksRes => {
+        set({ tasks: tasksRes })
+        if (res.crId) {
+          return apiClient(`/api/bug-reviews/cr/${res.crId}`)
+        }
+      })
+      .then(revs => {
+        if (revs) set({ bugReviews: mapBugReviews(revs) })
+      })
+      .catch(err => {
+        console.error("Failed to refresh after admin accepting rejection:", err)
+      })
+
     return res;
   },
 
@@ -672,17 +711,22 @@ export const useTaskStore = create<TaskState>((set, get) => ({
     const res = await apiClient(`/api/bug-reviews/${reviewId}/admin-force`, {
       method: "POST"
     })
-    try {
-      const tasksRes = await apiClient("/api/tasks")
-      const bugsRes = await apiClient("/api/bugs")
+    
+    // Background refresh
+    Promise.all([
+      apiClient("/api/tasks"),
+      apiClient("/api/bugs")
+    ]).then(([tasksRes, bugsRes]) => {
       set({ tasks: tasksRes, bugs: bugsRes })
       if (res.bugTask && res.bugTask.id) {
-        const revs = await apiClient(`/api/bug-reviews/cr/${res.bugTask.id}`)
-        set({ bugReviews: mapBugReviews(revs) })
+        return apiClient(`/api/bug-reviews/cr/${res.bugTask.id}`)
       }
-    } catch (err) {
+    }).then(revs => {
+      if (revs) set({ bugReviews: mapBugReviews(revs) })
+    }).catch(err => {
       console.error("Failed to refresh after admin forcing bug accept:", err)
-    }
+    })
+
     return res;
   },
 
