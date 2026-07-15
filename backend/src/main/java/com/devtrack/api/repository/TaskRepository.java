@@ -160,4 +160,10 @@ public interface TaskRepository extends JpaRepository<Task, Long>, org.springfra
            "WHERE t.isQualityRisk = true",
            countQuery = "SELECT COUNT(t) FROM Task t WHERE t.isQualityRisk = true")
     Page<Task> findAtRiskCrs(Pageable pageable);
+
+    boolean existsByJtrackId(String jtrackId);
+
+    @Query("SELECT t.jtrackId FROM Task t WHERE t.jtrackId LIKE CONCAT(:prefix, '%')")
+    List<String> findJtrackIdsByPrefix(@Param("prefix") String prefix);
 }
+

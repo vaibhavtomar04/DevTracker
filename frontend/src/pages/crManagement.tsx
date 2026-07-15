@@ -42,6 +42,11 @@ export default function CrManagement() {
     adminForceAccept
   } = useTaskStore()
   const { user } = useAuthStore()
+
+  React.useEffect(() => {
+    fetchData()
+  }, [])
+
   const [deleteModalTask, setDeleteModalTask] = useState<any>(null)
   const [deleteRemarks, setDeleteRemarks] = useState("")
   const [isDeleting, setIsDeleting] = useState(false)

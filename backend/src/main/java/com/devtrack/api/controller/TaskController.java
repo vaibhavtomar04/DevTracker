@@ -187,6 +187,44 @@ public class TaskController {
                 .orElse(ResponseEntity.notFound().build());
     }
 
+    private String generateUniqueJtrackId(String requestedJtrackId) {
+        if (requestedJtrackId == null || requestedJtrackId.trim().isEmpty()) {
+            requestedJtrackId = "CR-1";
+        }
+        requestedJtrackId = requestedJtrackId.trim();
+        if (!taskRepository.existsByJtrackId(requestedJtrackId)) {
+            return requestedJtrackId;
+        }
+
+        java.util.regex.Pattern pattern = java.util.regex.Pattern.compile("^([a-zA-Z]+-?)(\\d*)$");
+        java.util.regex.Matcher matcher = pattern.matcher(requestedJtrackId);
+        
+        String prefix = "CR-";
+        if (matcher.matches()) {
+            prefix = matcher.group(1);
+        }
+
+        List<String> existingIds = taskRepository.findJtrackIdsByPrefix(prefix);
+        int maxVal = 0;
+        for (String id : existingIds) {
+            if (id != null && id.startsWith(prefix)) {
+                try {
+                    String numStr = id.substring(prefix.length());
+                    if (!numStr.isEmpty()) {
+                        int val = Integer.parseInt(numStr.trim());
+                        if (val > maxVal) {
+                            maxVal = val;
+                        }
+                    }
+                } catch (NumberFormatException e) {
+                    // Ignore malformed IDs
+                }
+            }
+        }
+        
+        return prefix + (maxVal + 1);
+    }
+
     @PostMapping
     public Task createTask(@RequestBody Task task) {
         String username = SecurityContextHolder.getContext().getAuthentication().getName();
@@ -202,10 +240,22 @@ public class TaskController {
         if(task.getWorkflow()==null) {
         	throw new RuntimeException("Workflow is mandatory");
         }
+
+        String originalJtrackId = task.getJtrackId();
+        String uniqueJtrackId = generateUniqueJtrackId(originalJtrackId);
+        task.setJtrackId(uniqueJtrackId);
+        
+        if (task.getBranchName() != null && originalJtrackId != null) {
+            String defaultOldBranch = "feature/" + originalJtrackId.toLowerCase();
+            if (task.getBranchName().equalsIgnoreCase(defaultOldBranch) || task.getBranchName().trim().isEmpty()) {
+                task.setBranchName("feature/" + uniqueJtrackId.toLowerCase());
+            }
+        }
         
         if (task.getCreatedBy() == null) {
             task.setCreatedBy(currentUser);
         }
+
         
         // Refined Assignment Logic:
         // 1. If a DEVELOPER creates a task and it's unassigned, auto-assign to them.

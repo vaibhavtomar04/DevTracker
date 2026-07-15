@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import { X, Upload, Users, FileText, CheckCircle2, Sparkles, Code2, Layers, Cpu, Clock, Trash2 } from "lucide-react";
 import { useTaskStore } from "@/store/taskStore";
 import { useSprintStore } from "@/store/sprintStore";
+import { useAuthStore } from "@/store/authStore";
 import { apiClient } from "@/utils/apiClient";
 import { uploadDocument } from "@/services/document.service";
 
@@ -14,6 +15,7 @@ interface CreateCRModalProps {
 export const CreateCRModal: React.FC<CreateCRModalProps> = ({ isOpen, onClose, onSuccess }) => {
   const { fetchData, addToast, sprintTasks, fetchSprintTasks, tasks } = useTaskStore();
   const { sprints, fetchSprints } = useSprintStore();
+  const { user } = useAuthStore();
 
   const [crType, setCrType] = useState("CR");
   const [sprintId, setSprintId] = useState<number | "">("");
@@ -71,7 +73,12 @@ export const CreateCRModal: React.FC<CreateCRModalProps> = ({ isOpen, onClose, o
       );
       setAvailableDevelopers(devs);
       if (devs.length > 0 && selectedDeveloperIds.length === 0) {
-        setSelectedDeveloperIds([devs[0].id]);
+        const currentDev = devs.find((d: any) => d.id === user?.id || d.username === user?.username);
+        if (currentDev) {
+          setSelectedDeveloperIds([currentDev.id]);
+        } else {
+          setSelectedDeveloperIds([devs[0].id]);
+        }
       }
 
       if (wfRes && wfRes.length > 0) {
