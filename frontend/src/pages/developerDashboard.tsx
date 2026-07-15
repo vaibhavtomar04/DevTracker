@@ -1940,8 +1940,8 @@ export default function DeveloperDashboard() {
                           </Button>
                         )}
                         {selectedTask.status === "MOVE_TO_UAT" && (
-                          <div className="space-y-3 p-3.5 border border-dashed border-cyan-500/20 bg-cyan-500/5 rounded-xl text-left">
-                            <span className="block text-[10px] font-bold uppercase tracking-wider text-cyan-400">Unit Test Document Required</span>
+                          <div className="space-y-3 p-3.5 border border-dashed border-cyan-500/30 bg-cyan-500/5 rounded-xl text-left">
+                            <span className="block text-[10px] font-bold uppercase tracking-wider text-cyan-600 dark:text-cyan-400">Unit Test Document Required</span>
                             <input
                               type="file"
                               accept=".pdf,.doc,.docx,.txt"
@@ -1950,36 +1950,36 @@ export default function DeveloperDashboard() {
                               className="hidden"
                             />
                             {selectedDocFile ? (
-                              <div className="flex items-center gap-2.5 p-2.5 rounded-xl border border-white/[0.06] bg-white/[0.02]">
+                              <div className="flex items-center gap-2.5 p-2.5 rounded-xl border border-border bg-muted/50">
                                 {selectedDocFile.url.startsWith("data:image/") ? (
-                                  <div className="w-12 h-12 rounded-lg overflow-hidden border border-white/10 shrink-0 bg-black/40">
+                                  <div className="w-12 h-12 rounded-lg overflow-hidden border border-border shrink-0 bg-muted">
                                     <img src={selectedDocFile.url} alt={selectedDocFile.name} className="w-full h-full object-cover" />
                                   </div>
                                 ) : (
-                                  <div className="w-12 h-12 rounded-lg flex items-center justify-center border border-white/10 bg-black/40 text-lg shrink-0">
+                                  <div className="w-12 h-12 rounded-lg flex items-center justify-center border border-border bg-muted text-lg shrink-0">
                                     📄
                                   </div>
                                 )}
                                 <div className="flex-1 min-w-0 text-left">
-                                  <span className="block truncate font-mono text-slate-200 text-[11px]">{selectedDocFile.name}</span>
-                                  <span className="text-[9px] text-slate-500 font-semibold uppercase tracking-wider block mt-0.5">Unit Testing Document</span>
+                                  <span className="block truncate font-mono text-foreground text-[11px]">{selectedDocFile.name}</span>
+                                  <span className="text-[9px] text-muted-foreground font-semibold uppercase tracking-wider block mt-0.5">Unit Testing Document</span>
                                 </div>
                                 <button
                                   type="button"
                                   onClick={() => setSelectedDocFile(null)}
-                                  className="p-1.5 rounded-lg hover:bg-rose-500/10 text-slate-500 hover:text-rose-400 transition-colors shrink-0"
+                                  className="p-1.5 rounded-lg hover:bg-rose-500/10 text-muted-foreground hover:text-rose-500 transition-colors shrink-0"
                                 >
                                   <Trash2 className="h-3.5 w-3.5" />
                                 </button>
                               </div>
                             ) : (
-                              <Button
-                                variant="secondary"
-                                className="w-full text-xs h-8.5 rounded-lg border border-white/[0.08] hover:bg-white/[0.06]"
+                              <button
+                                type="button"
                                 onClick={() => document.getElementById("unit-test-input-drawer")?.click()}
+                                className="w-full flex items-center justify-center gap-2 text-xs h-9 rounded-lg border border-border bg-muted hover:bg-muted/80 text-foreground font-semibold transition-all cursor-pointer"
                               >
-                                Select Document
-                              </Button>
+                                📎 Select Document
+                              </button>
                             )}
                             <Button
                               className="w-full text-xs h-10 rounded-xl bg-gradient-to-r from-cyan-600 to-teal-600 hover:from-cyan-500 hover:to-teal-500 text-white font-bold"
