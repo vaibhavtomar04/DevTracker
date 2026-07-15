@@ -411,25 +411,41 @@
 
   /* ── Tailwind / shadcn HSL tokens (dark) ─────────────────────────── */
   .dark {
-    --background:         111 28% 5%;
-    --foreground:         112 30% 95%;
-    --card:               120 28% 4%;
-    --card-foreground:    112 30% 95%;
-    --popover:            120 28% 4%;
-    --popover-foreground: 112 30% 95%;
-    --primary:            112  30% 50%;   /* #63a659 */
+    /* Deep midnight-slate base — not pure black, has subtle coolness */
+    --background:         222 20% 8%;
+    --foreground:         210 25% 94%;
+
+    /* Cards sit clearly above the page background */
+    --card:               220 18% 12%;
+    --card-foreground:    210 25% 94%;
+
+    /* Popovers / dropdowns: slightly lighter than cards */
+    --popover:            220 18% 14%;
+    --popover-foreground: 210 25% 94%;
+
+    /* Brand green primary */
+    --primary:            112  38% 52%;   /* #63a659 brightened */
     --primary-foreground:   0   0% 100%;
-    --secondary:          159  30% 50%;   /* #59a68b */
+
+    /* Brand teal secondary */
+    --secondary:          159  35% 48%;   /* #59a68b */
     --secondary-foreground: 0   0% 100%;
-    --muted:              120  15% 12%;
-    --muted-foreground:   112  15% 60%;
-    --accent:             180  30% 50%;   /* #59a6a6 */
+
+    /* Muted surfaces: clearly distinguishable from card */
+    --muted:              220  15% 18%;
+    --muted-foreground:   215  18% 60%;
+
+    /* Accent teal */
+    --accent:             180  32% 46%;
     --accent-foreground:    0   0% 100%;
-    --destructive:          0  84% 60%;
+
+    --destructive:          0  72% 56%;
     --destructive-foreground: 0 0% 100%;
-    --border:             120  15% 15%;
-    --input:              120  15% 15%;
-    --ring:               112  30% 50%;
+
+    /* Borders: visible but not harsh */
+    --border:             220  14% 20%;
+    --input:              220  14% 17%;
+    --ring:               112  38% 52%;
   }
 }
 
@@ -491,12 +507,29 @@
   box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.35), 0 0 20px rgba(var(--primary-rgb), 0.1);
 }
 
+/* Dark mode glass gets rich shadows and glow */
+.dark .glass-card {
+  background: rgba(255, 255, 255, 0.035);
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  box-shadow: 0 4px 24px 0 rgba(0,0,0,0.55), inset 0 1px 0 rgba(255,255,255,0.05);
+}
+.dark .glass-card:hover {
+  background: rgba(255, 255, 255, 0.055);
+  border-color: rgba(var(--primary-rgb), 0.28);
+  box-shadow: 0 8px 40px 0 rgba(0,0,0,0.65), 0 0 24px rgba(var(--primary-rgb), 0.14), inset 0 1px 0 rgba(255,255,255,0.06);
+}
+
 .glass-panel {
   backdrop-filter: blur(24px);
   -webkit-backdrop-filter: blur(24px);
   background: rgba(0, 11, 22, 0.7);
   border: 1px solid rgba(var(--primary-rgb), 0.12);
   box-shadow: 0 8px 40px 0 rgba(0, 0, 0, 0.5);
+}
+.dark .glass-panel {
+  background: rgba(10, 14, 26, 0.82);
+  border: 1px solid rgba(var(--primary-rgb), 0.15);
+  box-shadow: 0 8px 48px 0 rgba(0, 0, 0, 0.7), inset 0 1px 0 rgba(255,255,255,0.04);
 }
 .light .glass-panel {
   background: rgba(255, 255, 255, 0.80);
@@ -798,8 +831,108 @@ input[type="date"]::-webkit-calendar-picker-indicator {
   transition: opacity 0.15s ease-in-out;
 }
 
-input[type="date"]::-webkit-calendar-picker-indicator:hover {
-  opacity: 0.95;
+
+/* ─── Premium Dark Mode Surface System ─────────────────────────────── */
+
+/* Layer 0: Page background (darkest) — set by --background token */
+/* Layer 1: Sidebar / persistent chrome */
+.dark .surface-sidebar {
+  background: hsl(220 22% 10%);
+  border-right: 1px solid hsl(220 14% 18%);
 }
 
+/* Layer 2: Content area cards */
+.dark .surface-card {
+  background: hsl(220 18% 13%);
+  border: 1px solid hsl(220 14% 20%);
+  box-shadow: 0 2px 12px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.04);
+}
+
+/* Layer 3: Stat cards / hero widgets — elevated */
+.dark .surface-stat {
+  background: linear-gradient(135deg, hsl(220 18% 14%) 0%, hsl(220 16% 16%) 100%);
+  border: 1px solid hsl(220 14% 22%);
+  box-shadow: 0 4px 20px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.05);
+}
+
+/* Layer 4: Modals / overlays — highest elevation */
+.dark .surface-modal {
+  background: hsl(222 22% 15%);
+  border: 1px solid hsl(220 14% 24%);
+  box-shadow: 0 20px 60px rgba(0,0,0,0.7), 0 4px 24px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.05);
+}
+
+/* CR cards in dark mode: subtle gradient for depth */
+.dark [class*="rounded"][class*="border"][class*="bg-card"],
+.dark [class*="rounded-xl"][class*="border"] {
+  --tw-shadow: 0 2px 16px 0 rgba(0,0,0,0.4);
+}
+
+/* Make bg-card in dark feel elevated with a top-edge highlight */
+.dark .bg-card {
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.04);
+}
+
+/* Status badge improvements in dark mode */
+.dark [class*="bg-emerald"][class*="/10"],
+.dark [class*="bg-green"][class*="/10"] { background-color: rgba(34,197,94,0.14) !important; }
+.dark [class*="bg-blue"][class*="/10"]  { background-color: rgba(59,130,246,0.14) !important; }
+.dark [class*="bg-amber"][class*="/10"],
+.dark [class*="bg-yellow"][class*="/10"]{ background-color: rgba(245,158,11,0.14) !important; }
+.dark [class*="bg-rose"][class*="/10"],
+.dark [class*="bg-red"][class*="/10"]   { background-color: rgba(239,68,68,0.14) !important; }
+.dark [class*="bg-purple"][class*="/10"]{ background-color: rgba(168,85,247,0.14) !important; }
+.dark [class*="bg-orange"][class*="/10"]{ background-color: rgba(249,115,22,0.14) !important; }
+
+/* Sidebar nav items in dark: clear hover state */
+.dark [class*="hover:bg-primary"][class*="/10"]:hover,
+.dark [class*="hover:bg-primary/10"]:hover {
+  background: rgba(var(--primary-rgb), 0.12) !important;
+  border-radius: 0.75rem;
+}
+
+/* Input fields in dark: slightly raised surface */
+.dark input:not([type="checkbox"]):not([type="radio"]),
+.dark textarea,
+.dark select {
+  background-color: hsl(222 20% 10%) !important;
+  border-color: hsl(220 14% 22%) !important;
+  color: hsl(210 25% 92%) !important;
+}
+.dark input:focus,
+.dark textarea:focus,
+.dark select:focus {
+  border-color: hsl(var(--ring)) !important;
+  box-shadow: 0 0 0 2px rgba(var(--primary-rgb), 0.2) !important;
+}
+
+/* Table rows dark: alternating subtle rows */
+.dark tbody tr:nth-child(even) {
+  background-color: hsl(222 18% 10%);
+}
+.dark tbody tr:hover {
+  background-color: hsl(220 18% 15%) !important;
+}
+
+/* Navbar in dark: slightly frosted glass look */
+.dark header,
+.dark nav[class*="border-b"] {
+  background: hsla(222, 22%, 9%, 0.9) !important;
+  backdrop-filter: blur(20px);
+  border-bottom-color: hsl(220 14% 18%) !important;
+}
+
+/* Scrollbar in dark mode */
+.dark ::-webkit-scrollbar-thumb {
+  background: rgba(var(--primary-rgb), 0.25);
+}
+.dark ::-webkit-scrollbar-thumb:hover {
+  background: rgba(var(--primary-rgb), 0.45);
+}
+
+/* Smooth dark bg animation on page load */
+.dark body {
+  background: linear-gradient(145deg, hsl(222 22% 7%) 0%, hsl(220 20% 9%) 50%, hsl(218 18% 8%) 100%);
+  background-attachment: fixed;
+}
 

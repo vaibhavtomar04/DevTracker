@@ -1718,10 +1718,9 @@ export default function CrManagement() {
               exit={{ opacity: 0, scale: 0.85, y: 30 }}
               transition={{ type: "spring", damping: 25, stiffness: 300 }}
               onClick={e => e.stopPropagation()}
-              className="relative w-full max-w-md rounded-2xl border border-rose-500/30 overflow-hidden shadow-2xl"
+              className="relative w-full max-w-md rounded-2xl border border-rose-500/30 overflow-hidden shadow-2xl bg-card dark:bg-[#1a0a0a]"
               style={{
-                background: "linear-gradient(135deg, #1a0a0a 0%, #160808 40%, #0f0f11 100%)",
-                boxShadow: "0 0 60px rgba(239,68,68,0.15), 0 25px 50px rgba(0,0,0,0.6), inset 0 1px 0 rgba(255,255,255,0.05)"
+                boxShadow: "0 0 60px rgba(239,68,68,0.12), 0 25px 50px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.06)"
               }}
             >
               {/* Top accent line */}
@@ -1744,13 +1743,13 @@ export default function CrManagement() {
                   </motion.div>
 
                   <div className="flex-1">
-                    <h2 className="text-base font-bold text-zinc-100 leading-tight">
+                    <h2 className="text-base font-bold text-foreground leading-tight">
                       Delete Change Request
                     </h2>
-                    <p className="text-xs text-zinc-400 mt-1">
+                    <p className="text-xs text-muted-foreground mt-1">
                       You are about to permanently delete{" "}
-                      <span className="text-rose-400 font-bold font-mono">{deleteModalTask.jtrackId}</span>.
-                      This action <span className="text-rose-300 font-semibold">cannot be undone</span>.
+                      <span className="text-rose-400 dark:text-rose-400 font-bold font-mono">{deleteModalTask.jtrackId}</span>.
+                      This action <span className="text-rose-500 dark:text-rose-300 font-semibold">cannot be undone</span>.
                     </p>
                   </div>
 
@@ -1763,20 +1762,20 @@ export default function CrManagement() {
                 </div>
 
                 {/* CR Info Card */}
-                <div className="rounded-xl bg-white/[0.03] border border-white/[0.06] p-3 space-y-1">
-                  <p className="text-[11px] text-zinc-500 uppercase tracking-wider font-semibold">CR Details</p>
-                  <p className="text-sm text-zinc-200 font-medium truncate">{deleteModalTask.title}</p>
+                <div className="rounded-xl bg-muted/50 border border-border p-3 space-y-1">
+                  <p className="text-[11px] text-muted-foreground uppercase tracking-wider font-semibold">CR Details</p>
+                  <p className="text-sm text-foreground font-medium truncate">{deleteModalTask.title}</p>
                   <div className="flex items-center gap-3 mt-1">
-                    <span className="text-[10px] bg-rose-500/10 text-rose-400 border border-rose-500/20 px-2 py-0.5 rounded-full font-mono font-bold">{deleteModalTask.jtrackId}</span>
-                    <span className="text-[10px] text-zinc-500">{deleteModalTask.status}</span>
+                    <span className="text-[10px] bg-rose-500/10 text-rose-500 dark:text-rose-400 border border-rose-500/20 px-2 py-0.5 rounded-full font-mono font-bold">{deleteModalTask.jtrackId}</span>
+                    <span className="text-[10px] text-muted-foreground">{deleteModalTask.status}</span>
                   </div>
                 </div>
 
                 {/* Remarks Input */}
                 <div className="space-y-2">
-                  <label className="text-xs font-semibold text-zinc-400 flex items-center gap-1.5">
-                    <AlertTriangle className="h-3 w-3 text-amber-400" />
-                    Audit Remarks <span className="text-rose-400">*</span>
+                  <label className="text-xs font-semibold text-foreground flex items-center gap-1.5">
+                    <AlertTriangle className="h-3 w-3 text-amber-500 dark:text-amber-400" />
+                    Audit Remarks <span className="text-rose-500">*</span>
                   </label>
                   <textarea
                     value={deleteRemarks}
@@ -1784,7 +1783,7 @@ export default function CrManagement() {
                     placeholder="Enter reason for deletion (required for audit trail)..."
                     rows={3}
                     disabled={isDeleting}
-                    className="w-full rounded-xl bg-white/[0.04] border border-white/[0.08] focus:border-rose-500/50 text-xs text-zinc-200 placeholder-zinc-600 px-3 py-2.5 outline-none resize-none transition-colors focus:bg-white/[0.06]"
+                    className="w-full rounded-xl bg-background border border-border focus:border-rose-500/50 text-sm text-foreground placeholder:text-muted-foreground px-3 py-2.5 outline-none resize-none transition-colors focus:bg-muted/30"
                     style={{ fontFamily: "inherit" }}
                   />
                 </div>
@@ -1796,7 +1795,7 @@ export default function CrManagement() {
                     whileTap={{ scale: 0.97 }}
                     onClick={() => !isDeleting && setDeleteModalTask(null)}
                     disabled={isDeleting}
-                    className="flex-1 py-2.5 rounded-xl border border-white/[0.08] bg-white/[0.03] hover:bg-white/[0.06] text-xs text-zinc-400 hover:text-zinc-200 font-semibold transition-all disabled:opacity-50"
+                    className="flex-1 py-2.5 rounded-xl border border-border bg-muted/50 hover:bg-muted text-xs text-muted-foreground hover:text-foreground font-semibold transition-all disabled:opacity-50"
                   >
                     Cancel
                   </motion.button>
