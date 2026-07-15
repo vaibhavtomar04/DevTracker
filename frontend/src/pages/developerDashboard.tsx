@@ -23,11 +23,6 @@ import {
 import { motion, AnimatePresence } from "framer-motion"
 import type { Task, Bug, AuditLog } from "@/services/mockData"
 
-// Company Holidays for Smart Deadline calculation
-const COMPANY_HOLIDAYS = [
-  "2026-01-01", "2026-01-26", "2026-08-15", "2026-10-02", "2026-12-25"
-]
-
 export default function DeveloperDashboard() {
   const { theme } = useThemeStore()
   const {
@@ -42,7 +37,8 @@ export default function DeveloperDashboard() {
     bugReviews,
     fetchBugReviews,
     acceptBugReview,
-    rejectBugReview
+    rejectBugReview,
+    configs
   } = useTaskStore()
   
   const { sprints, fetchSprints } = useSprintStore()
@@ -230,12 +226,27 @@ export default function DeveloperDashboard() {
 
   // --- Dynamic calculations: Smart Deadline Engine ---
   const calculateDeadlineDetails = (task: Task) => {
+    // Helper to get config values
+    const getConfigValue = (key: string, defaultValue: string) => {
+      const configObj = configs?.find(c => c.configKey === key)
+      return configObj ? configObj.configValue : defaultValue
+    }
+
+    // 1. Effort fallback
+    const configDefaultEffort = getConfigValue("deadline.default_effort_days", "5")
+    const defaultEffortVal = parseInt(configDefaultEffort, 10) || 5
+    const effortDays = task.efforts && task.efforts > 0 ? Math.ceil(task.efforts) : defaultEffortVal
+
+    // 2. Company Holidays
+    const holidaysConfig = getConfigValue(
+      "deadline.company_holidays",
+      "2026-01-01,2026-01-26,2026-08-15,2026-10-02,2026-12-25"
+    )
+    const holidaysList = holidaysConfig.split(",").map(h => h.trim())
+
     // Development starts on devStartDate or task createdDate
     const devStartStr = task.devStartDate ? task.devStartDate.toString() : task.createdDate?.split("T")[0]
     const devStart = devStartStr ? new Date(devStartStr) : new Date()
-    
-    // Estimate effort: default 5 days if none
-    const effortDays = task.efforts && task.efforts > 0 ? Math.ceil(task.efforts) : 5
 
     // Add working days (skip weekends and holidays)
     let addedDays = 0
@@ -245,7 +256,7 @@ export default function DeveloperDashboard() {
       const dayOfWeek = currDate.getDay()
       const formatted = currDate.toISOString().split("T")[0]
       const isWeekend = dayOfWeek === 0 || dayOfWeek === 6
-      const isHoliday = COMPANY_HOLIDAYS.includes(formatted)
+      const isHoliday = holidaysList.includes(formatted)
       if (!isWeekend && !isHoliday) {
         addedDays++
       }
@@ -255,18 +266,27 @@ export default function DeveloperDashboard() {
     // Predicted completion date: include delays from bugs, retests, and approval cycles
     let predictedDate = new Date(targetCompletionDate)
     
-    // Delays
-    let bugDelayDays = (task.totalBugsRaised || 0) * 2
-    let approvalDelayDays = task.status === "CODE_REVIEW" ? 2 : 0
-    let blockedDelayDays = task.status === "BUG_FOUND" ? 4 : 0
+    // 3. Count bugs in real-time from store
+    const realTimeBugs = bugs?.filter(b => b.crTaskId === task.id) || []
+    const totalBugsRaisedCount = realTimeBugs.length
+
+    // 4. Configurable delays
+    const bugDelayFactor = parseInt(getConfigValue("deadline.bug_delay_days", "2"), 10) || 2
+    const approvalDelayFactor = parseInt(getConfigValue("deadline.approval_delay_days", "2"), 10) || 2
+    const blockedDelayFactor = parseInt(getConfigValue("deadline.blocked_delay_days", "4"), 10) || 4
+
+    let bugDelayDays = totalBugsRaisedCount * bugDelayFactor
+    let approvalDelayDays = task.status === "CODE_REVIEW" ? approvalDelayFactor : 0
+    let blockedDelayDays = task.status === "BUG_FOUND" ? blockedDelayFactor : 0
 
     if (bugDelayDays > 0) predictedDate.setDate(predictedDate.getDate() + bugDelayDays)
     if (approvalDelayDays > 0) predictedDate.setDate(predictedDate.getDate() + approvalDelayDays)
     if (blockedDelayDays > 0) predictedDate.setDate(predictedDate.getDate() + blockedDelayDays)
 
     // Sprint deadline matching active sprint
-    const activeSprint = sprints.find(s => s.status === "ACTIVE")
-    const sprintDeadlineStr = activeSprint?.endDate || "2026-06-30"
+    const activeSprint = sprints?.find(s => s.status === "ACTIVE")
+    const fallbackDeadlineStr = getConfigValue("deadline.sprint_deadline_fallback", "2026-07-31")
+    const sprintDeadlineStr = activeSprint?.endDate || fallbackDeadlineStr
     const sprintDeadline = new Date(sprintDeadlineStr)
 
     // Determine status
@@ -1580,6 +1600,22 @@ export default function DeveloperDashboard() {
                             </div>
                           )
                         })()}
+
+                        {/* Core Fields */}
+                        <div className="grid grid-cols-3 gap-3 text-[11px] text-left">
+                          <div className="space-y-1 p-3 rounded-xl border border-white/[0.06] bg-black/30">
+                            <span className="text-zinc-500 block font-bold uppercase tracking-wider text-[9px]">Priority</span>
+                            <span className="font-bold text-zinc-350">{selectedTask.priority}</span>
+                          </div>
+                          <div className="space-y-1 p-3 rounded-xl border border-white/[0.06] bg-black/30">
+                            <span className="text-zinc-500 block font-bold uppercase tracking-wider text-[9px]">Est efforts</span>
+                            <span className="font-bold text-zinc-350">{selectedTask.efforts} days</span>
+                          </div>
+                          <div className="space-y-1 p-3 rounded-xl border border-white/[0.06] bg-black/30">
+                            <span className="text-zinc-500 block font-bold uppercase tracking-wider text-[9px]">Module</span>
+                            <span className="font-bold text-zinc-350">{selectedTask.module || "Core"}</span>
+                          </div>
+                        </div>
 
                         {/* Description */}
                         <div className="space-y-1.5 text-left text-xs">

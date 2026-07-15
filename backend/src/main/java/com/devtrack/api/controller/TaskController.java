@@ -426,6 +426,9 @@ public class TaskController {
                     if (taskDetails.getBrdDocumentId() != null) {
                         task.setBrdDocumentId(taskDetails.getBrdDocumentId());
                     }
+                    if (taskDetails.getModule() != null) {
+                        task.setModule(taskDetails.getModule());
+                    }
                     // jtrackId is immutable once created
                     if (taskDetails.getPds() != null) {
                         task.setPds(taskDetails.getPds());

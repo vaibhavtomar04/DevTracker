@@ -5,6 +5,7 @@ import { useSprintStore } from "@/store/sprintStore";
 import { useAuthStore } from "@/store/authStore";
 import { apiClient } from "@/utils/apiClient";
 import { uploadDocument } from "@/services/document.service";
+import { useNavigate } from "react-router-dom";
 
 interface CreateCRModalProps {
   isOpen: boolean;
@@ -13,6 +14,7 @@ interface CreateCRModalProps {
 }
 
 export const CreateCRModal: React.FC<CreateCRModalProps> = ({ isOpen, onClose, onSuccess }) => {
+  const navigate = useNavigate();
   const { fetchData, addToast, sprintTasks, fetchSprintTasks, tasks } = useTaskStore();
   const { sprints, fetchSprints } = useSprintStore();
   const { user } = useAuthStore();
@@ -29,6 +31,7 @@ export const CreateCRModal: React.FC<CreateCRModalProps> = ({ isOpen, onClose, o
   const [selectedDeveloperIds, setSelectedDeveloperIds] = useState<number[]>([]);
   const [selectedSprintTaskIds, setSelectedSprintTaskIds] = useState<number[]>([]);
   const [brdFile, setBrdFile] = useState<File | null>(null);
+  const [module, setModule] = useState("Core");
 
   const [availableDevelopers, setAvailableDevelopers] = useState<any[]>([]);
   const [selectedWorkflowId, setSelectedWorkflowId] = useState<number | null>(null);
@@ -144,7 +147,8 @@ export const CreateCRModal: React.FC<CreateCRModalProps> = ({ isOpen, onClose, o
         assignedDeveloper: primaryDev,
         workflow: selectedWorkflowId ? { id: selectedWorkflowId } : null,
         developers: selectedDeveloperIds.map(id => ({ developer: { id } })),
-        sprintTasks: selectedSprintTaskIds.map(id => ({ id }))
+        sprintTasks: selectedSprintTaskIds.map(id => ({ id })),
+        module: module.trim() || "Core"
       };
 
       // 1. Create task
@@ -179,6 +183,7 @@ export const CreateCRModal: React.FC<CreateCRModalProps> = ({ isOpen, onClose, o
       addToast(`CR ${finalJtrackId} got created successfully.`, "success");
       if (onSuccess) onSuccess();
       fetchData();
+      navigate("/dashboard");
     } catch (err: any) {
       addToast(err.message || "Failed to create Change Request.", "error");
     } finally {
@@ -310,8 +315,8 @@ export const CreateCRModal: React.FC<CreateCRModalProps> = ({ isOpen, onClose, o
             />
           </div>
 
-          {/* Row 2: Priority & Effort */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+          {/* Row 2: Priority, Effort & Module */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
             <div className="space-y-2">
               <label className="text-[11px] font-bold tracking-wider text-slate-400 uppercase">Priority Level</label>
               <select
@@ -333,6 +338,20 @@ export const CreateCRModal: React.FC<CreateCRModalProps> = ({ isOpen, onClose, o
                 value={efforts}
                 onChange={(e) => setEfforts(e.target.value ? Number(e.target.value) : "")}
                 className="w-full bg-slate-900/90 border border-white/10 rounded-2xl px-4 py-2.5 text-xs text-slate-100 outline-none focus:border-violet-500/60 focus:ring-4 focus:ring-violet-500/15 transition-all shadow-inner"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <label className="text-[11px] font-bold tracking-wider text-slate-400 uppercase flex items-center gap-1.5">
+                <Layers className="h-3.5 w-3.5 text-violet-400" /> Module
+              </label>
+              <input
+                type="text"
+                value={module}
+                onChange={(e) => setModule(e.target.value)}
+                placeholder="e.g. Core, Billing"
+                className="w-full bg-slate-900/90 border border-white/10 rounded-2xl px-4 py-2.5 text-xs text-slate-100 outline-none focus:border-violet-500/60 focus:ring-4 focus:ring-violet-500/15 transition-all shadow-inner"
+                required
               />
             </div>
           </div>

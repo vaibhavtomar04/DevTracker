@@ -449,6 +449,10 @@ export default function TesterDashboard() {
                             {task.inPoolDate ? new Date(task.inPoolDate).toLocaleDateString() : new Date(task.createdDate).toLocaleDateString()}
                           </span>
                         </div>
+                        <div>
+                          <span className="text-slate-500">Module:</span>{" "}
+                          <span className="text-slate-300 font-semibold">{task.module || "Core"}</span>
+                        </div>
                       </div>
 
                       <Button
@@ -531,6 +535,10 @@ export default function TesterDashboard() {
                         <div>
                           <span className="text-slate-500">Priority:</span>{" "}
                           <span className="text-slate-300 font-semibold">{task.priority}</span>
+                        </div>
+                        <div>
+                          <span className="text-slate-500">Module:</span>{" "}
+                          <span className="text-slate-300 font-semibold">{task.module || "Core"}</span>
                         </div>
                       </div>
                     </motion.div>
@@ -710,6 +718,10 @@ export default function TesterDashboard() {
                         <div>
                           <span className="text-slate-500">Priority:</span>{" "}
                           <span className="text-slate-300 font-semibold">{task.priority}</span>
+                        </div>
+                        <div>
+                          <span className="text-slate-500">Module:</span>{" "}
+                          <span className="text-slate-300 font-semibold">{task.module || "Core"}</span>
                         </div>
                       </div>
                     </motion.div>

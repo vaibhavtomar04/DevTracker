@@ -1018,7 +1018,7 @@ export default function CrManagement() {
               )}
 
               {/* Core Fields */}
-              <div className="grid grid-cols-2 gap-3 text-[11px]">
+              <div className="grid grid-cols-3 gap-3 text-[11px]">
                 <div className="space-y-1 p-3 rounded-xl border border-border bg-muted/40">
                   <span className="text-muted-foreground block font-bold uppercase tracking-wider text-[9px]">Priority</span>
                   <span className="font-bold text-foreground">{selectedTask.priority}</span>
@@ -1026,6 +1026,10 @@ export default function CrManagement() {
                 <div className="space-y-1 p-3 rounded-xl border border-border bg-muted/40">
                   <span className="text-muted-foreground block font-bold uppercase tracking-wider text-[9px]">Est efforts</span>
                   <span className="font-bold text-foreground">{selectedTask.efforts} days</span>
+                </div>
+                <div className="space-y-1 p-3 rounded-xl border border-border bg-muted/40">
+                  <span className="text-muted-foreground block font-bold uppercase tracking-wider text-[9px]">Module</span>
+                  <span className="font-bold text-foreground">{selectedTask.module || "Core"}</span>
                 </div>
               </div>
 
