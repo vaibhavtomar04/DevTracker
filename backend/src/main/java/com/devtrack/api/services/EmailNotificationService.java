@@ -204,10 +204,11 @@ public class EmailNotificationService {
 			String subject = "Code Review || ";
 
 			if(task!=null && task.getJtrackId()!=null && !task.getJtrackId().isBlank()) {
-				subject = subject+task.getJtrackId()+"_";
+				subject = subject+task.getJtrackId()+" ";
 			}
 			if(task!=null && task.getTitle()!=null && !task.getTitle().isBlank()) {
-				subject = subject+task.getTitle();
+				String crName = task.getTitle().replaceAll("^\\[.*?\\]\\s*", "");
+				subject = subject+crName;
 			}
 
 			EmailRequestVo requestMap = createEmailRequestMap(renderedHtml, subject, reviewerMail, null, developersMail, reviewCc);
