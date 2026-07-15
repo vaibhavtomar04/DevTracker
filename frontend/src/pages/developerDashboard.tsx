@@ -69,7 +69,6 @@ export default function DeveloperDashboard() {
   const [isSubmitOpen, setIsSubmitOpen] = useState(false)
   const [gitRepo, setGitRepo] = useState("")
   const [branchName, setBranchName] = useState("")
-  const [prUrl, setPrUrl] = useState("")
   const [buildStatus, setBuildStatus] = useState("SUCCESS")
   const [deployNotes, setDeployNotes] = useState("")
   const [selectedDocFile, setSelectedDocFile] = useState<{ name: string; url: string } | null>(null)
@@ -550,7 +549,6 @@ export default function DeveloperDashboard() {
   const handleOpenSubmitReview = (task: Task) => {
     setBranchName(task.branchName || "")
     setGitRepo("https://github.com/enterprise/devtracker")
-    setPrUrl(task.gitLinks || "")
     setIsSubmitOpen(true)
   }
 
@@ -564,7 +562,7 @@ export default function DeveloperDashboard() {
 
     // Close modals immediately — independent of API/WebSocket notifications.
     const taskId = selectedTask.id
-    const savedRemarks = `Submitted for approval. Git Branch: ${branchName}, PR: ${prUrl}`
+    const savedRemarks = `Submitted for approval. Git Branch: ${branchName}`
     setIsSubmitOpen(false)
     setRemarks("")
     setSelectedTask(null)
@@ -572,7 +570,6 @@ export default function DeveloperDashboard() {
     updateTask(taskId, {
       status: "CODE_REVIEW",
       branchName: branchName,
-      gitLinks: prUrl,
       codeReviewComments: `Build: ${buildStatus}\nNotes: ${deployNotes}`
     }, savedRemarks, user)
       .then(() => {
@@ -1048,8 +1045,8 @@ export default function DeveloperDashboard() {
                                                     task.status === "SIT_DEPLOYED" ? "bg-indigo-500/15 text-indigo-300 border border-indigo-500/30 shadow-[0_0_12px_rgba(99,102,241,0.15)]" :
                                                     task.status === "SIT_TESTING" ? "bg-amber-500/15 text-amber-300 border border-amber-500/30" :
                                                     task.status === "SIT_COMPLETED" ? "bg-emerald-500/15 text-emerald-300 border border-emerald-500/30" :
-                                                    task.status === "CODE_REVIEW" ? "bg-purple-500/15 text-purple-300 border border-purple-500/30" :
-                                                    task.status === "CODE_REVIEW_DONE" ? "bg-pink-500/15 text-pink-300 border border-pink-500/30" :
+                                                    task.status === "CODE_REVIEW" ? "bg-purple-500/25 text-purple-300 border border-purple-500/50" :
+                                                    task.status === "CODE_REVIEW_DONE" ? "bg-pink-500/25 text-pink-300 border border-pink-500/50" :
                                                     task.status === "MOVE_TO_UAT" ? "bg-teal-500/15 text-teal-300 border border-teal-500/30" :
                                                     task.status === "TESTING_POOL" ? "bg-amber-500/15 text-amber-300 border border-amber-500/30" :
                                                     task.status === "TESTING_IN_PROGRESS" ? "bg-cyan-500/15 text-cyan-300 border border-cyan-500/30" :
@@ -1156,8 +1153,8 @@ export default function DeveloperDashboard() {
                                                       task.status === "SIT_DEPLOYED" ? "bg-indigo-500/15 text-indigo-300 border border-indigo-500/30 shadow-[0_0_12px_rgba(99,102,241,0.15)]" :
                                                       task.status === "SIT_TESTING" ? "bg-amber-500/15 text-amber-300 border border-amber-500/30" :
                                                       task.status === "SIT_COMPLETED" ? "bg-emerald-500/15 text-emerald-300 border border-emerald-500/30" :
-                                                      task.status === "CODE_REVIEW" ? "bg-purple-500/15 text-purple-300 border border-purple-500/30" :
-                                                      task.status === "CODE_REVIEW_DONE" ? "bg-pink-500/15 text-pink-300 border border-pink-500/30" :
+                                                      task.status === "CODE_REVIEW" ? "bg-purple-500/25 text-purple-300 border border-purple-500/50" :
+                                                      task.status === "CODE_REVIEW_DONE" ? "bg-pink-500/25 text-pink-300 border border-pink-500/50" :
                                                       task.status === "MOVE_TO_UAT" ? "bg-teal-500/15 text-teal-300 border border-teal-500/30" :
                                                       task.status === "TESTING_POOL" ? "bg-amber-500/15 text-amber-300 border border-amber-500/30" :
                                                       task.status === "TESTING_IN_PROGRESS" ? "bg-cyan-500/15 text-cyan-300 border border-cyan-500/30" :
@@ -2115,17 +2112,6 @@ export default function DeveloperDashboard() {
                     placeholder="https://github.com/enterprise/project"
                     value={gitRepo}
                     onChange={e => setGitRepo(e.target.value)}
-                    required
-                    className="h-10 w-full bg-[#0f0f11] border border-white/[0.08] focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20 rounded-xl px-3 py-2 text-xs text-zinc-200 focus:outline-none"
-                  />
-                </div>
-
-                <div className="space-y-1.5">
-                  <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider">PR Link</label>
-                  <input
-                    placeholder="https://github.com/enterprise/project/pull/1"
-                    value={prUrl}
-                    onChange={e => setPrUrl(e.target.value)}
                     required
                     className="h-10 w-full bg-[#0f0f11] border border-white/[0.08] focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20 rounded-xl px-3 py-2 text-xs text-zinc-200 focus:outline-none"
                   />

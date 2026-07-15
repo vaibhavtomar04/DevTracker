@@ -192,7 +192,7 @@ public class EmailNotificationService {
 			crMap.put("branchName", task.getBranchName() != null && !task.getBranchName().isBlank() ? task.getBranchName() : "NA");
 			crMap.put("developerName", user.getFullName());
 			crMap.put("gitLinks", task.getGitLinks() != null && !task.getGitLinks().isBlank() ? task.getGitLinks() : "NA");
-			crMap.put("summaryOfChanges", remarks != null ? remarks : "NA");
+			crMap.put("summaryOfChanges", task.getCodeReviewComments() != null && !task.getCodeReviewComments().isBlank() ? task.getCodeReviewComments() : (remarks != null ? remarks : "NA"));
 			crMap.put("reviewUrl", baseUrl + "/dashboard/code-review");
 			
 			context.setVariable("cr", crMap);

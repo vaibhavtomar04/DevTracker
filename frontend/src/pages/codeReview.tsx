@@ -141,7 +141,7 @@ export default function CodeReviewPage() {
                   <th className="p-4">CR Number</th>
                   <th className="p-4">Developer</th>
                   <th className="p-4">Branch Name</th>
-                  <th className="p-4">Git PR Link</th>
+                  <th className="p-4">Git Repo Link</th>
                   <th className="p-4">Build Status</th>
                   <th className="p-4">Workflow State</th>
                   <th className="p-4 text-right">Actions</th>
@@ -309,7 +309,7 @@ export default function CodeReviewPage() {
                     </span>
                   </div>
                   <div className="col-span-2 border-t border-white/[0.04] pt-2.5 mt-1">
-                    <span className="text-muted-foreground block text-[10px] font-semibold uppercase tracking-wider">PR Link</span>
+                    <span className="text-muted-foreground block text-[10px] font-semibold uppercase tracking-wider">Git Repo URL</span>
                     {selectedTask.gitLinks ? (
                       <a 
                         href={selectedTask.gitLinks} 
