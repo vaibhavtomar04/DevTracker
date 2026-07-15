@@ -5,6 +5,7 @@ import java.io.IOException;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.concurrent.CompletableFuture;
 
 import org.apache.poi.ss.usermodel.Cell;
 import org.apache.poi.ss.usermodel.CellStyle;
@@ -510,33 +511,40 @@ public class TaskController {
                     Task saved = taskRepository.save(task);
 
                     if (taskDetails.getStatus() != null && !taskDetails.getStatus().equals(oldStatus)) {
-                        notifyAllDevelopersAndTester(saved, saved.getJtrackId() + " Status Updated",
-                            "Status changed from " + oldStatus + " to " + saved.getStatus() + " by " + currentUser.getFullName() + ". Remarks: " + taskDetails.getRemarks());
-                        
-                        if ("CODE_REVIEW".equalsIgnoreCase(saved.getStatus())) {
-                            try {
-                                emailNotificationService.sendMailOnCodeReview(saved, taskDetails.getRemarks() != null ? taskDetails.getRemarks() : "Sent to Code Review");
-                            } catch (Exception e) {
-                                log.error("Failed to send Code Review mail", e);
-                            }
-                        }
+                        final Task savedFinal = saved;
+                        final String oldStatusFinal = oldStatus;
+                        final String remarksForNotif = taskDetails.getRemarks();
+                        final User currentUserFinal = currentUser;
+                        // Fire-and-forget: don't block the HTTP response for notifications
+                        CompletableFuture.runAsync(() -> {
+                            notifyAllDevelopersAndTester(savedFinal, savedFinal.getJtrackId() + " Status Updated",
+                                "Status changed from " + oldStatusFinal + " to " + savedFinal.getStatus() + " by " + currentUserFinal.getFullName() + ". Remarks: " + remarksForNotif);
 
-                        if ("TESTING_POOL".equalsIgnoreCase(saved.getStatus()) || "UAT_TESTING".equalsIgnoreCase(saved.getStatus()) || "MOVE_TO_UAT".equalsIgnoreCase(saved.getStatus())) {
-                            try {
-                                emailNotificationService.sendMailForUatTesting(saved, taskDetails.getRemarks() != null ? taskDetails.getRemarks() : "CR Pushed to UAT", currentUser);
-                            } catch (Exception e) {
-                                log.error("Failed to send UAT Testing mail", e);
+                            if ("CODE_REVIEW".equalsIgnoreCase(savedFinal.getStatus())) {
+                                try {
+                                    emailNotificationService.sendMailOnCodeReview(savedFinal, remarksForNotif != null ? remarksForNotif : "Sent to Code Review");
+                                } catch (Exception e) {
+                                    log.error("Failed to send Code Review mail", e);
+                                }
                             }
-                        }
 
-                        try {
-                            String triggeredEvent = "BUG_FOUND".equals(saved.getStatus()) ? "RETEST_RECORDED" : "STATUS_UPDATED";
-                            qualityRiskService.evaluateCrRisk(saved.getId(), triggeredEvent);
-                        } catch (Exception e) {
-                            log.error("Failed to evaluate CR risk in updateTask status transition", e);
-                        }
+                            if ("TESTING_POOL".equalsIgnoreCase(savedFinal.getStatus()) || "UAT_TESTING".equalsIgnoreCase(savedFinal.getStatus()) || "MOVE_TO_UAT".equalsIgnoreCase(savedFinal.getStatus())) {
+                                try {
+                                    emailNotificationService.sendMailForUatTesting(savedFinal, remarksForNotif != null ? remarksForNotif : "CR Pushed to UAT", currentUserFinal);
+                                } catch (Exception e) {
+                                    log.error("Failed to send UAT Testing mail", e);
+                                }
+                            }
+
+                            try {
+                                String triggeredEvent = "BUG_FOUND".equals(savedFinal.getStatus()) ? "RETEST_RECORDED" : "STATUS_UPDATED";
+                                qualityRiskService.evaluateCrRisk(savedFinal.getId(), triggeredEvent);
+                            } catch (Exception e) {
+                                log.error("Failed to evaluate CR risk in updateTask status transition", e);
+                            }
+                        });
                     }
-                    
+
                     return ResponseEntity.ok(saved);
                 })
                 .orElse(ResponseEntity.notFound().build());

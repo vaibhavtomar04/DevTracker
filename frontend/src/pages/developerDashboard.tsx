@@ -570,6 +570,7 @@ export default function DeveloperDashboard() {
     updateTask(taskId, {
       status: "CODE_REVIEW",
       branchName: branchName,
+      gitLinks: gitRepo,
       codeReviewComments: `Build: ${buildStatus}\nNotes: ${deployNotes}`
     }, savedRemarks, user)
       .then(() => {
