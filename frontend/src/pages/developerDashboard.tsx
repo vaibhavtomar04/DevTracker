@@ -224,6 +224,17 @@ export default function DeveloperDashboard() {
     setSelectedDocFile(null)
   }, [selectedTask])
 
+  // Auto-sync selectedTask from live store so WebSocket-driven task refreshes
+  // update the modal content in real-time (fixes stale status buttons).
+  useEffect(() => {
+    if (selectedTask) {
+      const freshTask = tasks.find(t => t.id === selectedTask.id)
+      if (freshTask && freshTask.status !== selectedTask.status) {
+        setSelectedTask(freshTask)
+      }
+    }
+  }, [tasks])
+
   // --- Dynamic calculations: Smart Deadline Engine ---
   const calculateDeadlineDetails = (task: Task) => {
     // Helper to get config values
@@ -484,11 +495,16 @@ export default function DeveloperDashboard() {
     } else if (nextStatus === "CLOSED") {
       payload.productionDate = todayStr
     }
+
+    // Close modal immediately (optimistic) — do NOT wait for API/notifications.
+    // This prevents the race where the top WebSocket toast appears but the form
+    // stays open because setSelectedTask(null) was only inside .then().
+    const savedRemarks = remarks
+    setSelectedTask(null)
+    setRemarks("")
     
-    updateTask(task.id, payload, remarks, user!)
+    updateTask(task.id, payload, savedRemarks, user!)
       .then(() => {
-        setSelectedTask(null)
-        setRemarks("")
         addToast(`CR status updated to ${nextStatus.replace(/_/g, " ")}`, "success")
         fetchData()
       })
@@ -515,11 +531,14 @@ export default function DeveloperDashboard() {
       payload.unitTestDocName = selectedDocFile.name
     }
 
-    updateTask(task.id, payload, remarks, user!)
+    // Close modal immediately (optimistic) — independent of API/WebSocket notifications.
+    const savedRemarks = remarks
+    setSelectedTask(null)
+    setRemarks("")
+    setSelectedDocFile(null)
+
+    updateTask(task.id, payload, savedRemarks, user!)
       .then(() => {
-        setSelectedTask(null)
-        setRemarks("")
-        setSelectedDocFile(null)
         addToast("CR successfully moved to UAT testing pool", "success")
         fetchData()
       })
@@ -543,16 +562,20 @@ export default function DeveloperDashboard() {
       return
     }
 
-    updateTask(selectedTask.id, {
+    // Close modals immediately — independent of API/WebSocket notifications.
+    const taskId = selectedTask.id
+    const savedRemarks = `Submitted for approval. Git Branch: ${branchName}, PR: ${prUrl}`
+    setIsSubmitOpen(false)
+    setRemarks("")
+    setSelectedTask(null)
+
+    updateTask(taskId, {
       status: "CODE_REVIEW",
       branchName: branchName,
       gitLinks: prUrl,
       codeReviewComments: `Build: ${buildStatus}\nNotes: ${deployNotes}`
-    }, `Submitted for approval. Git Branch: ${branchName}, PR: ${prUrl}`, user)
+    }, savedRemarks, user)
       .then(() => {
-        setIsSubmitOpen(false)
-        setRemarks("")
-        setSelectedTask(null)
         addToast("Submitted for Code Review approval", "success")
         fetchData()
       })
