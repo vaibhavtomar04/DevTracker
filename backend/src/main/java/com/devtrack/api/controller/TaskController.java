@@ -528,7 +528,7 @@ public class TaskController {
                                 }
                             }
 
-                            if ("TESTING_POOL".equalsIgnoreCase(savedFinal.getStatus()) || "UAT_TESTING".equalsIgnoreCase(savedFinal.getStatus()) || "MOVE_TO_UAT".equalsIgnoreCase(savedFinal.getStatus())) {
+                            if (("TESTING_POOL".equalsIgnoreCase(savedFinal.getStatus()) || "UAT_TESTING".equalsIgnoreCase(savedFinal.getStatus())) && savedFinal.getUnitTestDocUrl() != null) {
                                 try {
                                     emailNotificationService.sendMailForUatTesting(savedFinal, remarksForNotif != null ? remarksForNotif : "CR Pushed to UAT", currentUserFinal);
                                 } catch (Exception e) {
@@ -620,12 +620,6 @@ public class TaskController {
         notifyAllDevelopersAndTester(task, "Tester Assigned to " + task.getJtrackId(),
             "Tester " + currentUser.getFullName() + " has self-assigned and started testing for " + task.getJtrackId() + ".");
 
-        try {
-            emailNotificationService.sendMailForUatTesting(task, "Tester self-assigned: " + currentUser.getFullName(), currentUser);
-        } catch (Exception e) {
-            System.err.println("Failed to send assignment mail: " + e.getMessage());
-        }
-             
         return ResponseEntity.ok(task);
     }
 
@@ -684,12 +678,6 @@ public class TaskController {
                     createAndPushNotification(newTester.getId(), "Tester Assigned to " + saved.getJtrackId(),
                         "You have been assigned to " + saved.getJtrackId() + " by Admin " + adminUser.getFullName() + ". Reason: " + reason);
 
-                    try {
-                        emailNotificationService.sendMailForUatTesting(saved, "Reassigned to " + newTester.getFullName() + " by Admin. Reason: " + reason, adminUser);
-                    } catch (Exception e) {
-                        System.err.println("Failed to send reassignment mail: " + e.getMessage());
-                    }
-                    
                     return ResponseEntity.ok(saved);
                 })
                 .orElse(ResponseEntity.notFound().build());
@@ -863,6 +851,35 @@ public class TaskController {
                     taskRepository.delete(task);
                     
                     return ResponseEntity.ok().build();
+                })
+                .orElse(ResponseEntity.notFound().build());
+    }
+
+    @GetMapping("/{id}/download-unit-test-doc")
+    public ResponseEntity<byte[]> downloadUnitTestDoc(@PathVariable Long id) {
+        return taskRepository.findById(id)
+                .map(task -> {
+                    String dataUrl = task.getUnitTestDocUrl();
+                    if (dataUrl != null && dataUrl.startsWith("data:")) {
+                        int commaIndex = dataUrl.indexOf(",");
+                        if (commaIndex != -1) {
+                            String metadata = dataUrl.substring(0, commaIndex);
+                            String mimeType = "application/pdf";
+                            if (metadata.contains(";") && metadata.startsWith("data:")) {
+                                mimeType = metadata.substring(5, metadata.indexOf(";"));
+                            }
+                            String base64Bytes = dataUrl.substring(commaIndex + 1);
+                            byte[] bytes = java.util.Base64.getDecoder().decode(base64Bytes.trim());
+                            
+                            String filename = task.getUnitTestDocName() != null ? task.getUnitTestDocName() : "unit-test-document.pdf";
+                            
+                            return ResponseEntity.ok()
+                                    .header(org.springframework.http.HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + filename + "\"")
+                                    .contentType(org.springframework.http.MediaType.parseMediaType(mimeType))
+                                    .body(bytes);
+                        }
+                    }
+                    return ResponseEntity.notFound().<byte[]>build();
                 })
                 .orElse(ResponseEntity.notFound().build());
     }
@@ -1213,7 +1230,7 @@ public class TaskController {
             if(currentStep.getStepName().equalsIgnoreCase("CODE_REVIEW"))
             	emailNotificationService.sendMailOnCodeReviewUpdate(task, taskDetails != null ? taskDetails.getRemarks() : "Approved", oldStatus, currentUser);
             
-            if(nextStage!=null && nextStage.equalsIgnoreCase("UAT_TESTING")) {
+            if(nextStage!=null && nextStage.equalsIgnoreCase("UAT_TESTING") && task.getUnitTestDocUrl() != null) {
             	emailNotificationService.sendMailForUatTesting(task, taskDetails != null ? taskDetails.getRemarks() : "Sent to UAT", currentUser);
             }
 

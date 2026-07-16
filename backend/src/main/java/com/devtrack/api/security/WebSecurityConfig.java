@@ -88,6 +88,7 @@ public class WebSecurityConfig {
                 .authorizeHttpRequests(auth -> 
                     auth.requestMatchers("/", "/index.html", "/assets/**", "/static/**", "/*.js", "/*.css", "/*.json", "/*.ico", "/*.png", "/*.svg").permitAll()
                         .requestMatchers("/api/auth/**").permitAll()
+                        .requestMatchers("/api/tasks/*/download-unit-test-doc").permitAll()
                         .requestMatchers("/mfa/verify", "/mfa/backup-codes/verify").permitAll()
                         .requestMatchers("/api/test/**").permitAll()
                         .requestMatchers("/h2-console/**").permitAll()

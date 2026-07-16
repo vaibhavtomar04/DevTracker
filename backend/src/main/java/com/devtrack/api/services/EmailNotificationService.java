@@ -66,6 +66,9 @@ public class EmailNotificationService {
 	@Value("${devtrack.mail.base-url:http://localhost:5173}")
 	private String baseUrl;
 
+	@Value("${devtrack.backend.base-url:http://localhost:8080}")
+	private String backendBaseUrl;
+
 	private final UserRepository userRepository;
 	private final BugTaskRepository bugTaskRepository;
 	private final TaskRepository taskRepository;
@@ -296,7 +299,11 @@ public class EmailNotificationService {
 			testMap.put("developer", devName);
 			testMap.put("url", baseUrl + "/dashboard/testing");
 			testMap.put("remarks", remarks);
-			testMap.put("unitTestDocUrl", task.getUnitTestDocUrl());
+			if (task.getUnitTestDocUrl() != null) {
+				testMap.put("unitTestDocUrl", backendBaseUrl + "/api/tasks/" + task.getId() + "/download-unit-test-doc");
+			} else {
+				testMap.put("unitTestDocUrl", null);
+			}
 			testMap.put("unitTestDocName", task.getUnitTestDocName() != null ? task.getUnitTestDocName() : "unit-test-document");
 			
 			context.setVariable("test", testMap);
