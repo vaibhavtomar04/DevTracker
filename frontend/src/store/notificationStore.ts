@@ -258,6 +258,8 @@ export const useNotificationStore = create<NotificationState>((set, get) => ({
     let ws: WebSocket;
     let reconnectAttempts = 0;
     const maxReconnectAttempts = 5;
+    // Debounce timer: collapses rapid WS notifications into a single data refresh
+    let fetchDataDebounceTimer: ReturnType<typeof setTimeout> | null = null;
 
     const doConnect = () => {
       try {
@@ -276,8 +278,13 @@ export const useNotificationStore = create<NotificationState>((set, get) => ({
             const data = JSON.parse(event.data) as { type: string; notification: AppNotification };
             if (data.type === 'NOTIFICATION' && data.notification) {
               get().addNotification(data.notification);
-              // Trigger real-time task data and audit sync
-              useTaskStore.getState().fetchData();
+              // Debounced fetchData: batch rapid WS messages into one data refresh
+              // (prevents connection pool exhaustion from 9 parallel requests per message)
+              if (fetchDataDebounceTimer) clearTimeout(fetchDataDebounceTimer);
+              fetchDataDebounceTimer = setTimeout(() => {
+                useTaskStore.getState().fetchData();
+                fetchDataDebounceTimer = null;
+              }, 2000);
             }
           } catch { /* malformed message */ }
         };

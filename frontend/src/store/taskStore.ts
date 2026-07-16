@@ -74,6 +74,7 @@ interface TaskState {
   testCases: TestCase[]
   users: User[]
   loading: boolean
+  isFetching: boolean
   error: string | null
   searchQuery: string
   notifications: Notification[]
@@ -85,6 +86,7 @@ interface TaskState {
 
   // Fetching
   fetchData: () => Promise<void>
+  fetchUsers: () => Promise<void>
   fetchSprintTasks: (sprintId?: number) => Promise<void>
   createSprintTask: (sprintTaskData: any) => Promise<SprintTask>
   updateSprintTask: (id: number, sprintTaskData: any) => Promise<SprintTask>
@@ -169,6 +171,7 @@ export const useTaskStore = create<TaskState>((set, get) => ({
   bugReviews: [],
   sprintTasks: [],
   loading: false,
+  isFetching: false,
   error: null,
   searchQuery: "",
   notifications: [],
@@ -177,10 +180,12 @@ export const useTaskStore = create<TaskState>((set, get) => ({
   setDownloadTarget: (target) => set({ downloadTarget: target }),
 
   fetchData: async () => {
+    // Guard: skip if a fetch is already in-flight to prevent connection pool exhaustion
+    if (get().isFetching) return
     if (get().tasks.length === 0) {
       set({ loading: true })
     }
-    set({ error: null })
+    set({ error: null, isFetching: true })
     try {
       const [tasksRes, bugsRes, auditRes, configsRes, testCasesRes, notificationsRes, usersRes, bugReviewsRes, sprintTasksRes] = await Promise.all([
         apiClient("/api/tasks").catch(err => { console.error(err); return []; }),
@@ -209,10 +214,27 @@ export const useTaskStore = create<TaskState>((set, get) => ({
           users: normalizedUsers,
           bugReviews: mapBugReviews(bugReviewsRes),
           sprintTasks: sprintTasksRes || [],
-          loading: false
+          loading: false,
+          isFetching: false
         })
     } catch (err: any) {
-      set({ error: err.message || "Failed to fetch database records", loading: false })
+      set({ error: err.message || "Failed to fetch database records", loading: false, isFetching: false })
+    }
+  },
+
+  fetchUsers: async () => {
+    // Lightweight fetch: only loads /api/users — for components that only need the users list
+    // Skip if users are already loaded
+    if (get().users.length > 0) return
+    try {
+      const usersRes = await apiClient("/api/users").catch(err => { console.error(err); return []; })
+      const normalizedUsers = (usersRes || []).map((u: any) => ({
+        ...u,
+        roles: Array.isArray(u.roles) ? u.roles.map((r: string) => r.replace(/^ROLE_/, "")) : []
+      }))
+      set({ users: normalizedUsers })
+    } catch (err: any) {
+      console.error("Failed to fetch users:", err)
     }
   },
 
