@@ -30,6 +30,8 @@ import com.devtrack.api.repository.BugMailThreadRepo;
 import com.devtrack.api.repository.BugTaskRepository;
 import com.devtrack.api.repository.TaskRepository;
 import com.devtrack.api.repository.UserRepository;
+import com.devtrack.api.repository.DocumentRepository;
+import com.devtrack.api.model.Document;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -74,6 +76,7 @@ public class EmailNotificationService {
 	private final TaskRepository taskRepository;
 	private final BugMailThreadRepo mailThreadRepo;
 	private final TemplateEngine templateEngine;
+	private final DocumentRepository documentRepository;
 
 	@Async
 	public void sendNotificationOnCreation(Bug bug) {
@@ -352,45 +355,72 @@ public class EmailNotificationService {
 	public void sendMailOnUATTestingComplete(Task task, String remarks, User tester) {
 		try {
 			log.info("Inside sendMailOnUATTestingComplete");
-			List<BugMailThread> mailThread = mailThreadRepo.findByBugIdAndFlowType(task.getId(),"UAT_TESTING");
+			List<BugMailThread> mailThread = mailThreadRepo.findByBugIdAndFlowType(task.getId(), "UAT_TESTING");
 			User developer = userRepository.findById(task.getAssignedDeveloper().getId()).get();
 
-			uatTestCompleteMailBody = uatTestCompleteMailBody.replace("JTRACK_ID", task.getJtrackId()!=null && !task.getJtrackId().isBlank()?task.getJtrackId():task.getType().getName())
-					.replace("CR_DETAILS", task.getBranchName()!=null && !task.getBranchName().isBlank()?task.getBranchName():task.getTitle())
-					.replace("UAT_DATE", LocalDate.now().toString())
-					.replaceAll("TESTER", tester.getFullName())
-					.replace("REMARKS", remarks)
-					.replace("DEVELOPER", developer.getFullName());
-
-			String subject = "";
-			String originalMessageId=null;
-
-			if(mailThread!=null && !mailThread.isEmpty()) {
-				subject = mailThread.get(0).getSubject();
-				originalMessageId = mailThread.get(0).getMessageId();
-			}else {
-				subject = "UAT Testing || ";
-				if(task!=null && task.getJtrackId()!=null && !task.getJtrackId().isBlank()) {
-					subject = subject+task.getJtrackId()+"_";
-				}
-				if(task!=null && task.getBranchName()!=null && !task.getBranchName().isBlank() 
-						&& !"NA".equalsIgnoreCase(task.getBranchName())) {
-					subject = subject+task.getBranchName();
-				}
-				else if (task!=null && task.getTitle()!=null && !task.getTitle().isBlank()) {
-					subject = subject+task.getTitle();
+			// Retrieve all active documents for this CR
+			List<Document> activeDocs = documentRepository.findAllByCrIdActive(task.getId());
+			
+			// Filter for only SUPPORT type documents (testing artifacts)
+			List<Map<String, String>> artifacts = new ArrayList<>();
+			if (activeDocs != null) {
+				for (Document doc : activeDocs) {
+					if (doc.getDocType() == Document.DocType.SUPPORT) {
+						Map<String, String> artifactMap = new HashMap<>();
+						artifactMap.put("filename", doc.getFilename());
+						artifactMap.put("downloadUrl", backendBaseUrl + "/api/auth/documents/" + doc.getId() + "/download");
+						artifacts.add(artifactMap);
+					}
 				}
 			}
 
-			EmailRequestVo requestMap = createEmailRequestMap(uatTestCompleteMailBody, subject, developer.getEmail(), originalMessageId, testingSender, testingCc);
+			// Render the new HTML template
+			Context context = new Context();
+			context.setVariable("task", task);
+			context.setVariable("developerName", developer.getFullName());
+			context.setVariable("testerName", tester.getFullName());
+			context.setVariable("dateOfTesting", LocalDate.now().toString());
+			context.setVariable("remarks", remarks != null ? remarks : "");
+			context.setVariable("artifacts", artifacts);
 
-			if(requestMap!=null)
-				callSendNotificationApi(requestMap);
-			else
+			String renderedHtml = templateEngine.process("email/uat-testing-complete", context);
+
+			String subject = "";
+			String originalMessageId = null;
+
+			if (mailThread != null && !mailThread.isEmpty()) {
+				subject = mailThread.get(0).getSubject();
+				originalMessageId = mailThread.get(0).getMessageId();
+			} else {
+				subject = "UAT Testing || ";
+				if (task != null && task.getJtrackId() != null && !task.getJtrackId().isBlank()) {
+					subject = subject + task.getJtrackId() + " ";
+				}
+				if (task != null && task.getTitle() != null && !task.getTitle().isBlank()) {
+					subject = subject + task.getTitle();
+				}
+			}
+
+			EmailRequestVo requestMap = createEmailRequestMap(renderedHtml, subject, developer.getEmail(), originalMessageId, testingSender, testingCc);
+
+			if (requestMap != null) {
+				ResponseVo response = callSendNotificationApi(requestMap);
+				if (response != null && response.getStatusCode() != null && !response.getStatusCode().isBlank() 
+						&& "0000".equalsIgnoreCase(response.getStatusCode()) && (mailThread == null || mailThread.isEmpty())) {
+					BugMailThread newThread = new BugMailThread();
+					newThread.setBugId(task.getId());
+					newThread.setMessageId(response.getOriginalMessageId());
+					newThread.setCreatedBy("UAT_TEST_COMPLETE_MAIL");
+					newThread.setFlowType("UAT_TESTING");
+					newThread.setSubject(subject);
+					mailThreadRepo.save(newThread);
+				}
+			} else {
 				log.info("Request is null");
+			}
 
 		} catch (Exception e) {
-			log.error("Exception ",e);
+			log.error("Exception ", e);
 		}
 	}
 

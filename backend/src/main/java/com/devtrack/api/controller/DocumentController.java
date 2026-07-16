@@ -84,6 +84,14 @@ public class DocumentController {
         documentService.streamDownload(id, response);
     }
 
+    /** Public download endpoint for email clients — permitted via WebSecurityConfig /api/auth/** */
+    @GetMapping("/api/auth/documents/{id}/download")
+    public void downloadDocumentPublic(
+            @PathVariable Long id,
+            HttpServletResponse response) throws IOException {
+        documentService.streamDownload(id, response);
+    }
+
     // ── SOFT DELETE ──────────────────────────────────────────────────
     @DeleteMapping("/api/documents/{id}")
     @PreAuthorize("hasAnyRole('DEVELOPER', 'DEVADMIN', 'CODEREVIEWER', 'TESTER', 'TESTADMIN')")
