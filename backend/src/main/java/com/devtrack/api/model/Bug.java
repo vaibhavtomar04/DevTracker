@@ -4,6 +4,8 @@ import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import lombok.ToString;
+import lombok.EqualsAndHashCode;
 
 import java.time.LocalDateTime;
 
@@ -22,6 +24,8 @@ public class Bug {
     
     @ManyToOne
     @JoinColumn(name = "bug_task_id")
+    @ToString.Exclude
+    @EqualsAndHashCode.Exclude
     private Task bugTask;
 
     @Transient
@@ -42,10 +46,14 @@ public class Bug {
 
     @ManyToOne
     @JoinColumn(name = "raised_by_id")
+    @ToString.Exclude
+    @EqualsAndHashCode.Exclude
     private User raisedBy;
 
     @ManyToOne
     @JoinColumn(name = "assigned_developer_id")
+    @ToString.Exclude
+    @EqualsAndHashCode.Exclude
     private User assignedDeveloper;
 
     private String priority;
@@ -92,10 +100,14 @@ public class Bug {
 
     @ManyToOne
     @JoinColumn(name = "workflow_id")
+    @ToString.Exclude
+    @EqualsAndHashCode.Exclude
     private Workflow workflow;
 
     @ManyToOne
     @JoinColumn(name = "tester_id")
+    @ToString.Exclude
+    @EqualsAndHashCode.Exclude
     private User tester;
 
     @Column(name = "source_bug_review_id")

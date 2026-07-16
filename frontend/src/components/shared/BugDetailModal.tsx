@@ -100,6 +100,7 @@ export default function BugDetailModal({ bugId, onClose, showDeveloperActions = 
     try {
       await updateBug(bug.id, { status: "IN_PROGRESS" }, remarks || "Investigating code defect", user)
       loadBug()
+      onClose()
     } catch (err: any) {
       addToast(err.message || "Failed to start investigation", "error")
     } finally {
@@ -126,6 +127,7 @@ export default function BugDetailModal({ bugId, onClose, showDeveloperActions = 
       await updateBug(bug.id, { status: "RESOLVED" }, remarks || "Bug resolved", user)
       addToast("Bug marked RESOLVED with fix summary", "success")
       loadBug()
+      onClose()
     } catch (err: any) {
       addToast(err.message || "Failed to submit fix", "error")
     } finally {

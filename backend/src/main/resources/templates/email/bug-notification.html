@@ -154,7 +154,7 @@
                   <td valign="top" style="background-color: #f9fafb; border-right: 1px solid #e5e7eb; padding: 12px 16px; font-size: 13px; font-weight: 600; color: #374151;">
                     Raised By
                   </td>
-                  <td valign="top" th:text="${currentUser.fullName}" style="padding: 12px 16px; font-size: 13px; color: #111827;">
+                  <td valign="top" th:text="${currentUser}" style="padding: 12px 16px; font-size: 13px; color: #111827;">
                     Jane Smith
                   </td>
                 </tr>
@@ -180,7 +180,7 @@
               <!-- Sign-off -->
               <p style="margin: 0; font-size: 15px; font-weight: 400; color: #4b5563; line-height: 1.6;">
                 Regards,<br/>
-                <strong th:text="${currentUser.fullName}" style="color: #0f1419;">Jane Smith</strong>
+                <strong th:text="${currentUser}" style="color: #0f1419;">Jane Smith</strong>
               </p>
             </td>
           </tr>

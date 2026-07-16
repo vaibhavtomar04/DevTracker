@@ -4,6 +4,8 @@ import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import lombok.ToString;
+import lombok.EqualsAndHashCode;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -27,6 +29,8 @@ public class Task {
     
     @ManyToOne
     @JoinColumn(name = "task_type_id")
+    @ToString.Exclude
+    @EqualsAndHashCode.Exclude
     private TaskType type;
     
     private String project;
@@ -54,10 +58,14 @@ public class Task {
 
     @ManyToOne
     @JoinColumn(name = "assigned_developer_id")
+    @ToString.Exclude
+    @EqualsAndHashCode.Exclude
     private User assignedDeveloper;
 
     @ManyToOne
     @JoinColumn(name = "created_by_id")
+    @ToString.Exclude
+    @EqualsAndHashCode.Exclude
     private User createdBy;
 
     @Column(name = "dev_start_date")
@@ -97,6 +105,8 @@ public class Task {
     
     @ManyToOne
     @JoinColumn(name = "workflow_id")
+    @ToString.Exclude
+    @EqualsAndHashCode.Exclude
     private Workflow workflow;
 
     @Column(name = "changes_requested")
@@ -112,14 +122,20 @@ public class Task {
 
     @ManyToOne
     @JoinColumn(name = "tester_id")
+    @ToString.Exclude
+    @EqualsAndHashCode.Exclude
     private User tester;
 
     @ManyToOne
     @JoinColumn(name = "approver_id")
+    @ToString.Exclude
+    @EqualsAndHashCode.Exclude
     private User approver;
 
     @ManyToOne
     @JoinColumn(name = "deployment_owner_id")
+    @ToString.Exclude
+    @EqualsAndHashCode.Exclude
     private User deploymentOwner;
 
     @Column(name = "is_quality_risk")
@@ -148,6 +164,8 @@ public class Task {
 
     @ManyToOne
     @JoinColumn(name = "reassigned_by_id")
+    @ToString.Exclude
+    @EqualsAndHashCode.Exclude
     private User reassignedBy;
 
     @Column(name = "reassignment_date")
@@ -155,6 +173,8 @@ public class Task {
 
     @ManyToOne
     @JoinColumn(name = "previous_tester_id")
+    @ToString.Exclude
+    @EqualsAndHashCode.Exclude
     private User previousTester;
 
 
@@ -166,6 +186,8 @@ public class Task {
 
     @OneToMany(mappedBy = "task", cascade = CascadeType.ALL, orphanRemoval = true)
     @org.hibernate.annotations.BatchSize(size = 50)
+    @ToString.Exclude
+    @EqualsAndHashCode.Exclude
     private java.util.List<TaskDeveloper> developers = new java.util.ArrayList<>();
 
     @ManyToMany

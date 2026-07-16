@@ -3,12 +3,14 @@ package com.devtrack.api.model;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
-import lombok.Data;
+import lombok.Getter;
+import lombok.Setter;
 import lombok.NoArgsConstructor;
 
 @Entity
 @Table(name = "workflow_steps")
-@Data
+@Getter
+@Setter
 @AllArgsConstructor
 @NoArgsConstructor
 public class WorkflowStep {
@@ -28,21 +30,22 @@ public class WorkflowStep {
     private String stepType; // TASK, CODE_REVIEW, TESTING
     private Integer sequence;
 
-//    public WorkflowStep() {}
-//
-//    public Long getId() { return id; }
-//    public void setId(Long id) { this.id = id; }
-//
-//    public Workflow getWorkflow() { return workflow; }
-//    public void setWorkflow(Workflow workflow) { this.workflow = workflow; }
-//
-//    public String getStepName() { return stepName; }
-//    public void setStepName(String stepName) { this.stepName = stepName; }
-//
-//    public String getStepType() { return stepType; }
-//    public void setStepType(String stepType) { this.stepType = stepType; }
-//
-//    public Integer getSequence() { return sequence; }
-//    public void setSequence(Integer sequence) { this.sequence = sequence; }
+    @Override
+    public String toString() {
+        return "WorkflowStep(id=" + id + ", stepName=" + stepName + ", stepType=" + stepType + ", sequence=" + sequence + ")";
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        WorkflowStep that = (WorkflowStep) o;
+        return java.util.Objects.equals(id, that.id);
+    }
+
+    @Override
+    public int hashCode() {
+        return java.util.Objects.hash(id);
+    }
     
 }
