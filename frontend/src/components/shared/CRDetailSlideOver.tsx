@@ -331,6 +331,7 @@ export const CRDetailSlideOver: React.FC<CRDetailSlideOverProps> = ({
               <BugDetailModal
                 bugId={selectedBugId}
                 onClose={() => setSelectedBugId(null)}
+                showDeveloperActions={currentUser?.roles?.includes("DEVELOPER") || currentUser?.roles?.includes("DEVADMIN")}
               />
             )}
           </motion.div>

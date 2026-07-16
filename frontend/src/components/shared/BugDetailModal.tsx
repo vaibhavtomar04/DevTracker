@@ -367,6 +367,30 @@ export default function BugDetailModal({ bugId, onClose, showDeveloperActions = 
                       </Button>
                     </div>
                   </>
+                ) : currentStatus === "OPEN" && showDeveloperActions ? (
+                  <div className="space-y-4 text-left">
+                    <span className="text-rose-500 block font-black uppercase tracking-wider text-[10px]">Developer Actions</span>
+                    <div className="p-4 rounded-xl border border-dashed border-border text-center text-muted-foreground text-[11px] italic bg-muted/20">
+                      This bug is currently open. Click below to start investigation.
+                    </div>
+                    <div className="space-y-1.5">
+                      <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider block">Bug Resolution Remarks (Optional)</label>
+                      <input
+                        placeholder="e.g. Starting investigation into code defect..."
+                        value={remarks}
+                        onChange={e => setRemarks(e.target.value)}
+                        className="h-10 w-full bg-background border border-border focus:ring-2 focus:ring-rose-500/30 focus:border-rose-500/50 rounded-xl px-3 py-2 text-xs text-foreground focus:outline-none transition-all placeholder:text-muted-foreground font-semibold"
+                      />
+                    </div>
+                    <Button
+                      className="w-full text-xs h-10 rounded-xl bg-gradient-to-r from-cyan-600 to-teal-600 hover:from-cyan-500 hover:to-teal-500 text-white font-bold"
+                      onClick={handleStartInvestigation}
+                      disabled={submitting}
+                    >
+                      <Play className="mr-1.5 h-4 w-4" />
+                      {submitting ? "Starting..." : "Start Investigation (IN_PROGRESS)"}
+                    </Button>
+                  </div>
                 ) : fixSummary ? (
                   <div className="space-y-4 text-left">
                     <span className="text-emerald-500 block font-black uppercase tracking-wider text-[10px]">

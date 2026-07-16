@@ -995,9 +995,9 @@ export default function TesterDashboard() {
                     
                     if (hasActiveUnresolvedBug) {
                       return (
-                        <div className="p-4 rounded-xl border border-rose-500/20 bg-rose-500/5 text-rose-300 space-y-1.5 shadow-lg shadow-rose-500/5">
-                          <span className="font-bold uppercase tracking-wider text-[10px] block text-rose-400">Testing Blocked</span>
-                          <p className="text-[11px] leading-relaxed text-rose-200/80">
+                        <div className="p-4 rounded-xl border border-rose-200 dark:border-rose-500/20 bg-rose-50 dark:bg-rose-500/10 space-y-1.5 shadow-sm text-left">
+                          <span className="font-bold uppercase tracking-wider text-[10px] block text-rose-800 dark:text-rose-400">Testing Blocked</span>
+                          <p className="text-[11px] leading-relaxed text-rose-600 dark:text-rose-200/80">
                             This CR is currently blocked because a bug has been raised. Verification cannot proceed until the linked bug(s) are resolved by the developer.
                           </p>
                         </div>
@@ -1006,17 +1006,17 @@ export default function TesterDashboard() {
 
                     if (selectedTask.status === "TESTING_COMPLETED") {
                       return (
-                        <div className="p-4 rounded-xl border border-emerald-500/20 bg-emerald-500/5 text-emerald-300 space-y-1.5 shadow-lg shadow-emerald-500/5 text-left">
-                          <span className="font-bold uppercase tracking-wider text-[10px] block text-emerald-400">
+                        <div className="p-4 rounded-xl border border-emerald-200 dark:border-emerald-500/20 bg-emerald-50 dark:bg-emerald-500/10 space-y-1.5 shadow-sm text-left">
+                          <span className="font-bold uppercase tracking-wider text-[10px] block text-emerald-800 dark:text-emerald-400">
                             {taskBugs.length > 0 ? "Bug Resolved" : "Testing Completed"}
                           </span>
-                          <p className="text-[11px] leading-relaxed text-emerald-200/80">
+                          <p className="text-[11px] leading-relaxed text-emerald-600 dark:text-emerald-200/80">
                             This CR has successfully passed testing.
                           </p>
                           {selectedTask.testingComments && (
-                            <div className="mt-2 pt-2 border-t border-emerald-500/10">
-                              <span className="text-[9px] uppercase tracking-wider text-slate-400 block font-bold">Verification Comments</span>
-                              <p className="text-slate-200 leading-relaxed text-[10.5px] mt-0.5 whitespace-pre-wrap">{selectedTask.testingComments}</p>
+                            <div className="mt-2 pt-2 border-t border-emerald-200 dark:border-emerald-500/10">
+                              <span className="text-[9px] uppercase tracking-wider text-slate-500 dark:text-slate-400 block font-bold">Verification Comments</span>
+                              <p className="text-slate-700 dark:text-slate-200 leading-relaxed text-[10.5px] mt-0.5 whitespace-pre-wrap">{selectedTask.testingComments}</p>
                             </div>
                           )}
                         </div>
