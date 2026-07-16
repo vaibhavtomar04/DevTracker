@@ -23,7 +23,7 @@
           
           <!-- Emerald Header Band -->
           <tr>
-            <td align="center" valign="top" style="background:linear-gradient(200deg,#220046 0%,#6B00DD 50%,#F27ECE 100%); background-color:#2ed767; padding:36px 40px; text-align:center;">
+            <td align="center" valign="top" style="background:linear-gradient(200deg,#220046 0%,#6B00DD 50%,#F27ECE 100%); background-color:#6B00DD; padding:36px 40px; text-align:center;">
               <!-- CSS-based text logo that will not break in Outlook -->
               <div style="display:inline-block; font-family:'Outfit', 'Inter', 'Segoe UI', sans-serif; font-size:30px; font-weight:800; color:#ffffff; margin-bottom:12px; text-shadow:0 2px 4px rgba(0,0,0,0.15);">
                 <span style="background-color:#B11EEB; padding:3px 10px; border-radius:6px; margin-right:4px;">Dev</span><span style="color:#ffffff;">Track</span>
@@ -42,7 +42,7 @@
 
           <!-- Thin Copper Divider (4px) under header -->
           <tr>
-            <td height="4" style="height:4px; background:linear-gradient(150deg,#064e3b 0%,#7ECF67 50%,#064e3b 100%); background-color:#68ac54; font-size:0; line-height:0;">&nbsp;</td>
+            <td height="4" style="height:4px; background:linear-gradient(150deg,#220046 0%,#B11EEB 50%,#220046 100%); background-color:#B11EEB; font-size:0; line-height:0;">&nbsp;</td>
           </tr>
 
           <!-- Card Body Content -->
@@ -55,7 +55,7 @@
               
               <!-- Intro -->
               <p style="margin: 0 0 24px 0; font-size: 15px; font-weight: 400; color: #4b5563; line-height: 1.6;">
-                A new bug (ID: <strong th:text="${bug.id}" style="color: #065f46;">#BUG-101</strong>) has been raised against you.
+                A new bug (ID: <strong th:text="${bug.id}" style="color: #6B00DD;">#BUG-101</strong>) has been raised against you.
               </p>
 
               <!-- Details Table (Bordered, rounded) -->
@@ -162,7 +162,7 @@
                   <td align="center">
                     <table role="presentation" border="0" cellspacing="0" cellpadding="0">
                       <tr>
-                        <td align="center" style="border-radius: 8px; background:linear-gradient(210deg,#220046 0%,#6B00DD 50%,#F27ECE 100%); background-color:#065f46;">
+                        <td align="center" style="border-radius: 8px; background:linear-gradient(210deg,#220046 0%,#6B00DD 50%,#F27ECE 100%); background-color:#6B00DD;">
                           <a href="https://devtrack.example.com" th:href="${bug.url}" target="_blank" style="border: 1px solid #047857; border-radius: 8px; color: #ffffff; display: inline-block; font-size: 15px; font-weight: 600; padding: 14px 28px; text-decoration: none; text-shadow: 0 -1px 0 rgba(0, 0, 0, 0.1); line-height: 1.2;">
                             View Bug in DevTrack &rarr;
                           </a>

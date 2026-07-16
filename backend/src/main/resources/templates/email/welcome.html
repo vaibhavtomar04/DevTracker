@@ -23,7 +23,7 @@
 
           <!-- Header band with logo -->
           <tr>
-            <td style="background:linear-gradient(200deg,#220046 0%,#6B00DD 50%,#F27ECE 100%); background-color:#2ed767; padding:36px 40px; text-align:center;">
+            <td style="background:linear-gradient(200deg,#220046 0%,#6B00DD 50%,#F27ECE 100%); background-color:#6B00DD; padding:36px 40px; text-align:center;">
               <!-- CSS-based text logo that will not break in Outlook -->
               <div style="display:inline-block; font-family:'Outfit', 'Inter', 'Segoe UI', sans-serif; font-size:30px; font-weight:800; color:#ffffff; margin-bottom:12px; text-shadow:0 2px 4px rgba(0,0,0,0.15);">
                 <span style="background-color:#B11EEB; padding:3px 10px; border-radius:6px; margin-right:4px;">Dev</span><span style="color:#ffffff;">Track</span>
@@ -39,7 +39,7 @@
 
           <!-- Copper accent divider -->
           <tr>
-            <td style="height:4px; background:linear-gradient(150deg,#064e3b 0%,#7ECF67 50%,#064e3b 100%); background-color:#68ac54; font-size:0; line-height:0;">&nbsp;</td>
+            <td style="height:4px; background:linear-gradient(150deg,#220046 0%,#B11EEB 50%,#220046 100%); background-color:#B11EEB; font-size:0; line-height:0;">&nbsp;</td>
           </tr>
 
           <!-- Body -->
@@ -49,7 +49,7 @@
                 Your account is ready
               </h2>
               <p style="margin:0 0 8px 0; font-size:15px; line-height:1.6; color:#374151;">
-                Hello <strong style="color:#065f46;" th:text="${user.fullName}">there</strong>, your DevTrack 2.0 account has been created. Use the temporary credentials below to sign in for the first time.
+                Hello <strong style="color:#6B00DD;" th:text="${user.fullName}">there</strong>, your DevTrack 2.0 account has been created. Use the temporary credentials below to sign in for the first time.
               </p>
             </td>
           </tr>
@@ -81,7 +81,7 @@
                       <span style="font-family:'Segoe UI', sans-serif; font-size:12px; font-weight:700; text-transform:uppercase; letter-spacing:0.5px; color:#64748b;">Temporary Password</span>
                     </td>
                     <td style="padding:14px 18px; text-align:right;">
-                      <code style="font-family:'Menlo', 'Consolas', 'Fira Code', monospace; font-size:15px; font-weight:700; color:#065f46; background-color:#ecfdf5; border:1px solid #a7f3d0; padding:6px 12px; border-radius:6px;" th:text="${user.tempPassword}">secure_temp_password</code>
+                      <code style="font-family:'Menlo', 'Consolas', 'Fira Code', monospace; font-size:15px; font-weight:700; color:#6B00DD; background-color:#ecfdf5; border:1px solid #a7f3d0; padding:6px 12px; border-radius:6px;" th:text="${user.tempPassword}">secure_temp_password</code>
                     </td>
                   </tr>
                 </table>
@@ -108,7 +108,7 @@
             <td style="padding:24px 40px 8px 40px;" align="center">
               <table role="presentation" cellpadding="0" cellspacing="0">
                 <tr>
-                  <td style="border-radius:10px; background:linear-gradient(210deg,#220046 0%,#6B00DD 50%,#F27ECE 100%); background-color:#065f46;">
+                  <td style="border-radius:10px; background:linear-gradient(210deg,#220046 0%,#6B00DD 50%,#F27ECE 100%); background-color:#6B00DD;">
                     <a th:href="${loginUrl}" href="LOGIN_URL" style="display:inline-block; padding:13px 34px; font-size:15px; font-weight:600; color:#ffffff; text-decoration:none; border-radius:10px;">
                       Log In & Set Password →
                     </a>
@@ -123,7 +123,7 @@
             <td style="padding:16px 40px 32px 40px;">
               <p style="margin:0; font-size:14px; line-height:1.6; color:#374151;">
                 Welcome aboard,<br />
-                <strong style="color:#065f46;">The DevTrack Team</strong>
+                <strong style="color:#6B00DD;">The DevTrack Team</strong>
               </p>
             </td>
           </tr>
