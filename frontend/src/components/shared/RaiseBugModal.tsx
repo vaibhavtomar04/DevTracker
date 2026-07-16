@@ -139,7 +139,7 @@ export default function RaiseBugModal({ crTaskId, crJtrackId, onClose, onSuccess
   const errCls = "text-[10px] text-rose-400 mt-1 flex items-center gap-1"
 
   return (
-    <div className="fixed inset-0 z-[110] flex items-center justify-center p-4 bg-black/80 backdrop-blur-md">
+    <div className="fixed inset-0 z-[150] flex items-center justify-center p-4 bg-black/80 backdrop-blur-md">
       <motion.div
         initial={{ opacity: 0, scale: 0.95, y: 20 }}
         animate={{ opacity: 1, scale: 1, y: 0 }}
