@@ -123,7 +123,7 @@ export default function TesterDashboard() {
     const hasActiveUnresolvedBug = taskBugs.some(b => b.status === "OPEN" || b.status === "IN_PROGRESS")
     return hasActiveUnresolvedBug
   })
-  const completedCRs = tasks.filter(t => t.status === "TESTING_COMPLETED" && t.tester?.id === user?.id && filterBySearch(t))
+  const completedCRs = tasks.filter(t => (t.status === "TESTING_COMPLETED" || t.status === "UAT_COMPLETED" || t.status === "SIT_COMPLETED") && t.tester?.id === user?.id && filterBySearch(t))
   const myRejectedReviews = (bugReviews || []).filter(r => {
     const isOwner = r.raisedBy?.id === user?.id
     const isRejected = r.status === "REJECTED"

@@ -92,13 +92,19 @@ public class GlobalExceptionHandler {
         return buildErrorResponse(message, HttpStatus.INTERNAL_SERVER_ERROR);
     }
 
+    @ExceptionHandler(org.springframework.web.server.ResponseStatusException.class)
+    public ResponseEntity<Map<String, Object>> handleResponseStatusException(org.springframework.web.server.ResponseStatusException ex) {
+        log.warn("Response status exception: status={}, reason={}", ex.getStatusCode(), ex.getReason());
+        return buildErrorResponse(ex.getReason(), ex.getStatusCode());
+    }
+
     @ExceptionHandler(Exception.class)
     public ResponseEntity<Map<String, Object>> handleGenericException(Exception ex) {
         log.error("Critical Unhandled system error: ", ex);
         return buildErrorResponse("An unexpected system error occurred. Please contact support.", HttpStatus.INTERNAL_SERVER_ERROR);
     }
 
-    private ResponseEntity<Map<String, Object>> buildErrorResponse(String message, HttpStatus status) {
+    private ResponseEntity<Map<String, Object>> buildErrorResponse(String message, org.springframework.http.HttpStatusCode status) {
         Map<String, Object> body = new HashMap<>();
         body.put("success", false);
         body.put("message", message);
