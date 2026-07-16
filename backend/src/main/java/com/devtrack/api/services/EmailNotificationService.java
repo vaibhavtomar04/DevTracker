@@ -314,12 +314,12 @@ public class EmailNotificationService {
 
 			String renderedHtml = templateEngine.process("email/uat-testing", context);
 
-			String subject = "UAT Testing || ";
-			if(task!=null && task.getJtrackId()!=null && !task.getJtrackId().isBlank()) {
-				subject = subject+task.getJtrackId()+"_";
+			String subject = "UAT-Testing || ";
+			if (task != null && task.getJtrackId() != null && !task.getJtrackId().isBlank()) {
+				subject = subject + task.getJtrackId() + " ";
 			}
-			if(task!=null && task.getTitle()!=null && !task.getTitle().isBlank()) {
-				subject = subject+task.getTitle();
+			if (task != null && task.getTitle() != null && !task.getTitle().isBlank()) {
+				subject = subject + task.getTitle();
 			}
 
 			EmailRequestVo requestMap = createEmailRequestMap(renderedHtml, subject, testingSender, null, developersMail, testingCc);
@@ -392,7 +392,7 @@ public class EmailNotificationService {
 				subject = mailThread.get(0).getSubject();
 				originalMessageId = mailThread.get(0).getMessageId();
 			} else {
-				subject = "UAT Testing || ";
+				subject = "UAT-Testing || ";
 				if (task != null && task.getJtrackId() != null && !task.getJtrackId().isBlank()) {
 					subject = subject + task.getJtrackId() + " ";
 				}
