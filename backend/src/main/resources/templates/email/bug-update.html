@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<html lang="en" xmlns:th="http://www.thymeleaf.org" xmlns:v="urn:schemas-microsoft-com:vml" xmlns:o="urn:schemas-microsoft-com:office:office">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -24,7 +24,9 @@
 
           <!-- Header band with logo -->
           <tr>
-            <td style="background:linear-gradient(200deg,#220046 0%,#6B00DD 50%,#F27ECE 100%); background-color:#6B00DD; padding:36px 40px; text-align:center;">
+            <td style="background:linear-gradient(200deg,#220046 0%,#6B00DD 50%,#F27ECE 100%); background-color:#6B00DD; padding:0; text-align:center;">
+              <!--[if gte mso 9]><v:rect xmlns:v="urn:schemas-microsoft-com:vml" fill="true" stroke="false" style="width:600px;"><v:fill type="gradient" color="#220046" color2="#9B30E8" angle="135"/><v:textbox style="mso-fit-shape-to-text:true" inset="36px,36px,40px,40px"><![endif]-->
+              <div style="padding:36px 40px; text-align:center;">
               <!-- CSS-based text logo that will not break in Outlook -->
               <div style="display:inline-block; font-family:'Outfit', 'Inter', 'Segoe UI', sans-serif; font-size:30px; font-weight:800; color:#ffffff; margin-bottom:12px; text-shadow:0 2px 4px rgba(0,0,0,0.15);">
                 <span style="background-color:#ffffff; color:#5b00c8; padding:5px 13px; border-radius:8px; margin-right:6px; letter-spacing:0.5px; font-weight:800;">Dev</span><span style="color:#ffffff;">Track</span>
@@ -32,9 +34,10 @@
               <div style="display:inline-block; margin-top:12px; padding:6px 16px; background-color:rgba(217,119,6,0.18); border:1px solid #d97706; border-radius:999px; font-size:12px; font-weight:600; letter-spacing:1.2px; text-transform:uppercase; color:#fbbf24;">
                 🔄 Status Update
               </div>
+              </div>
+              <!--[if gte mso 9]></v:textbox></v:rect><![endif]-->
             </td>
           </tr>
-
           <!-- Copper accent divider -->
           <tr>
             <td style="height:4px; background:linear-gradient(150deg,#1a0038 0%,#5b00c8 50%,#1a0038 100%); background-color:#5b00c8; font-size:0; line-height:0;">&nbsp;</td>
