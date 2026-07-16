@@ -104,9 +104,12 @@ export async function apiClient(endpoint: string, options: RequestOptions = {}):
         }
         // Update session state in Zustand store
         setSession(data, data.token);
-        
-        isRefreshing = false;
+
+        // IMPORTANT: fire subscriber callbacks BEFORE resetting isRefreshing.
+        // If isRefreshing were reset first, a concurrent 401 during callback
+        // execution could kick off a second unnecessary refresh cycle.
         onRefreshed(data.token);
+        isRefreshing = false;
       } catch (err) {
         isRefreshing = false;
         refreshSubscribers = [];
