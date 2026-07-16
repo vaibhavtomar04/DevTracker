@@ -196,7 +196,7 @@ public class EmailNotificationService {
 			crMap.put("reviewUrl", baseUrl + "/dashboard/code-review");
 			
 			context.setVariable("cr", crMap);
-			context.setVariable("reviewerNames", "Nilesh Sir / Dvija Ma'am");
+			context.setVariable("reviewerNames", "Nilesh Sir / Suresh");
 			context.setVariable("appLogoUrl", appLogoUrl);
 
 			String renderedHtml = templateEngine.process("email/codereview-request", context);

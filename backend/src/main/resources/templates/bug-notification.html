@@ -8,201 +8,198 @@
 </head>
 <body style="margin: 0; padding: 0; width: 100% !important; background-color: #0f1419; background-image: linear-gradient(135deg, #0f1419 0%, #111827 100%); font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;">
 
-  <!-- Hidden preheader (preview text) -->
-  <div style="display: none; max-height: 0px; overflow: hidden; opacity: 0; font-size: 1px; line-height: 1px; color: #ffffff;" 
-       th:text="'Bug Assigned: ' + ${bug.title} + ' (ID: ' + ${bug.id} + ')'">
-    Bug Assigned: New bug assigned to you in DevTrack.
-  </div>
+<!-- Hidden preheader (preview text) -->
+<div style="display: none; max-height: 0px; overflow: hidden; opacity: 0; font-size: 1px; line-height: 1px; color: #ffffff;"
+     th:text="'Bug Assigned: ' + ${bug.title} + ' (ID: ' + ${bug.id} + ')'">
+  Bug Assigned: New bug assigned to you in DevTrack.
+</div>
 
-  <!-- Main outer table container -->
-  <table role="presentation" width="100%" border="0" cellspacing="0" cellpadding="0" style="background-color: #0f1419; background-image: linear-gradient(135deg, #0f1419 0%, #111827 100%); width: 100%; margin: 0; padding: 40px 0;">
-    <tr>
-      <td align="center" valign="top">
-        <!-- 600px Card Container -->
-        <table role="presentation" width="600" border="0" cellspacing="0" cellpadding="0" style="width: 600px; max-width: 100%; background-color: #ffffff; border-radius: 16px; overflow: hidden; border-collapse: separate; box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.3), 0 8px 10px -6px rgba(0, 0, 0, 0.3);">
-          
-          <!-- Emerald Header Band -->
-          <tr>
-            <td align="center" valign="top" style="background-color: #064e3b; background-image: linear-gradient(135deg, #064e3b 0%, #047857 100%); padding: 32px 24px; text-align: center;">
-              <!-- App Logo -->
-              <div style="display:inline-block; font-family:'Outfit', 'Inter', 'Segoe UI', sans-serif; font-size:30px; font-weight:800; color:#ffffff; margin-bottom:12px; text-shadow:0 2px 4px rgba(0,0,0,0.15);">
-                <span style="background-color:#d97706; padding:3px 10px; border-radius:6px; margin-right:4px;">Dev</span><span style="color:#ffffff;">Track</span>
-              </div>
-              
-              <!-- Wordmark -->
-              <div style="font-size: 26px; font-weight: 800; color: #ffffff; letter-spacing: -0.5px; margin-bottom: 12px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;">DevTrack</div>
-              
-              <!-- Copper Badge -->
-              <table role="presentation" border="0" cellspacing="0" cellpadding="0" style="display: inline-block; margin: 0 auto;">
-                <tr>
-                  <td align="center" valign="middle" style="background-color: #d97706; background-image: linear-gradient(135deg, #d97706 0%, #f59e0b 100%); color: #ffffff; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; padding: 6px 14px; border-radius: 9999px; line-height: 1;">
-                    🐛 Bug Report
-                  </td>
-                </tr>
-              </table>
-            </td>
-          </tr>
+<!-- Main outer table container -->
+<table role="presentation" width="100%" border="0" cellspacing="0" cellpadding="0" style="background-color: #0f1419; background-image: linear-gradient(135deg, #0f1419 0%, #111827 100%); width: 100%; margin: 0; padding: 40px 0;">
+  <tr>
+    <td align="center" valign="top">
+      <!-- 600px Card Container -->
+      <table role="presentation" width="600" border="0" cellspacing="0" cellpadding="0" style="width: 600px; max-width: 100%; background-color: #ffffff; border-radius: 16px; overflow: hidden; border-collapse: separate; box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.3), 0 8px 10px -6px rgba(0, 0, 0, 0.3);">
 
-          <!-- Thin Copper Divider (4px) under header -->
-          <tr>
-            <td height="4" style="height:4px; background:linear-gradient(150deg,#064e3b 0%,#7ECF67 50%,#064e3b 100%); background-color:#68ac54; font-size:0; line-height:0;">&nbsp;</td>
-          </tr>
+        <!-- Emerald Header Band -->
+        <tr>
+          <td align="center" valign="top" style="background:linear-gradient(200deg,#220046 0%,#6B00DD 50%,#F27ECE 100%); background-color:#2ed767; padding:36px 40px; text-align:center;">
+            <!-- CSS-based text logo that will not break in Outlook -->
+            <div style="display:inline-block; font-family:'Outfit', 'Inter', 'Segoe UI', sans-serif; font-size:30px; font-weight:800; color:#ffffff; margin-bottom:12px; text-shadow:0 2px 4px rgba(0,0,0,0.15);">
+              <span style="background-color:#B11EEB; padding:3px 10px; border-radius:6px; margin-right:4px;">Dev</span><span style="color:#ffffff;">Track</span>
+            </div>
 
-          <!-- Card Body Content -->
-          <tr>
-            <td valign="top" style="padding: 40px 32px 32px 32px; background-color: #ffffff;">
-              <!-- Greeting -->
-              <h1 style="margin: 0 0 12px 0; font-size: 20px; font-weight: 700; color: #0f1419; line-height: 1.4;">
-                Hello <span th:text="${bug.assignedTo}">Developer</span>,
-              </h1>
-              
-              <!-- Intro -->
-              <p style="margin: 0 0 24px 0; font-size: 15px; font-weight: 400; color: #4b5563; line-height: 1.6;">
-                A new bug (ID: <strong th:text="${bug.id}" style="color: #065f46;">#BUG-101</strong>) has been raised against you.
-              </p>
+            <!-- Copper Badge -->
+            <table role="presentation" border="0" cellspacing="0" cellpadding="0" style="display: inline-block; margin: 0 auto;">
+              <tr>
+                <td align="center" valign="middle" style="background-color: #d97706; background-image: linear-gradient(135deg, #d97706 0%, #f59e0b 100%); color: #ffffff; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; padding: 6px 14px; border-radius: 9999px; line-height: 1;">
+                  🐛 Bug Report
+                </td>
+              </tr>
+            </table>
+          </td>
+        </tr>
 
-              <!-- Details Table (Bordered, rounded) -->
-              <table role="presentation" width="100%" border="0" cellspacing="0" cellpadding="0" style="width: 100%; border: 1px solid #e5e7eb; border-radius: 8px; border-collapse: separate; overflow: hidden; margin-bottom: 32px;">
-                <!-- Header row -->
-                <tr>
-                  <td colspan="2" style="background-color: #f9fafb; border-bottom: 1px solid #e5e7eb; padding: 14px 16px; font-size: 14px; font-weight: 700; color: #0f1419; text-transform: uppercase; letter-spacing: 0.5px;">
-                    Details
-                  </td>
-                </tr>
-                
-                <!-- Bug ID -->
-                <tr>
-                  <td width="30%" valign="top" style="background-color: #f9fafb; border-bottom: 1px solid #e5e7eb; border-right: 1px solid #e5e7eb; padding: 12px 16px; font-size: 13px; font-weight: 600; color: #374151;">
-                    Bug ID
-                  </td>
-                  <td width="70%" valign="top" th:text="${bug.id}" style="border-bottom: 1px solid #e5e7eb; padding: 12px 16px; font-size: 13px; color: #111827; font-weight: 700;">
-                    101
-                  </td>
-                </tr>
-                
-                <!-- Title -->
-                <tr>
-                  <td valign="top" style="background-color: #f9fafb; border-bottom: 1px solid #e5e7eb; border-right: 1px solid #e5e7eb; padding: 12px 16px; font-size: 13px; font-weight: 600; color: #374151;">
-                    Title
-                  </td>
-                  <td valign="top" th:text="${bug.title}" style="border-bottom: 1px solid #e5e7eb; padding: 12px 16px; font-size: 13px; color: #111827; line-height: 1.4;">
-                    Null Pointer Exception in User Login Flow
-                  </td>
-                </tr>
+        <!-- Thin Copper Divider (4px) under header -->
+        <tr>
+          <td height="4" style="height:4px; background:linear-gradient(150deg,#064e3b 0%,#7ECF67 50%,#064e3b 100%); background-color:#68ac54; font-size:0; line-height:0;">&nbsp;</td>
+        </tr>
 
-                <!-- Description -->
-                <tr>
-                  <td valign="top" style="background-color: #f9fafb; border-bottom: 1px solid #e5e7eb; border-right: 1px solid #e5e7eb; padding: 12px 16px; font-size: 13px; font-weight: 600; color: #374151;">
-                    Description
-                  </td>
-                  <td valign="top" th:text="${bug.description}" style="border-bottom: 1px solid #e5e7eb; padding: 12px 16px; font-size: 13px; color: #4b5563; line-height: 1.5;">
-                    The user login flow fails when trying to parse the session context returned by the auth service.
-                  </td>
-                </tr>
+        <!-- Card Body Content -->
+        <tr>
+          <td valign="top" style="padding: 40px 32px 32px 32px; background-color: #ffffff;">
+            <!-- Greeting -->
+            <h1 style="margin: 0 0 12px 0; font-size: 20px; font-weight: 700; color: #0f1419; line-height: 1.4;">
+              Hello <span th:text="${bug.assignedTo}">Developer</span>,
+            </h1>
 
-                <!-- Environment -->
-                <tr>
-                  <td valign="top" style="background-color: #f9fafb; border-bottom: 1px solid #e5e7eb; border-right: 1px solid #e5e7eb; padding: 12px 16px; font-size: 13px; font-weight: 600; color: #374151;">
-                    Environment
-                  </td>
-                  <td valign="top" style="border-bottom: 1px solid #e5e7eb; padding: 12px 16px; font-size: 13px; color: #111827;">
-                    <!-- Small emerald badge -->
-                    <table role="presentation" border="0" cellspacing="0" cellpadding="0" style="display: inline-block;">
-                      <tr>
-                        <td align="center" valign="middle" th:text="${bug.environment}" style="background-color: #ecfdf5; color: #047857; font-size: 11px; font-weight: 600; padding: 3px 8px; border-radius: 4px; line-height: 1.2;">
-                          PRODUCTION
-                        </td>
-                      </tr>
-                    </table>
-                  </td>
-                </tr>
+            <!-- Intro -->
+            <p style="margin: 0 0 24px 0; font-size: 15px; font-weight: 400; color: #4b5563; line-height: 1.6;">
+              A new bug (ID: <strong th:text="${bug.id}" style="color: #065f46;">#BUG-101</strong>) has been raised against you.
+            </p>
 
-                <!-- Priority (Dynamic colors computed using th:with) -->
-                <tr>
-                  <td valign="top" style="background-color: #f9fafb; border-bottom: 1px solid #e5e7eb; border-right: 1px solid #e5e7eb; padding: 12px 16px; font-size: 13px; font-weight: 600; color: #374151;">
-                    Priority
-                  </td>
-                  <td valign="top" style="border-bottom: 1px solid #e5e7eb; padding: 12px 16px; font-size: 13px; color: #111827;"
-                      th:with="prioUpper=${#strings.toUpperCase(bug.priority)},
+            <!-- Details Table (Bordered, rounded) -->
+            <table role="presentation" width="100%" border="0" cellspacing="0" cellpadding="0" style="width: 100%; border: 1px solid #e5e7eb; border-radius: 8px; border-collapse: separate; overflow: hidden; margin-bottom: 32px;">
+              <!-- Header row -->
+              <tr>
+                <td colspan="2" style="background-color: #f9fafb; border-bottom: 1px solid #e5e7eb; padding: 14px 16px; font-size: 14px; font-weight: 700; color: #0f1419; text-transform: uppercase; letter-spacing: 0.5px;">
+                  Details
+                </td>
+              </tr>
+
+              <!-- Bug ID -->
+              <tr>
+                <td width="30%" valign="top" style="background-color: #f9fafb; border-bottom: 1px solid #e5e7eb; border-right: 1px solid #e5e7eb; padding: 12px 16px; font-size: 13px; font-weight: 600; color: #374151;">
+                  Bug ID
+                </td>
+                <td width="70%" valign="top" th:text="${bug.id}" style="border-bottom: 1px solid #e5e7eb; padding: 12px 16px; font-size: 13px; color: #111827; font-weight: 700;">
+                  101
+                </td>
+              </tr>
+
+              <!-- Title -->
+              <tr>
+                <td valign="top" style="background-color: #f9fafb; border-bottom: 1px solid #e5e7eb; border-right: 1px solid #e5e7eb; padding: 12px 16px; font-size: 13px; font-weight: 600; color: #374151;">
+                  Title
+                </td>
+                <td valign="top" th:text="${bug.title}" style="border-bottom: 1px solid #e5e7eb; padding: 12px 16px; font-size: 13px; color: #111827; line-height: 1.4;">
+                  Null Pointer Exception in User Login Flow
+                </td>
+              </tr>
+
+              <!-- Description -->
+              <tr>
+                <td valign="top" style="background-color: #f9fafb; border-bottom: 1px solid #e5e7eb; border-right: 1px solid #e5e7eb; padding: 12px 16px; font-size: 13px; font-weight: 600; color: #374151;">
+                  Description
+                </td>
+                <td valign="top" th:text="${bug.description}" style="border-bottom: 1px solid #e5e7eb; padding: 12px 16px; font-size: 13px; color: #4b5563; line-height: 1.5;">
+                  The user login flow fails when trying to parse the session context returned by the auth service.
+                </td>
+              </tr>
+
+              <!-- Environment -->
+              <tr>
+                <td valign="top" style="background-color: #f9fafb; border-bottom: 1px solid #e5e7eb; border-right: 1px solid #e5e7eb; padding: 12px 16px; font-size: 13px; font-weight: 600; color: #374151;">
+                  Environment
+                </td>
+                <td valign="top" style="border-bottom: 1px solid #e5e7eb; padding: 12px 16px; font-size: 13px; color: #111827;">
+                  <!-- Small emerald badge -->
+                  <table role="presentation" border="0" cellspacing="0" cellpadding="0" style="display: inline-block;">
+                    <tr>
+                      <td align="center" valign="middle" th:text="${bug.environment}" style="background-color: #ecfdf5; color: #047857; font-size: 11px; font-weight: 600; padding: 3px 8px; border-radius: 4px; line-height: 1.2;">
+                        PRODUCTION
+                      </td>
+                    </tr>
+                  </table>
+                </td>
+              </tr>
+
+              <!-- Priority (Dynamic colors computed using th:with) -->
+              <tr>
+                <td valign="top" style="background-color: #f9fafb; border-bottom: 1px solid #e5e7eb; border-right: 1px solid #e5e7eb; padding: 12px 16px; font-size: 13px; font-weight: 600; color: #374151;">
+                  Priority
+                </td>
+                <td valign="top" style="border-bottom: 1px solid #e5e7eb; padding: 12px 16px; font-size: 13px; color: #111827;"
+                    th:with="prioUpper=${#strings.toUpperCase(bug.priority)},
                                bg=${prioUpper == 'CRITICAL' ? '#fef2f2' : (prioUpper == 'HIGH' ? '#fff7ed' : (prioUpper == 'MEDIUM' ? '#fefce8' : (prioUpper == 'LOW' ? '#ecfdf5' : '#f3f4f6')))},
                                text=${prioUpper == 'CRITICAL' ? '#b91c1c' : (prioUpper == 'HIGH' ? '#c2410c' : (prioUpper == 'MEDIUM' ? '#a16207' : (prioUpper == 'LOW' ? '#047857' : '#374151')))},
                                border=${prioUpper == 'CRITICAL' ? '#fecaca' : (prioUpper == 'HIGH' ? '#fed7aa' : (prioUpper == 'MEDIUM' ? '#fde68a' : (prioUpper == 'LOW' ? '#a7f3d0' : '#e5e7eb')))}">
-                    <!-- Rounded pill badge -->
-                    <table role="presentation" border="0" cellspacing="0" cellpadding="0" style="display: inline-block;">
-                      <tr>
-                        <td align="center" valign="middle" th:text="${bug.priority}" th:style="'background-color: ' + ${bg} + '; color: ' + ${text} + '; border: 1px solid ' + ${border} + '; font-size: 11px; font-weight: 600; padding: 2px 8px; border-radius: 9999px; line-height: 1.2;'" style="background-color: #fef2f2; color: #b91c1c; border: 1px solid #fecaca; font-size: 11px; font-weight: 600; padding: 2px 8px; border-radius: 9999px; line-height: 1.2;">
-                          CRITICAL
-                        </td>
-                      </tr>
-                    </table>
-                  </td>
-                </tr>
+                  <!-- Rounded pill badge -->
+                  <table role="presentation" border="0" cellspacing="0" cellpadding="0" style="display: inline-block;">
+                    <tr>
+                      <td align="center" valign="middle" th:text="${bug.priority}" th:style="'background-color: ' + ${bg} + '; color: ' + ${text} + '; border: 1px solid ' + ${border} + '; font-size: 11px; font-weight: 600; padding: 2px 8px; border-radius: 9999px; line-height: 1.2;'" style="background-color: #fef2f2; color: #b91c1c; border: 1px solid #fecaca; font-size: 11px; font-weight: 600; padding: 2px 8px; border-radius: 9999px; line-height: 1.2;">
+                        CRITICAL
+                      </td>
+                    </tr>
+                  </table>
+                </td>
+              </tr>
 
-                <!-- Assigned To -->
-                <tr>
-                  <td valign="top" style="background-color: #f9fafb; border-bottom: 1px solid #e5e7eb; border-right: 1px solid #e5e7eb; padding: 12px 16px; font-size: 13px; font-weight: 600; color: #374151;">
-                    Assigned To
-                  </td>
-                  <td valign="top" th:text="${bug.assignedTo}" style="border-bottom: 1px solid #e5e7eb; padding: 12px 16px; font-size: 13px; color: #111827;">
-                    John Doe
-                  </td>
-                </tr>
+              <!-- Assigned To -->
+              <tr>
+                <td valign="top" style="background-color: #f9fafb; border-bottom: 1px solid #e5e7eb; border-right: 1px solid #e5e7eb; padding: 12px 16px; font-size: 13px; font-weight: 600; color: #374151;">
+                  Assigned To
+                </td>
+                <td valign="top" th:text="${bug.assignedTo}" style="border-bottom: 1px solid #e5e7eb; padding: 12px 16px; font-size: 13px; color: #111827;">
+                  John Doe
+                </td>
+              </tr>
 
-                <!-- Raised By -->
-                <tr>
-                  <td valign="top" style="background-color: #f9fafb; border-right: 1px solid #e5e7eb; padding: 12px 16px; font-size: 13px; font-weight: 600; color: #374151;">
-                    Raised By
-                  </td>
-                  <td valign="top" th:text="${currentUser.fullName}" style="padding: 12px 16px; font-size: 13px; color: #111827;">
-                    Jane Smith
-                  </td>
-                </tr>
-              </table>
+              <!-- Raised By -->
+              <tr>
+                <td valign="top" style="background-color: #f9fafb; border-right: 1px solid #e5e7eb; padding: 12px 16px; font-size: 13px; font-weight: 600; color: #374151;">
+                  Raised By
+                </td>
+                <td valign="top" th:text="${currentUser.fullName}" style="padding: 12px 16px; font-size: 13px; color: #111827;">
+                  Jane Smith
+                </td>
+              </tr>
+            </table>
 
-              <!-- Emerald CTA Button -->
-              <table role="presentation" border="0" cellspacing="0" cellpadding="0" width="100%" style="width: 100%; margin-bottom: 32px;">
-                <tr>
-                  <td align="center">
-                    <table role="presentation" border="0" cellspacing="0" cellpadding="0">
-                      <tr>
-                        <td align="center" style="border-radius: 8px; background:linear-gradient(210deg,#220046 0%,#6B00DD 50%,#F27ECE 100%); background-color:#065f46;">
-                          <a href="https://devtrack.example.com" th:href="${bug.url}" target="_blank" style="border: 1px solid #047857; border-radius: 8px; color: #ffffff; display: inline-block; font-size: 15px; font-weight: 600; padding: 14px 28px; text-decoration: none; text-shadow: 0 -1px 0 rgba(0, 0, 0, 0.1); line-height: 1.2;">
-                            View Bug in DevTrack &rarr;
-                          </a>
-                        </td>
-                      </tr>
-                    </table>
-                  </td>
-                </tr>
-              </table>
+            <!-- Emerald CTA Button -->
+            <table role="presentation" border="0" cellspacing="0" cellpadding="0" width="100%" style="width: 100%; margin-bottom: 32px;">
+              <tr>
+                <td align="center">
+                  <table role="presentation" border="0" cellspacing="0" cellpadding="0">
+                    <tr>
+                      <td align="center" style="border-radius: 8px; background:linear-gradient(210deg,#220046 0%,#6B00DD 50%,#F27ECE 100%); background-color:#065f46;">
+                        <a href="https://devtrack.example.com" th:href="${bug.url}" target="_blank" style="border: 1px solid #047857; border-radius: 8px; color: #ffffff; display: inline-block; font-size: 15px; font-weight: 600; padding: 14px 28px; text-decoration: none; text-shadow: 0 -1px 0 rgba(0, 0, 0, 0.1); line-height: 1.2;">
+                          View Bug in DevTrack &rarr;
+                        </a>
+                      </td>
+                    </tr>
+                  </table>
+                </td>
+              </tr>
+            </table>
 
-              <!-- Sign-off -->
-              <p style="margin: 0; font-size: 15px; font-weight: 400; color: #4b5563; line-height: 1.6;">
-                Regards,<br/>
-                <strong th:text="${currentUser.fullName}" style="color: #0f1419;">Jane Smith</strong>
-              </p>
-            </td>
-          </tr>
+            <!-- Sign-off -->
+            <p style="margin: 0; font-size: 15px; font-weight: 400; color: #4b5563; line-height: 1.6;">
+              Regards,<br/>
+              <strong th:text="${currentUser.fullName}" style="color: #0f1419;">Jane Smith</strong>
+            </p>
+          </td>
+        </tr>
 
-          <!-- Footer Section -->
-          <tr>
-            <td valign="top" style="background-color: #111827; padding: 32px 24px; text-align: center; border-top: 1px solid #1f2937;">
-              <!-- Automated notification disclaimer -->
-              <p style="margin: 0 0 12px 0; font-size: 12px; color: #9ca3af; line-height: 1.6;">
-                This is an automated notification from DevTrack. Please do not reply directly to this email.
-              </p>
-              
-              <!-- Company links or branding info -->
-              <p style="margin: 0; font-size: 11px; color: #6b7280;">
-                &copy; <span th:text="${#calendars.year(#calendars.createNow())}">2026</span> DevTrack Inc. All rights reserved.
-              </p>
-            </td>
-          </tr>
+        <!-- Footer Section -->
+        <tr>
+          <td valign="top" style="background-color: #111827; padding: 32px 24px; text-align: center; border-top: 1px solid #1f2937;">
+            <!-- Automated notification disclaimer -->
+            <p style="margin: 0 0 12px 0; font-size: 12px; color: #9ca3af; line-height: 1.6;">
+              This is an automated notification from DevTrack. Please do not reply directly to this email.
+            </p>
 
-        </table>
-      </td>
-    </tr>
-  </table>
+            <!-- Company links or branding info -->
+            <p style="margin: 0; font-size: 11px; color: #6b7280;">
+              &copy; <span th:text="${#calendars.year(#calendars.createNow())}">2026</span> DevTrack Inc. All rights reserved.
+            </p>
+          </td>
+        </tr>
+
+      </table>
+    </td>
+  </tr>
+</table>
 
 </body>
 </html>
