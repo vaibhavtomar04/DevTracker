@@ -515,6 +515,10 @@ public class TaskController {
                         final String oldStatusFinal = oldStatus;
                         final String remarksForNotif = taskDetails.getRemarks();
                         final User currentUserFinal = currentUser;
+                        // Capture DevOps deployment fields before entering the async lambda
+                        final String deploymentNoteFinal = taskDetails.getDeploymentNote();
+                        final String serverPathFinal = taskDetails.getServerPath();
+                        final String itemsToDeployFinal = taskDetails.getItemsToDeploy();
                         // Fire-and-forget: don't block the HTTP response for notifications
                         CompletableFuture.runAsync(() -> {
                             notifyAllDevelopersAndTester(savedFinal, savedFinal.getJtrackId() + " Status Updated",
@@ -525,6 +529,11 @@ public class TaskController {
                                     emailNotificationService.sendMailOnCodeReview(savedFinal, remarksForNotif != null ? remarksForNotif : "Sent to Code Review");
                                 } catch (Exception e) {
                                     log.error("Failed to send Code Review mail", e);
+                                }
+                                try {
+                                    emailNotificationService.sendDevOpsDeploymentMail(savedFinal, deploymentNoteFinal, serverPathFinal, itemsToDeployFinal);
+                                } catch (Exception e) {
+                                    log.error("Failed to send DevOps Deployment mail", e);
                                 }
                             }
 
@@ -1225,6 +1234,10 @@ public class TaskController {
             log.info("current step , next step {} {}",currentStep.getStepName(),nextStage);
             if( currentStep.getStepName().equalsIgnoreCase("SIT_COMPLETED")) {
             	emailNotificationService.sendMailOnCodeReview(task, taskDetails != null ? taskDetails.getRemarks() : "SIT Completed");
+            	emailNotificationService.sendDevOpsDeploymentMail(task,
+            		taskDetails != null ? taskDetails.getDeploymentNote() : null,
+            		taskDetails != null ? taskDetails.getServerPath() : null,
+            		taskDetails != null ? taskDetails.getItemsToDeploy() : null);
             }
             
             if(currentStep.getStepName().equalsIgnoreCase("CODE_REVIEW"))

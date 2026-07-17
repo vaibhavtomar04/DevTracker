@@ -71,6 +71,9 @@ public class EmailNotificationService {
 	@Value("${devtrack.backend.base-url:http://localhost:8080}")
 	private String backendBaseUrl;
 
+	@Value("${mail.devops:}")
+	private String devopsMail;
+
 	private final UserRepository userRepository;
 	private final BugTaskRepository bugTaskRepository;
 	private final TaskRepository taskRepository;
@@ -424,6 +427,61 @@ public class EmailNotificationService {
 		}
 	}
 
+
+	@Async
+	public void sendDevOpsDeploymentMail(Task task, String deploymentNote, String serverPath, String itemsToDeploy) {
+		log.info("Inside sendDevOpsDeploymentMail for task {}", task.getId());
+		try {
+			if (devopsMail == null || devopsMail.trim().isEmpty()) {
+				log.info("mail.devops is not configured — skipping DevOps deployment email");
+				return;
+			}
+
+			User developer = task.getAssignedDeveloper();
+			String devName = developer != null ? developer.getFullName() : "Developer";
+
+			// Derive CR type label from task type
+			String crType = "CR";
+			if (task.getType() != null && task.getType().getName() != null) {
+				crType = task.getType().getName();
+			}
+
+			// Strip prefix tags like [FIX] or [ENH] from title for the clean CR name
+			String crName = task.getTitle() != null
+					? task.getTitle().replaceAll("^\\[.*?\\]\\s*", "").trim()
+					: "—";
+
+			Context context = new Context();
+			Map<String, Object> deployMap = new HashMap<>();
+			deployMap.put("jtrackId",       task.getJtrackId() != null ? task.getJtrackId() : "NA");
+			deployMap.put("crType",         crType);
+			deployMap.put("crName",         crName);
+			deployMap.put("developerName",  devName);
+			deployMap.put("description",    task.getDescription() != null ? task.getDescription() : "—");
+			deployMap.put("deploymentNote", deploymentNote != null && !deploymentNote.isBlank() ? deploymentNote : "—");
+			deployMap.put("serverPath",     serverPath != null && !serverPath.isBlank() ? serverPath : "—");
+			deployMap.put("itemsToDeploy",  itemsToDeploy != null && !itemsToDeploy.isBlank() ? itemsToDeploy : "—");
+			deployMap.put("url",            baseUrl + "/dashboard/crs");
+			context.setVariable("deploy", deployMap);
+			context.setVariable("appLogoUrl", appLogoUrl);
+
+			String renderedHtml = templateEngine.process("email/uat-deployment", context);
+
+			// Subject: UAT Deployment || CR Name
+			String subject = "UAT Deployment || " + crName;
+
+			EmailRequestVo requestMap = createEmailRequestMap(renderedHtml, subject, devopsMail, null, testingSender, reviewCc);
+
+			if (requestMap != null) {
+				callSendNotificationApi(requestMap);
+			} else {
+				log.info("DevOps deployment email request is null");
+			}
+
+		} catch (Exception e) {
+			log.error("Exception in sendDevOpsDeploymentMail", e);
+		}
+	}
 
 	public EmailRequestVo createEmailRequestMap(String messagebody, String messagebsubject, String to, String orgMessageId, String sender, String cc) {
 		log.info("Inside createEmailRequestMap");

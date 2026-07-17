@@ -97,6 +97,16 @@ public class Task {
     @Transient
     private String remarks;
 
+    // ── DevOps deployment email fields (transient, not persisted) ────────────
+    @Transient
+    private String deploymentNote;
+
+    @Transient
+    private String serverPath;
+
+    @Transient
+    private String itemsToDeploy;
+
     @Column(name = "created_date")
     private LocalDateTime createdDate;
     

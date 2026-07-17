@@ -6,6 +6,8 @@ import { useThemeStore } from "@/store/themeStore"
 import { Button } from "@/components/ui/button"
 import { listDocuments, downloadDocument } from "@/services/document.service"
 import BugDetailModal from "@/components/shared/BugDetailModal"
+import DevOpsDeploymentModal from "@/components/shared/DevOpsDeploymentModal"
+import type { DevOpsDeploymentFields } from "@/components/shared/DevOpsDeploymentModal"
 import {
   GitPullRequest,
   CheckCircle,
@@ -85,6 +87,10 @@ export default function DeveloperDashboard() {
 
   // Bug detail popup opened from within CR card popup
   const [selectedCrBugId, setSelectedCrBugId] = useState<number | null>(null)
+
+  // DevOps Deployment Modal state
+  const [devOpsModalOpen, setDevOpsModalOpen] = useState(false)
+  const [pendingSubmitReviewTask, setPendingSubmitReviewTask] = useState<Task | null>(null)
 
   const activeSprint = useMemo(() => {
     return sprints.find(s => s.status === "ACTIVE") || sprints[0]
@@ -559,9 +565,19 @@ export default function DeveloperDashboard() {
       addToast("Submission Remarks are required.", "error")
       return
     }
+    // Store task and show DevOps deployment modal before submitting
+    setPendingSubmitReviewTask(selectedTask)
+    setDevOpsModalOpen(true)
+  }
+
+  const handleDevOpsConfirm = (fields: DevOpsDeploymentFields) => {
+    setDevOpsModalOpen(false)
+    const task = pendingSubmitReviewTask
+    if (!task || !user) return
+    setPendingSubmitReviewTask(null)
 
     // Close modals immediately — independent of API/WebSocket notifications.
-    const taskId = selectedTask.id
+    const taskId = task.id
     const savedRemarks = `Submitted for approval. Git Branch: ${branchName}`
     setIsSubmitOpen(false)
     setRemarks("")
@@ -571,10 +587,14 @@ export default function DeveloperDashboard() {
       status: "CODE_REVIEW",
       branchName: branchName,
       gitLinks: gitRepo,
-      codeReviewComments: `Build: ${buildStatus}\nNotes: ${deployNotes}`
+      codeReviewComments: `Build: ${buildStatus}\nNotes: ${deployNotes}`,
+      // @ts-ignore — transient fields not in Task type but accepted by API
+      deploymentNote: fields.deploymentNote,
+      serverPath: fields.serverPath,
+      itemsToDeploy: fields.itemsToDeploy,
     }, savedRemarks, user)
       .then(() => {
-        addToast("Submitted for Code Review approval", "success")
+        addToast("Submitted for Code Review approval. DevOps team notified.", "success")
         fetchData()
       })
       .catch(err => {
@@ -2368,6 +2388,19 @@ export default function DeveloperDashboard() {
           </div>
         )}
       </AnimatePresence>
+
+      {/* DevOps Deployment Modal — shown when developer submits CR for Code Review */}
+      <DevOpsDeploymentModal
+        open={devOpsModalOpen}
+        crName={pendingSubmitReviewTask?.title?.replace(/^\[.*?\]\s*/, '') ?? ''}
+        jtrackId={pendingSubmitReviewTask?.jtrackId ?? ''}
+        developerName={user?.fullName ?? 'Developer'}
+        onConfirm={handleDevOpsConfirm}
+        onCancel={() => {
+          setDevOpsModalOpen(false)
+          setPendingSubmitReviewTask(null)
+        }}
+      />
 
     </div>
   )
