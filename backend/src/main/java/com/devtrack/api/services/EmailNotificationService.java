@@ -74,6 +74,9 @@ public class EmailNotificationService {
 	@Value("${mail.devops:}")
 	private String devopsMail;
 
+	@Value("${mail.devops.cc:}")
+	private String devopsCc;
+
 	private final UserRepository userRepository;
 	private final BugTaskRepository bugTaskRepository;
 	private final TaskRepository taskRepository;
@@ -470,7 +473,10 @@ public class EmailNotificationService {
 			// Subject: UAT Deployment || CR Name
 			String subject = "UAT Deployment || " + crName;
 
-			EmailRequestVo requestMap = createEmailRequestMap(renderedHtml, subject, devopsMail, null, testingSender, reviewCc);
+			// Build CC: use dedicated mail.devops.cc if configured, otherwise fall back to reviewCc
+			String effectiveCc = (devopsCc != null && !devopsCc.trim().isEmpty()) ? devopsCc : reviewCc;
+
+			EmailRequestVo requestMap = createEmailRequestMap(renderedHtml, subject, devopsMail, null, testingSender, effectiveCc);
 
 			if (requestMap != null) {
 				callSendNotificationApi(requestMap);
