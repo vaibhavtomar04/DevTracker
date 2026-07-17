@@ -3,8 +3,10 @@ import { useTaskStore } from "@/store/taskStore"
 import { useAuthStore } from "@/store/authStore"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { Shield, Key, Camera, Smile } from "lucide-react"
+import { Shield, Key, Camera, Smile, ShieldCheck, ShieldAlert } from "lucide-react"
 import { motion } from "framer-motion"
+import { MfaWizard } from "@/components/shared/MfaWizard"
+import { MfaDeactivateModal } from "@/components/shared/MfaDeactivateModal"
 
 const PRESET_AVATARS = [
   "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMDAgMTAwIj48cmVjdCB3aWR0aD0iMTAwIiBoZWlnaHQ9IjEwMCIgcng9IjIwIiBmaWxsPSIjMTBiOTgxIi8+PGNpcmNsZSBjeD0iNTAiIGN5PSIzOCIgcj0iMTgiIGZpbGw9IiNmZmZmZmYiLz48cGF0aCBkPSJNMjAsODAgUTUwLDUwIDgwLDgwIiBmaWxsPSJub25lIiBzdHJva2U9IiNmZmZmZmYiIHN0cm9rZS13aWR0aD0iOCIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIi8+PC9zdmc+",
@@ -27,6 +29,10 @@ export default function Settings() {
   const [username, setUsername] = useState(user?.username || "")
   const [newAvatar, setNewAvatar] = useState(user?.avatar || "")
   const [isSavingProfile, setIsSavingProfile] = useState(false)
+
+  // MFA modal states
+  const [showMfaWizard, setShowMfaWizard] = useState(false)
+  const [showMfaDeactivate, setShowMfaDeactivate] = useState(false)
 
   useEffect(() => {
     fetchData()
@@ -145,6 +151,7 @@ export default function Settings() {
   }
 
   return (
+    <>
     <motion.div
       variants={containerVariants}
       initial="hidden"
@@ -284,6 +291,62 @@ export default function Settings() {
           </Card>
         </motion.div>
 
+        {/* ── MFA Security Card ───────────────── */}
+        <motion.div variants={cardVariants}>
+          <Card className="border border-white/[0.06] bg-white/[0.03] backdrop-blur-md rounded-2xl shadow-[inset_0_0_0_1px_rgba(255,255,255,0.04)] hover:shadow-[0_0_20px_rgba(99,102,241,0.08)] hover:border-violet-500/20 transition-all duration-300">
+            <CardHeader className="p-5">
+              <CardTitle className="text-sm font-black flex items-center space-x-2 text-slate-200">
+                <Shield className="h-4.5 w-4.5 text-violet-400" />
+                <span>Two-Factor Authentication (MFA)</span>
+              </CardTitle>
+              <CardDescription className="text-[10px] text-slate-400">Protect your account with Microsoft Authenticator (RFC 6238 TOTP).</CardDescription>
+            </CardHeader>
+            <CardContent className="p-5 pt-0">
+              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                {/* Status Badge */}
+                <div className="flex items-center gap-3">
+                  {user?.mfaEnabled ? (
+                    <div className="flex items-center gap-2.5 px-4 py-2.5 rounded-xl bg-emerald-500/10 border border-emerald-500/25">
+                      <ShieldCheck className="h-4 w-4 text-emerald-400 shrink-0" />
+                      <div>
+                        <p className="text-xs font-bold text-emerald-400">MFA Enabled</p>
+                        <p className="text-[10px] text-slate-400 mt-0.5">Your account is protected with 2FA</p>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="flex items-center gap-2.5 px-4 py-2.5 rounded-xl bg-amber-500/10 border border-amber-500/25">
+                      <ShieldAlert className="h-4 w-4 text-amber-400 shrink-0" />
+                      <div>
+                        <p className="text-xs font-bold text-amber-400">MFA Not Enabled</p>
+                        <p className="text-[10px] text-slate-400 mt-0.5">Enable 2FA to secure your account</p>
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {/* Action Button */}
+                {user?.mfaEnabled ? (
+                  <Button
+                    type="button"
+                    onClick={() => setShowMfaDeactivate(true)}
+                    className="h-9 px-4 rounded-xl text-xs font-bold bg-gradient-to-r from-rose-600/80 to-red-600/80 hover:from-rose-500 hover:to-red-500 border border-rose-500/30 text-white shadow-sm cursor-pointer transition-all shrink-0"
+                  >
+                    Deactivate MFA
+                  </Button>
+                ) : (
+                  <Button
+                    type="button"
+                    onClick={() => setShowMfaWizard(true)}
+                    className="h-9 px-4 rounded-xl text-xs font-bold bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-500 hover:to-indigo-500 border border-violet-500/30 text-white shadow-sm cursor-pointer transition-all shrink-0"
+                  >
+                    Enable MFA
+                  </Button>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+        </motion.div>
+
         {/* Password Reset */}
         <motion.div variants={cardVariants}>
           <Card className="border border-white/[0.06] bg-white/[0.03] backdrop-blur-md rounded-2xl shadow-[inset_0_0_0_1px_rgba(255,255,255,0.04)] hover:shadow-[0_0_20px_rgba(16,185,129,0.08)] hover:border-emerald-500/20 transition-all duration-300">
@@ -343,6 +406,30 @@ export default function Settings() {
         </motion.div>
       </div>
     </motion.div>
+
+    {/* MFA Setup Wizard */}
+    <MfaWizard
+      isOpen={showMfaWizard}
+      onClose={() => setShowMfaWizard(false)}
+      onSuccess={() => {
+        // Update the local user state to reflect MFA is now enabled
+        const currentUser = useAuthStore.getState().user
+        if (currentUser) {
+          useAuthStore.setState({ user: { ...currentUser, mfaEnabled: true } })
+        }
+        addToast("MFA successfully enabled! Your account is now protected.", "success")
+      }}
+    />
+
+    {/* MFA Deactivate Modal */}
+    <MfaDeactivateModal
+      isOpen={showMfaDeactivate}
+      onClose={() => setShowMfaDeactivate(false)}
+      onSuccess={() => {
+        addToast("MFA has been deactivated. You can re-enable it anytime.", "success")
+      }}
+    />
+    </>
   )
 }
 

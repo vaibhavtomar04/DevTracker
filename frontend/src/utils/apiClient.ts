@@ -79,7 +79,7 @@ export async function apiClient(endpoint: string, options: RequestOptions = {}):
 
   const response = await fetch(url, fetchOptions);
 
-  if (response.status === 401 && endpoint !== "/api/auth/refresh" && endpoint !== "/api/auth/login") {
+  if (response.status === 401 && endpoint !== "/api/auth/refresh" && endpoint !== "/api/auth/login" && endpoint !== "/mfa/verify" && endpoint !== "/mfa/backup-codes/verify") {
     if (!isRefreshing) {
       isRefreshing = true;
       try {
@@ -145,7 +145,7 @@ export async function apiClient(endpoint: string, options: RequestOptions = {}):
     });
   }
 
-  if (response.status === 401) {
+  if (response.status === 401 && endpoint !== "/mfa/verify" && endpoint !== "/mfa/backup-codes/verify") {
     await logout();
     window.location.href = "/login";
     throw new Error("Session expired. Please log in again.");
