@@ -37,6 +37,7 @@ interface NotificationState {
   unreadCount: number;
   wsStatus: WsStatus;
   popupQueue: PopupQueueItem[];
+  isNotificationsBlocked: boolean;
   
   // Actions
   fetchNotifications: (userId: number) => Promise<void>;
@@ -45,6 +46,7 @@ interface NotificationState {
   clearAll: (userId: number) => Promise<void>;
   togglePin: (id: number) => Promise<void>;
   snoozeNotification: (id: number, durationMinutes: number) => Promise<void>;
+  toggleBlockNotifications: () => void;
   addNotification: (n: AppNotification) => void;
   dismissPopup: (id: string) => void;
   
@@ -78,6 +80,7 @@ export const useNotificationStore = create<NotificationState>((set, get) => ({
   unreadCount: 0,
   wsStatus: 'disconnected',
   popupQueue: [],
+  isNotificationsBlocked: false,
   _ws: null,
   _pollInterval: null,
 
@@ -190,12 +193,32 @@ export const useNotificationStore = create<NotificationState>((set, get) => ({
     } catch { /* silent */ }
   },
 
+  toggleBlockNotifications: () => {
+    set((state) => ({
+      isNotificationsBlocked: !state.isNotificationsBlocked,
+      popupQueue: !state.isNotificationsBlocked ? [] : state.popupQueue,
+    }));
+  },
+
   // 📣 Add notification (from WS push) ─────────────────────────────────────────────────────────────────────────────────────────────────
   addNotification: (notification: AppNotification) => {
     set((state) => {
-      const exists = state.notifications.some((n) => n.id === notification.id);
+      // Deduplication check: ID or identical Title + Description
+      const exists = state.notifications.some(
+        (n) => n.id === notification.id || (n.title === notification.title && n.desc === notification.desc)
+      );
       if (exists) return state;
+      
       const notifications = [notification, ...state.notifications];
+
+      // If notifications are blocked by user toggle, update list silently without popups
+      if (state.isNotificationsBlocked) {
+        return {
+          notifications,
+          unreadCount: notifications.filter((n) => n.unread).length,
+          popupQueue: [],
+        };
+      }
       
       // Determine popup type from title content
       let popupType: PopupQueueItem['type'] = 'default';

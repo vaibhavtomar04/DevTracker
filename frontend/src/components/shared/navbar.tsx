@@ -157,11 +157,11 @@ export default function Navbar() {
           </Button>
 
           {/* Notification Bell */}
-          <div className="relative">
+          <div className="relative group">
             <Button
               variant="ghost"
               size="icon"
-              className="relative rounded-full h-9 w-9 bg-slate-100 dark:bg-zinc-800/30 border border-slate-300/80 dark:border-zinc-700/50 hover:bg-slate-200 dark:hover:bg-zinc-800 transition-all text-slate-700 dark:text-zinc-200"
+              className="relative rounded-full h-9 w-9 bg-slate-100 dark:bg-zinc-800/50 border border-slate-300/80 dark:border-zinc-700/60 hover:bg-sky-500/15 hover:border-sky-500/40 dark:hover:bg-sky-500/20 dark:hover:border-sky-500/50 transition-all duration-200 text-slate-700 dark:text-zinc-200 hover:text-sky-500 dark:hover:text-sky-400 cursor-pointer shadow-sm"
               onClick={() => setNotifPanelOpen(true)}
               title="Notifications"
             >
@@ -177,7 +177,7 @@ export default function Navbar() {
                   repeatDelay: 3.5,
                 }}
               >
-                <Bell className="h-4 w-4" />
+                <Bell className="h-4 w-4 transition-transform duration-200 group-hover:scale-110" />
               </motion.div>
 
               {/* Unread badge */}
@@ -188,20 +188,34 @@ export default function Navbar() {
                     initial={{ scale: 0 }}
                     animate={{ scale: 1 }}
                     exit={{ scale: 0 }}
-                    className="absolute -top-0.5 -right-0.5 flex h-4 w-4 items-center justify-center rounded-full text-[9px] font-bold text-white ring-1 ring-background"
-                    style={{ background: 'var(--linearPrimarySecondary)', boxShadow: '0 0 8px rgba(var(--primary-rgb),0.7)' }}
+                    className="absolute -top-1 -right-1 z-10 flex h-4 min-w-4 px-1 items-center justify-center rounded-full text-[9px] font-extrabold text-white ring-2 ring-background shadow-lg"
+                    style={{ background: 'linear-gradient(135deg, #06b6d4 0%, #3b82f6 100%)' }}
                   >
-                    {unreadCount > 9 ? "9+" : unreadCount}
+                    {unreadCount > 99 ? "99+" : unreadCount}
                   </motion.span>
                 )}
               </AnimatePresence>
 
               {/* WS status dot */}
               <span
-                className={`absolute -bottom-0.5 -right-0.5 w-2 h-2 rounded-full border border-background ${wsColors[wsStatus] ?? "bg-zinc-500"}`}
+                className={`absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full border-2 border-background z-10 ${wsColors[wsStatus] ?? "bg-zinc-500"}`}
                 title={`WebSocket: ${wsStatus}`}
               />
             </Button>
+
+            {/* Hover Tooltip Preview */}
+            <div className="absolute right-0 top-full mt-2 hidden group-hover:flex flex-col items-center z-50 pointer-events-none transition-all duration-200">
+              <div className="bg-popover dark:bg-[#121624] text-popover-foreground dark:text-zinc-100 border border-border dark:border-white/10 rounded-xl px-3 py-1.5 shadow-xl text-xs whitespace-nowrap flex items-center gap-2">
+                <span className="font-semibold">Notifications</span>
+                {unreadCount > 0 ? (
+                  <span className="bg-sky-500/20 text-sky-400 font-bold px-1.5 py-0.5 rounded-md text-[10px]">
+                    {unreadCount} unread
+                  </span>
+                ) : (
+                  <span className="text-zinc-500 text-[10px]">All caught up</span>
+                )}
+              </div>
+            </div>
           </div>
 
           {/* Theme Toggle */}

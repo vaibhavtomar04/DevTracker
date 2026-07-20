@@ -1567,6 +1567,7 @@ export default function DeveloperDashboard() {
                   }
 
                   if (sectionId === "sprint") {
+                    if (!activeSprint) return null
                     return (
                       /* 6. Current Sprint Details Widget */
                       <div key="sprint" className="p-5 rounded-3xl bg-[#161619] border border-white/[0.06] space-y-4 text-left relative overflow-hidden">

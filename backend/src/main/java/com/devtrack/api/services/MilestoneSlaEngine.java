@@ -255,6 +255,9 @@ public class MilestoneSlaEngine {
 
         for (Long uid : userIds) {
             try {
+                if (notificationRepository.existsByUserIdAndTitleAndDesc(uid, title, desc)) {
+                    continue;
+                }
                 Notification notif = new Notification();
                 notif.setUserId(uid);
                 notif.setTitle(title);

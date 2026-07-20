@@ -52,6 +52,9 @@ const matchesCategory = (n: AppNotification, cat: string) => {
   if (cat === 'task') return title.includes('task') || title.includes('cr-') || desc.includes('task');
   if (cat === 'quality') return title.includes('quality') || title.includes('risk') || desc.includes('quality');
   if (cat === 'sla') return title.includes('sla') || title.includes('overdue') || desc.includes('sla');
+  if (cat === 'reminder after sla' || cat === 'reminder') {
+    return title.includes('commitment') || title.includes('reminder') || title.includes('deadline') || desc.includes('reminder') || desc.includes('commitment');
+  }
   return false;
 };
 
@@ -70,7 +73,9 @@ export const NotificationPanel: React.FC<NotificationPanelProps> = ({ userId, op
     markAllRead, 
     clearAll,
     togglePin,
-    snoozeNotification
+    snoozeNotification,
+    isNotificationsBlocked,
+    toggleBlockNotifications
   } = useNotificationStore();
   const [searchQuery, setSearchQuery] = React.useState('');
   const [selectedCategory, setSelectedCategory] = React.useState('all');
@@ -115,7 +120,7 @@ export const NotificationPanel: React.FC<NotificationPanelProps> = ({ userId, op
             animate={{ x: 0, opacity: 1 }}
             exit={{ x: '100%', opacity: 0 }}
             transition={{ type: 'spring', stiffness: 300, damping: 30 }}
-            className="fixed right-0 top-0 bottom-0 w-[400px] max-w-full bg-card dark:bg-[#0d1120] border-l border-border dark:border-white/[0.08] z-50 flex flex-col shadow-2xl"
+            className="fixed right-0 top-0 bottom-0 w-[420px] max-w-full bg-card dark:bg-[#0d1120] border-l border-border dark:border-white/[0.08] z-50 flex flex-col shadow-2xl"
           >
             {/* Header */}
             <div className="flex items-center justify-between px-5 py-4 border-b border-border dark:border-white/[0.08]">
@@ -135,6 +140,17 @@ export const NotificationPanel: React.FC<NotificationPanelProps> = ({ userId, op
               </div>
 
               <div className="flex items-center gap-2">
+                <button
+                  onClick={toggleBlockNotifications}
+                  className={`text-[10px] px-2 py-1 rounded-lg border font-bold transition-all flex items-center gap-1 ${
+                    isNotificationsBlocked
+                      ? 'bg-rose-500/15 text-rose-400 border-rose-500/30'
+                      : 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20 hover:bg-emerald-500/20'
+                  }`}
+                  title={isNotificationsBlocked ? "Click to Unblock Popup Notifications" : "Click to Block Popup Notifications"}
+                >
+                  {isNotificationsBlocked ? '🔕 Muted' : '🔔 Active'}
+                </button>
                 {unreadCount > 0 && (
                   <button
                     onClick={() => markAllRead(userId)}
@@ -165,7 +181,7 @@ export const NotificationPanel: React.FC<NotificationPanelProps> = ({ userId, op
 
             {/* Category tabs */}
             <div className="flex gap-1.5 overflow-x-auto px-4 py-2 border-b border-border/55 dark:border-white/[0.04] scrollbar-none text-[10px] bg-muted/20 dark:bg-white/[0.01]">
-              {['all', 'bug', 'approval', 'task', 'quality', 'sla'].map((tab) => (
+              {['all', 'bug', 'approval', 'task', 'quality', 'sla', 'reminder after sla'].map((tab) => (
                 <button
                   key={tab}
                   onClick={() => setSelectedCategory(tab)}
