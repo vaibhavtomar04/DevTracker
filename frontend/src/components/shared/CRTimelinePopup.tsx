@@ -125,6 +125,12 @@ const STAGE_DEFS: StageDef[] = [
   },
 ];
 
+const getExpectedDateForStage = (key: string, t: Task): string | undefined => {
+  if (key === 'SIT_DEPLOYED') return t.expectedSitDeploymentDate;
+  if (key === 'MOVE_TO_UAT') return t.expectedUatDeploymentDate;
+  return undefined;
+};
+
 const STATUS_ORDER = STAGE_DEFS.map((s) => s.key);
 
 function normalizeStatus(status: string): string {
@@ -372,6 +378,51 @@ export const CRTimelinePopup: React.FC<CRTimelinePopupProps> = ({ task, onClose 
                         </div>
                       )}
                     </div>
+
+                    {(() => {
+                      const expectedDate = getExpectedDateForStage(entry.def.key, task);
+                      if (!expectedDate) return null;
+
+                      const actualDate = entry.date;
+                      const todayStr = new Date().toISOString().split('T')[0];
+                      const isMissed = !actualDate && todayStr > expectedDate;
+                      const isDelayed = actualDate && actualDate > expectedDate;
+                      
+                      let delayDays = 0;
+                      if (isDelayed && actualDate) {
+                        delayDays = Math.ceil((new Date(actualDate).getTime() - new Date(expectedDate).getTime()) / (1000 * 60 * 60 * 24));
+                      } else if (isMissed) {
+                        delayDays = Math.ceil((new Date().getTime() - new Date(expectedDate).getTime()) / (1000 * 60 * 60 * 24));
+                      }
+
+                      return (
+                        <div className="mt-2.5 p-2.5 rounded-xl bg-black/20 border border-white/[0.04] text-[10px] space-y-1">
+                          <div className="flex justify-between items-center">
+                            <span className="text-zinc-500 font-bold tracking-wide">COMMITMENT</span>
+                            {isDelayed && (
+                              <span className="text-rose-400 font-extrabold flex items-center gap-0.5">🚨 Delayed by {delayDays}d</span>
+                            )}
+                            {isMissed && (
+                              <span className="text-rose-400 font-extrabold flex items-center gap-0.5">🚨 Missed by {delayDays}d</span>
+                            )}
+                            {!isDelayed && !isMissed && actualDate && (
+                              <span className="text-emerald-400 font-extrabold">✅ Met SLA</span>
+                            )}
+                            {!isDelayed && !isMissed && !actualDate && (
+                              <span className="text-sky-400 font-extrabold">🕒 On Track</span>
+                            )}
+                          </div>
+                          <div className="grid grid-cols-2 gap-1 text-[9px] text-zinc-400">
+                            <div>Expected: <span className="font-semibold text-zinc-300">
+                              {new Date(expectedDate).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}
+                            </span></div>
+                            <div>Actual: <span className="font-semibold text-zinc-300">
+                              {actualDate ? new Date(actualDate).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : '—'}
+                            </span></div>
+                          </div>
+                        </div>
+                      );
+                    })()}
 
                     {/* Developer list for dev stages */}
                     {(entry.def.key === 'IN_PROGRESS' || entry.def.key === 'CODE_REVIEW') &&

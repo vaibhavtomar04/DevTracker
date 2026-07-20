@@ -78,6 +78,7 @@ public class NotificationRecipientResolver {
             case DEPLOYMENT_COMPLETED:
             case DEPLOYMENT_STARTED:
             case ROLLBACK_COMPLETED:
+            case MILESTONE_DEADLINE_ALERT:
                 Task depTask = (Task) data.get("task");
                 if (depTask != null && depTask.getAssignedDeveloper() != null && depTask.getAssignedDeveloper().getEmail() != null) {
                     target.to.add(depTask.getAssignedDeveloper().getEmail());

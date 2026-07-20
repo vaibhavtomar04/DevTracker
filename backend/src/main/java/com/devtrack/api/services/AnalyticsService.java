@@ -8,6 +8,7 @@ import java.time.Duration;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.time.temporal.ChronoUnit;
 import java.util.*;
 
 @Service
@@ -351,5 +352,164 @@ public class AnalyticsService {
         result.put("sprintBurndown", sprintBurndown);
 
         return result;
+    }
+
+    public Map<String, Object> getDeadlineAnalytics() {
+        List<Task> allTasks = taskRepository.findAll();
+        
+        List<Task> sitTasks = allTasks.stream()
+                .filter(t -> t.getExpectedSitDeploymentDate() != null)
+                .toList();
+        List<Task> uatTasks = allTasks.stream()
+                .filter(t -> t.getExpectedUatDeploymentDate() != null)
+                .toList();
+
+        double averageSitDelay = 0.0;
+        long longestSitDelay = 0;
+        if (!sitTasks.isEmpty()) {
+            averageSitDelay = sitTasks.stream()
+                    .mapToLong(t -> calculateDelayDaysLocal(t, "SIT"))
+                    .average().orElse(0.0);
+            longestSitDelay = sitTasks.stream()
+                    .mapToLong(t -> calculateDelayDaysLocal(t, "SIT"))
+                    .max().orElse(0);
+        }
+
+        double averageUatDelay = 0.0;
+        long longestUatDelay = 0;
+        if (!uatTasks.isEmpty()) {
+            averageUatDelay = uatTasks.stream()
+                    .mapToLong(t -> calculateDelayDaysLocal(t, "UAT"))
+                    .average().orElse(0.0);
+            longestUatDelay = uatTasks.stream()
+                    .mapToLong(t -> calculateDelayDaysLocal(t, "UAT"))
+                    .max().orElse(0);
+        }
+
+        // Projects with Highest Delay Ranking
+        Map<String, List<Long>> projectDelays = new HashMap<>();
+        for (Task t : allTasks) {
+            String proj = t.getProject() != null && !t.getProject().trim().isEmpty() ? t.getProject() : "Default Project";
+            long sitDel = t.getExpectedSitDeploymentDate() != null ? calculateDelayDaysLocal(t, "SIT") : 0;
+            long uatDel = t.getExpectedUatDeploymentDate() != null ? calculateDelayDaysLocal(t, "UAT") : 0;
+            if (t.getExpectedSitDeploymentDate() != null || t.getExpectedUatDeploymentDate() != null) {
+                projectDelays.computeIfAbsent(proj, k -> new ArrayList<>()).add(sitDel + uatDel);
+            }
+        }
+        List<Map<String, Object>> projectDelayRanking = new ArrayList<>();
+        projectDelays.forEach((proj, delays) -> {
+            double avg = delays.stream().mapToLong(Long::longValue).average().orElse(0.0);
+            projectDelayRanking.add(Map.of("project", proj, "avgDelay", Math.round(avg * 10.0) / 10.0));
+        });
+        projectDelayRanking.sort((a, b) -> Double.compare((double) b.get("avgDelay"), (double) a.get("avgDelay")));
+
+        // Developer Delay Ranking
+        Map<String, List<Long>> devDelays = new HashMap<>();
+        for (Task t : allTasks) {
+            if (t.getAssignedDeveloper() != null) {
+                String devName = t.getAssignedDeveloper().getFullName() != null ? t.getAssignedDeveloper().getFullName() : t.getAssignedDeveloper().getUsername();
+                long sitDel = t.getExpectedSitDeploymentDate() != null ? calculateDelayDaysLocal(t, "SIT") : 0;
+                long uatDel = t.getExpectedUatDeploymentDate() != null ? calculateDelayDaysLocal(t, "UAT") : 0;
+                if (t.getExpectedSitDeploymentDate() != null || t.getExpectedUatDeploymentDate() != null) {
+                    devDelays.computeIfAbsent(devName, k -> new ArrayList<>()).add(sitDel + uatDel);
+                }
+            }
+        }
+        List<Map<String, Object>> developerDelayRanking = new ArrayList<>();
+        devDelays.forEach((dev, delays) -> {
+            double avg = delays.stream().mapToLong(Long::longValue).average().orElse(0.0);
+            developerDelayRanking.add(Map.of("developer", dev, "avgDelay", Math.round(avg * 10.0) / 10.0));
+        });
+        developerDelayRanking.sort((a, b) -> Double.compare((double) b.get("avgDelay"), (double) a.get("avgDelay")));
+
+        // Sprint Delay Trend
+        List<Sprint> sprints = sprintRepository.findAll();
+        sprints.sort(Comparator.comparing(Sprint::getId));
+        List<Map<String, Object>> sprintDelayTrend = new ArrayList<>();
+        for (Sprint s : sprints) {
+            List<Task> sprintTasks = allTasks.stream()
+                    .filter(t -> s.getId().equals(t.getSprintId()))
+                    .toList();
+            
+            double sitAvg = sprintTasks.stream()
+                    .filter(t -> t.getExpectedSitDeploymentDate() != null)
+                    .mapToLong(t -> calculateDelayDaysLocal(t, "SIT"))
+                    .average().orElse(0.0);
+            double uatAvg = sprintTasks.stream()
+                    .filter(t -> t.getExpectedUatDeploymentDate() != null)
+                    .mapToLong(t -> calculateDelayDaysLocal(t, "UAT"))
+                    .average().orElse(0.0);
+            
+            sprintDelayTrend.add(Map.of(
+                    "name", s.getName(),
+                    "SIT Delay", Math.round(sitAvg * 10.0) / 10.0,
+                    "UAT Delay", Math.round(uatAvg * 10.0) / 10.0
+            ));
+        }
+
+        // Monthly Delay Trend
+        Map<String, List<Long>> monthlySitDelays = new HashMap<>();
+        Map<String, List<Long>> monthlyUatDelays = new HashMap<>();
+        
+        for (Task t : allTasks) {
+            if (t.getExpectedSitDeploymentDate() != null) {
+                String monthKey = t.getExpectedSitDeploymentDate().toString().substring(0, 7); // "YYYY-MM"
+                monthlySitDelays.computeIfAbsent(monthKey, k -> new ArrayList<>()).add(calculateDelayDaysLocal(t, "SIT"));
+            }
+            if (t.getExpectedUatDeploymentDate() != null) {
+                String monthKey = t.getExpectedUatDeploymentDate().toString().substring(0, 7); // "YYYY-MM"
+                monthlyUatDelays.computeIfAbsent(monthKey, k -> new ArrayList<>()).add(calculateDelayDaysLocal(t, "UAT"));
+            }
+        }
+        
+        Set<String> allMonths = new TreeSet<>(monthlySitDelays.keySet());
+        allMonths.addAll(monthlyUatDelays.keySet());
+        List<Map<String, Object>> monthlyDelayTrend = new ArrayList<>();
+        for (String month : allMonths) {
+            double sitAvg = monthlySitDelays.getOrDefault(month, Collections.emptyList()).stream()
+                    .mapToLong(Long::longValue).average().orElse(0.0);
+            double uatAvg = monthlyUatDelays.getOrDefault(month, Collections.emptyList()).stream()
+                    .mapToLong(Long::longValue).average().orElse(0.0);
+            
+            monthlyDelayTrend.add(Map.of(
+                    "name", month,
+                    "SIT Delay", Math.round(sitAvg * 10.0) / 10.0,
+                    "UAT Delay", Math.round(uatAvg * 10.0) / 10.0
+            ));
+        }
+
+        long missedSitDeadlines = sitTasks.stream()
+                .filter(t -> calculateDelayDaysLocal(t, "SIT") > 0)
+                .count();
+        long missedUatDeadlines = uatTasks.stream()
+                .filter(t -> calculateDelayDaysLocal(t, "UAT") > 0)
+                .count();
+        long totalMissedDeadlines = missedSitDeadlines + missedUatDeadlines;
+
+        Map<String, Object> result = new LinkedHashMap<>();
+        result.put("totalMissedDeadlines", totalMissedDeadlines);
+        result.put("missedSitDeadlines", missedSitDeadlines);
+        result.put("missedUatDeadlines", missedUatDeadlines);
+        result.put("averageSitDelay", Math.round(averageSitDelay * 10.0) / 10.0);
+        result.put("averageUatDelay", Math.round(averageUatDelay * 10.0) / 10.0);
+        result.put("longestSitDelay", longestSitDelay);
+        result.put("longestUatDelay", longestUatDelay);
+        result.put("projectDelayRanking", projectDelayRanking);
+        result.put("developerDelayRanking", developerDelayRanking);
+        result.put("sprintDelayTrend", sprintDelayTrend);
+        result.put("monthlyDelayTrend", monthlyDelayTrend);
+
+        return result;
+    }
+
+    private long calculateDelayDaysLocal(Task task, String type) {
+        LocalDate expected = "SIT".equalsIgnoreCase(type) ? task.getExpectedSitDeploymentDate() : task.getExpectedUatDeploymentDate();
+        LocalDate actual = "SIT".equalsIgnoreCase(type) ? task.getSitDate() : task.getUatDate();
+        if (expected == null) return 0;
+        LocalDate comp = actual != null ? actual : LocalDate.now();
+        if (comp.isAfter(expected)) {
+            return ChronoUnit.DAYS.between(expected, comp);
+        }
+        return 0;
     }
 }

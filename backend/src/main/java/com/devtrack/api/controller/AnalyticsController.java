@@ -24,4 +24,9 @@ public class AnalyticsController {
     public ResponseEntity<Map<String, Object>> getDashboardData() {
         return ResponseEntity.ok(analyticsService.getDashboardData());
     }
+
+    @GetMapping("/deadlines")
+    public ResponseEntity<Map<String, Object>> getDeadlineAnalytics() {
+        return ResponseEntity.ok(analyticsService.getDeadlineAnalytics());
+    }
 }

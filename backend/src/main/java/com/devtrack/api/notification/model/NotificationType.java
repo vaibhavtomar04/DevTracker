@@ -37,6 +37,7 @@ public enum NotificationType {
     DEPLOYMENT_STARTED("Deployment In Progress", "INFORMATION", NotificationPriority.NORMAL, false, "cta.deployment.view", false),
     DEPLOYMENT_COMPLETED("Deployment Successfully Released", "SUCCESS", NotificationPriority.HIGH, false, "cta.deployment.view", false),
     ROLLBACK_COMPLETED("Deployment Rollback Completed", "CRITICAL", NotificationPriority.CRITICAL, false, "cta.deployment.view", false),
+    MILESTONE_DEADLINE_ALERT("Milestone SLA Alert", "WARNING", NotificationPriority.HIGH, false, "cta.cr.view", false),
 
     // ── Reports ─────────────────────────────────────────────────────────────────
     DAILY_SUMMARY("Daily DevTrack Activity Digest", "INFORMATION", NotificationPriority.LOW, false, "cta.reports.view", false),

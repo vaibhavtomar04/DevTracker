@@ -34,6 +34,7 @@ export default function Reports() {
   const { tasks, bugs, fetchData, setDownloadTarget } = useTaskStore()
   const [exporting, setExporting] = useState<string | null>(null)
   const [analytics, setAnalytics] = useState<any>(null)
+  const [deadlineAnalytics, setDeadlineAnalytics] = useState<any>(null)
 
   const getSlabadge = (rate: number | null) => {
     if (rate === null) return null;
@@ -50,6 +51,9 @@ export default function Reports() {
     fetchData()
     apiClient("/api/analytics/dashboard")
       .then(data => setAnalytics(data))
+      .catch(() => {})
+    apiClient("/api/analytics/deadlines")
+      .then(data => setDeadlineAnalytics(data))
       .catch(() => {})
   }, [])
 
@@ -183,6 +187,47 @@ export default function Reports() {
             alert("Error polling report status: " + pollErr.message)
           }
         }, 2000);
+      } else if (format === "deadline_xlsx") {
+        const body = await apiClient("/api/reports/export?type=DEADLINE", {
+          method: "POST"
+        });
+        const jobId = body.jobId;
+
+        const interval = setInterval(async () => {
+          try {
+            const job = await apiClient(`/api/reports/jobs/${jobId}`);
+
+            if (job.status === "READY") {
+              clearInterval(interval)
+              setExporting(null)
+
+              const fileRes = await fetch(`/api/reports/download/${job.downloadToken}`, {
+                headers: { Authorization: `Bearer ${useAuthStore.getState().token || localStorage.getItem("token")}` }
+              });
+              if (!fileRes.ok) throw new Error("Failed to download file");
+              const blob = await fileRes.blob();
+
+              const reader = new FileReader();
+              reader.onloadend = () => {
+                const base64Data = reader.result as string;
+                setDownloadTarget({
+                  base64Data,
+                  defaultFileName: `Deployment_Deadline_Report_${Date.now()}.xlsx`
+                });
+              };
+              reader.readAsDataURL(blob);
+
+            } else if (job.status === "FAILED") {
+              clearInterval(interval)
+              setExporting(null)
+              alert(`Deadline report export failed: ${job.errorReason || "Unknown reason"}`)
+            }
+          } catch (pollErr: any) {
+            clearInterval(interval)
+            setExporting(null)
+            alert("Error polling report status: " + pollErr.message)
+          }
+        }, 2000);
       }
     } catch (err: any) {
       setExporting(null)
@@ -272,6 +317,22 @@ export default function Reports() {
               <>
                 <FileDown className="mr-1 h-3.5 w-3.5 text-emerald-400" />
                 <span>Export Excel</span>
+              </>
+            )}
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            className="text-[11px] h-8 border-rose-500/20 hover:border-rose-500/40 bg-rose-500/10 text-rose-300 transition-colors w-full sm:w-auto"
+            disabled={!!exporting}
+            onClick={() => handleExport("deadline_xlsx" as any)}
+          >
+            {exporting === "deadline_xlsx" ? (
+              <span className="flex items-center gap-1">Exporting...</span>
+            ) : (
+              <>
+                <FileDown className="mr-1 h-3.5 w-3.5 text-rose-400" />
+                <span>Export Deadline Report</span>
               </>
             )}
           </Button>
@@ -598,6 +659,99 @@ export default function Reports() {
                     transition={{ duration: 1, ease: "easeOut", delay: 0.2 }}
                     className="h-full bg-gradient-to-r from-amber-500 to-violet-500 rounded-full" 
                   />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </motion.div>
+
+        {/* Deployment Delay & SLA Analytics Card */}
+        <motion.div variants={cardVariants} className="col-span-full">
+          <Card variant="glass" className="border-white/[0.06] bg-white/[0.02] shadow-[0_8px_32px_rgba(0,0,0,0.4)] overflow-hidden rounded-2xl">
+            <CardHeader className="p-5 border-b border-white/[0.06]">
+              <CardTitle className="text-sm font-bold flex items-center space-x-2 text-white">
+                <FileCheck className="h-4 w-4 text-rose-400" />
+                <span>Deployment Deadline Delay & SLA Analytics</span>
+              </CardTitle>
+              <CardDescription className="text-xs text-muted-foreground mt-0.5">
+                Comprehensive tracking of average delays, longest delays, and project/developer ranking for SIT and UAT deployment commitments.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="p-5 space-y-6">
+              {/* Summary Stats */}
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <div className="p-3.5 rounded-xl border border-white/[0.04] bg-black/30 text-left">
+                  <span className="text-[10px] font-bold text-muted-foreground uppercase block">Avg SIT Delay</span>
+                  <span className="text-xl font-black text-rose-400 mt-1 block">{deadlineAnalytics?.averageSitDelay ?? 0} Days</span>
+                </div>
+                <div className="p-3.5 rounded-xl border border-white/[0.04] bg-black/30 text-left">
+                  <span className="text-[10px] font-bold text-muted-foreground uppercase block">Avg UAT Delay</span>
+                  <span className="text-xl font-black text-rose-400 mt-1 block">{deadlineAnalytics?.averageUatDelay ?? 0} Days</span>
+                </div>
+                <div className="p-3.5 rounded-xl border border-white/[0.04] bg-black/30 text-left">
+                  <span className="text-[10px] font-bold text-muted-foreground uppercase block">Longest SIT Delay</span>
+                  <span className="text-xl font-black text-amber-400 mt-1 block">{deadlineAnalytics?.longestSitDelay ?? 0} Days</span>
+                </div>
+                <div className="p-3.5 rounded-xl border border-white/[0.04] bg-black/30 text-left">
+                  <span className="text-[10px] font-bold text-muted-foreground uppercase block">Longest UAT Delay</span>
+                  <span className="text-xl font-black text-amber-400 mt-1 block">{deadlineAnalytics?.longestUatDelay ?? 0} Days</span>
+                </div>
+              </div>
+
+              {/* Rankings Grid */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-2">
+                {/* Project Delay Ranking */}
+                <div className="space-y-3 text-left">
+                  <h4 className="text-xs font-bold uppercase text-slate-300 tracking-wider">Project Delay Ranking</h4>
+                  <div className="border border-white/[0.04] rounded-xl overflow-hidden bg-black/20 text-xs">
+                    <table className="w-full text-left border-collapse">
+                      <thead>
+                        <tr className="border-b border-white/[0.04] bg-white/[0.02] text-[10px] text-muted-foreground uppercase font-bold">
+                          <th className="p-2.5">Project</th>
+                          <th className="p-2.5 text-right">Avg Delay (Days)</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-white/[0.02]">
+                        {(deadlineAnalytics?.projectDelayRanking || []).length === 0 ? (
+                          <tr><td colSpan={2} className="p-4 text-center text-muted-foreground italic">No data available.</td></tr>
+                        ) : (
+                          (deadlineAnalytics?.projectDelayRanking || []).slice(0, 5).map((p: any) => (
+                            <tr key={p.project} className="hover:bg-white/[0.02]">
+                              <td className="p-2.5 font-semibold text-slate-200">{p.project}</td>
+                              <td className="p-2.5 text-right font-mono font-bold text-rose-400">{p.avgDelay}d</td>
+                            </tr>
+                          ))
+                        )}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+
+                {/* Developer Delay Ranking */}
+                <div className="space-y-3 text-left">
+                  <h4 className="text-xs font-bold uppercase text-slate-300 tracking-wider">Developer Delay Ranking</h4>
+                  <div className="border border-white/[0.04] rounded-xl overflow-hidden bg-black/20 text-xs">
+                    <table className="w-full text-left border-collapse">
+                      <thead>
+                        <tr className="border-b border-white/[0.04] bg-white/[0.02] text-[10px] text-muted-foreground uppercase font-bold">
+                          <th className="p-2.5">Developer</th>
+                          <th className="p-2.5 text-right">Avg Delay (Days)</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-white/[0.02]">
+                        {(deadlineAnalytics?.developerDelayRanking || []).length === 0 ? (
+                          <tr><td colSpan={2} className="p-4 text-center text-muted-foreground italic">No data available.</td></tr>
+                        ) : (
+                          (deadlineAnalytics?.developerDelayRanking || []).slice(0, 5).map((d: any) => (
+                            <tr key={d.developer} className="hover:bg-white/[0.02]">
+                              <td className="p-2.5 font-semibold text-slate-200">{d.developer}</td>
+                              <td className="p-2.5 text-right font-mono font-bold text-rose-400">{d.avgDelay}d</td>
+                            </tr>
+                          ))
+                        )}
+                      </tbody>
+                    </table>
+                  </div>
                 </div>
               </div>
             </CardContent>

@@ -242,6 +242,19 @@ public class TaskController {
         	throw new RuntimeException("Workflow is mandatory");
         }
 
+        if (task.getExpectedSitDeploymentDate() == null) {
+            throw new RuntimeException("Expected SIT Deployment Date is mandatory.");
+        }
+        if (!task.getExpectedSitDeploymentDate().isAfter(LocalDate.now())) {
+            throw new RuntimeException("Expected SIT Deployment Date must be a future date.");
+        }
+        if (task.getExpectedUatDeploymentDate() == null) {
+            throw new RuntimeException("Expected UAT Deployment Date is mandatory.");
+        }
+        if (!task.getExpectedUatDeploymentDate().isAfter(LocalDate.now())) {
+            throw new RuntimeException("Expected UAT Deployment Date must be a future date.");
+        }
+
         String originalJtrackId = task.getJtrackId();
         String uniqueJtrackId = generateUniqueJtrackId(originalJtrackId);
         task.setJtrackId(uniqueJtrackId);
@@ -298,6 +311,8 @@ public class TaskController {
     	log.info("Inside Update task");
         return taskRepository.findById(id)
                 .map(task -> {
+                    String username = SecurityContextHolder.getContext().getAuthentication().getName();
+                    User currentUser = userRepository.findByUsername(username).orElseThrow();
                     String oldStatus = task.getStatus();
                     
                     if ("CLOSED".equals(oldStatus)) {
@@ -306,7 +321,6 @@ public class TaskController {
                     
                     // Restriction: Only assigned developer can update, UNLESS it's a Code Review or Admin override
                     if (task.getAssignedDeveloper() != null) {
-                        String username = SecurityContextHolder.getContext().getAuthentication().getName();
                         String roles = SecurityContextHolder.getContext().getAuthentication().getAuthorities().toString();
                         boolean isReviewer = roles.contains("ROLE_CODEREVIEWER");
                         boolean isAdmin = roles.contains("ROLE_DEVADMIN");
@@ -466,12 +480,75 @@ public class TaskController {
                     if (taskDetails.getDevStartDate() != null) {
                         task.setDevStartDate(taskDetails.getDevStartDate());
                     }
+
+                    if (taskDetails.getExpectedSitDeploymentDate() != null) {
+                        LocalDate oldExpected = task.getExpectedSitDeploymentDate();
+                        if (!taskDetails.getExpectedSitDeploymentDate().equals(oldExpected)) {
+                            task.setExpectedSitDeploymentDate(taskDetails.getExpectedSitDeploymentDate());
+                            AuditLog logEntry = new AuditLog();
+                            logEntry.setEntityType("TASK");
+                            logEntry.setEntityId(task.getId());
+                            logEntry.setFieldName("expectedSitDeploymentDate");
+                            logEntry.setOldValue(oldExpected != null ? oldExpected.toString() : null);
+                            logEntry.setNewValue(task.getExpectedSitDeploymentDate().toString());
+                            logEntry.setRemarks(oldExpected == null ? "Expected SIT Deployment Added" : "Expected SIT Deployment Date Updated");
+                            logEntry.setChangedBy(currentUser);
+                            com.devtrack.api.services.AuditLogHelper.enrich(logEntry);
+                            auditLogRepository.save(logEntry);
+                        }
+                    }
+
+                    if (taskDetails.getExpectedUatDeploymentDate() != null) {
+                        LocalDate oldExpected = task.getExpectedUatDeploymentDate();
+                        if (!taskDetails.getExpectedUatDeploymentDate().equals(oldExpected)) {
+                            task.setExpectedUatDeploymentDate(taskDetails.getExpectedUatDeploymentDate());
+                            AuditLog logEntry = new AuditLog();
+                            logEntry.setEntityType("TASK");
+                            logEntry.setEntityId(task.getId());
+                            logEntry.setFieldName("expectedUatDeploymentDate");
+                            logEntry.setOldValue(oldExpected != null ? oldExpected.toString() : null);
+                            logEntry.setNewValue(task.getExpectedUatDeploymentDate().toString());
+                            logEntry.setRemarks(oldExpected == null ? "Expected UAT Deployment Added" : "Expected UAT Deployment Date Updated");
+                            logEntry.setChangedBy(currentUser);
+                            com.devtrack.api.services.AuditLogHelper.enrich(logEntry);
+                            auditLogRepository.save(logEntry);
+                        }
+                    }
+
                     if (taskDetails.getSitDate() != null) {
-                        task.setSitDate(taskDetails.getSitDate());
+                        LocalDate oldSit = task.getSitDate();
+                        if (!taskDetails.getSitDate().equals(oldSit)) {
+                            task.setSitDate(taskDetails.getSitDate());
+                            AuditLog logEntry = new AuditLog();
+                            logEntry.setEntityType("TASK");
+                            logEntry.setEntityId(task.getId());
+                            logEntry.setFieldName("sitDate");
+                            logEntry.setOldValue(oldSit != null ? oldSit.toString() : null);
+                            logEntry.setNewValue(task.getSitDate().toString());
+                            logEntry.setRemarks(oldSit == null ? "Actual SIT Deployment Completed" : "Actual SIT Deployment Updated");
+                            logEntry.setChangedBy(currentUser);
+                            com.devtrack.api.services.AuditLogHelper.enrich(logEntry);
+                            auditLogRepository.save(logEntry);
+                        }
                     }
+
                     if (taskDetails.getUatDate() != null) {
-                        task.setUatDate(taskDetails.getUatDate());
+                        LocalDate oldUat = task.getUatDate();
+                        if (!taskDetails.getUatDate().equals(oldUat)) {
+                            task.setUatDate(taskDetails.getUatDate());
+                            AuditLog logEntry = new AuditLog();
+                            logEntry.setEntityType("TASK");
+                            logEntry.setEntityId(task.getId());
+                            logEntry.setFieldName("uatDate");
+                            logEntry.setOldValue(oldUat != null ? oldUat.toString() : null);
+                            logEntry.setNewValue(task.getUatDate().toString());
+                            logEntry.setRemarks(oldUat == null ? "Actual UAT Deployment Completed" : "Actual UAT Deployment Updated");
+                            logEntry.setChangedBy(currentUser);
+                            com.devtrack.api.services.AuditLogHelper.enrich(logEntry);
+                            auditLogRepository.save(logEntry);
+                        }
                     }
+
                     if (taskDetails.getPreprodDate() != null) {
                         task.setPreprodDate(taskDetails.getPreprodDate());
                     }
@@ -499,10 +576,6 @@ public class TaskController {
                             task.getDevelopers().add(td);
                         }
                     }
-                    
-                    String username = SecurityContextHolder.getContext().getAuthentication().getName();
-                    User currentUser = userRepository.findByUsername(username).orElseThrow();
-                    
                     // Simple audit logging for status change
                     if (taskDetails.getStatus() != null && !taskDetails.getStatus().equals(oldStatus)) {
                         AuditLog log = new AuditLog();

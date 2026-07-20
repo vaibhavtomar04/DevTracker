@@ -1,9 +1,9 @@
 import { useEffect, useState, Fragment } from "react"
+import { useNavigate } from "react-router-dom"
 import { createPortal } from "react-dom"
 import { motion, AnimatePresence } from "framer-motion"
 import { useTaskStore } from "@/store/taskStore"
 import {
-  GitMerge,
   Users,
   Sparkles,
   Code,
@@ -140,13 +140,34 @@ function KpiDetailPopup({ title, subtitle, iconBg, iconColor, Icon, items, empty
 }
 
 export default function AdminDashboard() {
+  const navigate = useNavigate()
   const { tasks, bugs, fetchData, deleteTask, addToast } = useTaskStore()
   const [selectedBugDetailId, setSelectedBugDetailId] = useState<number | null>(null)
   const [analytics, setAnalytics] = useState<any>(null)
+  const [deadlineAnalytics, setDeadlineAnalytics] = useState<any>(null)
   const [activeKpi, setActiveKpi] = useState<string | null>(null)
   const [timelineTask, setTimelineTask] = useState<Task | null>(null)
   const [deleteRemarksTask, setDeleteRemarksTask] = useState<Task | null>(null)
   const [deleteRemarks, setDeleteRemarks] = useState("")
+
+  // Column filters for Change Request Audit & Pipeline Tracking
+  const [colFilterCr, setColFilterCr] = useState("")
+  const [colFilterTitle, setColFilterTitle] = useState("")
+  const [colFilterPriority, setColFilterPriority] = useState("")
+  const [colFilterStatus, setColFilterStatus] = useState("")
+  const [colFilterDeveloper, setColFilterDeveloper] = useState("")
+
+  const filteredAuditTasks = tasks.filter(cr => {
+    if (colFilterCr.trim() && !cr.jtrackId.toLowerCase().includes(colFilterCr.toLowerCase().trim())) return false
+    if (colFilterTitle.trim() && !cr.title.toLowerCase().includes(colFilterTitle.toLowerCase().trim())) return false
+    if (colFilterPriority && cr.priority !== colFilterPriority) return false
+    if (colFilterStatus && cr.status !== colFilterStatus) return false
+    if (colFilterDeveloper.trim()) {
+      const devName = cr.assignedDeveloper?.fullName || "Unassigned"
+      if (!devName.toLowerCase().includes(colFilterDeveloper.toLowerCase().trim())) return false
+    }
+    return true
+  })
 
   useEffect(() => {
     fetchData()
@@ -155,6 +176,13 @@ export default function AdminDashboard() {
     })
       .then(r => r.json())
       .then(setAnalytics)
+      .catch(() => {});
+
+    fetch("/api/analytics/deadlines", {
+      headers: { Authorization: `Bearer ${localStorage.getItem("token")}` }
+    })
+      .then(r => r.json())
+      .then(setDeadlineAnalytics)
       .catch(() => {});
   }, [])
 
@@ -191,7 +219,7 @@ export default function AdminDashboard() {
   }
 
   /* ── kpi card config ── */
-  type KpiKey = "total" | "quality" | "bugs" | "sprint" | "acceptance" | "rejection" | "testingSla" | "approvalSla"
+  type KpiKey = "total" | "quality" | "bugs" | "sprint" | "acceptance" | "rejection" | "testingSla" | "missedDeadlines"
 
   const kpiCards: Array<{
     key: KpiKey
@@ -333,16 +361,16 @@ export default function AdminDashboard() {
       }))
     },
     {
-      key: "approvalSla",
-      title: "Approval SLA (24h)",
-      count: analytics?.approvalSlaComplianceRate != null ? `${analytics.approvalSlaComplianceRate}%` : "—",
-      icon: GitMerge,
-      iconBg: "bg-amber-500/15",
-      iconColor: "text-amber-400",
-      glow: "shadow-[0_0_18px_rgba(245,158,11,0.12)]",
-      trendIcon: CheckCircle2,
-      popupSubtitle: "CRs approved within 24 hour SLA window",
-      emptyText: "No SLA data available.",
+      key: "missedDeadlines",
+      title: "Missed Deadlines",
+      count: deadlineAnalytics?.totalMissedDeadlines ?? 0,
+      icon: AlertCircle,
+      iconBg: "bg-rose-500/15",
+      iconColor: "text-rose-400",
+      glow: "shadow-[0_0_18px_rgba(244,63,94,0.12)]",
+      trendIcon: AlertCircle,
+      popupSubtitle: "CRs that missed expected SIT or UAT deployment commitments",
+      emptyText: "No missed deadlines.",
       getItems: () => []
     },
   ]
@@ -384,7 +412,7 @@ export default function AdminDashboard() {
             transition={{ delay: idx * 0.08, duration: 0.4 }}
             whileHover={{ y: -5, scale: 1.02 }}
             whileTap={{ scale: 0.98 }}
-            onClick={() => setActiveKpi(card.key)}
+            onClick={() => card.key === "missedDeadlines" ? navigate("/dashboard/missed-deadlines") : setActiveKpi(card.key)}
             className={`${glassCard} p-4 flex items-center justify-between ${card.glow} cursor-pointer hover:border-slate-300 dark:hover:border-white/[0.1] transition-all relative overflow-hidden group`}
           >
             {/* Animated background shimmer on hover */}
@@ -608,25 +636,115 @@ export default function AdminDashboard() {
           <table className="w-full text-left border-collapse">
             <thead>
               <tr className="border-y border-slate-200 dark:border-white/[0.06] bg-slate-50 dark:bg-white/[0.02]">
-                {[
-                  "CR Number",
-                  "Title",
-                  "Priority",
-                  "Status",
-                  "Assigned Developer",
-                  "Actions",
-                ].map((h) => (
-                  <th
-                    key={h}
-                    className="p-3 text-[10px] font-bold text-muted-foreground uppercase tracking-widest whitespace-nowrap"
+                <th className="p-3 text-[10px] font-bold text-muted-foreground uppercase tracking-widest whitespace-nowrap">
+                  CR Number
+                </th>
+                <th className="p-3 text-[10px] font-bold text-muted-foreground uppercase tracking-widest whitespace-nowrap">
+                  Title
+                </th>
+                <th className="p-3 text-[10px] font-bold text-muted-foreground uppercase tracking-widest whitespace-nowrap">
+                  Priority
+                </th>
+                <th className="p-3 text-[10px] font-bold text-muted-foreground uppercase tracking-widest whitespace-nowrap">
+                  Status
+                </th>
+                <th className="p-3 text-[10px] font-bold text-muted-foreground uppercase tracking-widest whitespace-nowrap">
+                  Assigned Developer
+                </th>
+                <th className="p-3 text-[10px] font-bold text-muted-foreground uppercase tracking-widest whitespace-nowrap text-right">
+                  Actions
+                </th>
+              </tr>
+
+              {/* Column Filters Row */}
+              <tr className="border-b border-slate-200 dark:border-white/[0.06] bg-slate-100/50 dark:bg-black/30">
+                <td className="p-2">
+                  <input
+                    type="text"
+                    placeholder="Filter CR..."
+                    value={colFilterCr}
+                    onChange={(e) => setColFilterCr(e.target.value)}
+                    className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-white/10 rounded-lg px-2 py-1 text-[10px] text-foreground outline-none focus:border-violet-500/50"
+                  />
+                </td>
+                <td className="p-2">
+                  <input
+                    type="text"
+                    placeholder="Filter Title..."
+                    value={colFilterTitle}
+                    onChange={(e) => setColFilterTitle(e.target.value)}
+                    className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-white/10 rounded-lg px-2 py-1 text-[10px] text-foreground outline-none focus:border-violet-500/50"
+                  />
+                </td>
+                <td className="p-2">
+                  <select
+                    value={colFilterPriority}
+                    onChange={(e) => setColFilterPriority(e.target.value)}
+                    className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-white/10 rounded-lg px-2 py-1 text-[10px] text-foreground outline-none focus:border-violet-500/50"
                   >
-                    {h}
-                  </th>
-                ))}
+                    <option value="">All Priorities</option>
+                    <option value="High">High</option>
+                    <option value="Medium">Medium</option>
+                    <option value="Low">Low</option>
+                  </select>
+                </td>
+                <td className="p-2">
+                  <select
+                    value={colFilterStatus}
+                    onChange={(e) => setColFilterStatus(e.target.value)}
+                    className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-white/10 rounded-lg px-2 py-1 text-[10px] text-foreground outline-none focus:border-violet-500/50"
+                  >
+                    <option value="">All Statuses</option>
+                    <option value="OPEN">OPEN</option>
+                    <option value="IN_PROGRESS">IN_PROGRESS</option>
+                    <option value="SIT_DEPLOYED">SIT_DEPLOYED</option>
+                    <option value="SIT_TESTING">SIT_TESTING</option>
+                    <option value="SIT_COMPLETED">SIT_COMPLETED</option>
+                    <option value="CODE_REVIEW">CODE_REVIEW</option>
+                    <option value="CODE_REVIEW_DONE">CODE_REVIEW_DONE</option>
+                    <option value="MOVE_TO_UAT">MOVE_TO_UAT</option>
+                    <option value="UAT_TESTING">UAT_TESTING</option>
+                    <option value="UAT_COMPLETED">UAT_COMPLETED</option>
+                    <option value="PROD_DEPLOYED">PROD_DEPLOYED</option>
+                    <option value="CLOSED">CLOSED</option>
+                  </select>
+                </td>
+                <td className="p-2">
+                  <input
+                    type="text"
+                    placeholder="Filter Dev..."
+                    value={colFilterDeveloper}
+                    onChange={(e) => setColFilterDeveloper(e.target.value)}
+                    className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-white/10 rounded-lg px-2 py-1 text-[10px] text-foreground outline-none focus:border-violet-500/50"
+                  />
+                </td>
+                <td className="p-2 text-right">
+                  {(colFilterCr || colFilterTitle || colFilterPriority || colFilterStatus || colFilterDeveloper) && (
+                    <button
+                      onClick={() => {
+                        setColFilterCr("")
+                        setColFilterTitle("")
+                        setColFilterPriority("")
+                        setColFilterStatus("")
+                        setColFilterDeveloper("")
+                      }}
+                      className="text-[9px] font-bold text-rose-400 hover:underline px-2 py-1"
+                    >
+                      Clear
+                    </button>
+                  )}
+                </td>
               </tr>
             </thead>
             <tbody>
-              {tasks.map((cr) => (
+              {filteredAuditTasks.length === 0 ? (
+                <tr>
+                  <td colSpan={6} className="py-8 text-center text-xs text-muted-foreground italic">
+                    No Change Requests match the selected column filters.
+                  </td>
+                </tr>
+              ) : (
+                filteredAuditTasks.map((cr) => (
                 <Fragment key={cr.id}>
                   <motion.tr
                     initial={{ opacity: 0 }}
@@ -697,8 +815,9 @@ export default function AdminDashboard() {
                     </td>
                   </motion.tr>
                 </Fragment>
-              ))}
-            </tbody>
+              ))
+            )}
+          </tbody>
           </table>
         </div>
       </motion.div>

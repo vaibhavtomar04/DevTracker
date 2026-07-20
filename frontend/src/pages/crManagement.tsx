@@ -959,20 +959,37 @@ export default function CrManagement() {
                 const rejectLog = auditLogs
                   .filter(l => l.entityType === "TASK" && l.entityId === selectedTask.id && l.fieldName === "workflow_reject")
                   .sort((a: any, b: any) => new Date(b.changedDate || 0).getTime() - new Date(a.changedDate || 0).getTime())[0]
-                return rejectLog && (selectedTask.status === "IN_PROGRESS" || selectedTask.status === "CHANGES_REQUESTED") ? (
-                  <div className="bg-amber-500/10 border border-amber-500/30 rounded-xl p-3.5 space-y-1.5">
-                    <div className="flex items-center gap-2">
-                      <AlertTriangle className="h-3.5 w-3.5 text-amber-500 shrink-0" />
-                      <span className="text-amber-500 text-[10px] font-black uppercase tracking-widest">Change Requested by Admin</span>
+
+                const reviewerName = typeof rejectLog?.changedBy === 'object' && rejectLog?.changedBy?.fullName 
+                  ? rejectLog.changedBy.fullName 
+                  : (typeof rejectLog?.changedBy === 'string' ? rejectLog.changedBy : (selectedTask.codeReviewer?.fullName || 'Code Reviewer'));
+
+                const displayRemarks = rejectLog?.remarks || selectedTask.remarks;
+
+                return (rejectLog || selectedTask.status === "CHANGES_REQUESTED") && (selectedTask.status === "IN_PROGRESS" || selectedTask.status === "CHANGES_REQUESTED") ? (
+                  <div className="rounded-2xl border-2 border-rose-500/40 bg-gradient-to-r from-rose-500/15 via-amber-500/10 to-rose-500/15 p-4 shadow-[0_0_25px_rgba(244,63,94,0.15)] space-y-2.5 text-left">
+                    <div className="flex items-center justify-between border-b border-rose-500/20 pb-2">
+                      <div className="flex items-center gap-2">
+                        <AlertTriangle className="h-4 w-4 text-rose-400 shrink-0 animate-pulse" />
+                        <span className="text-xs font-black uppercase tracking-wider text-rose-300">
+                          Change Requested by {reviewerName}
+                        </span>
+                      </div>
+                      <span className="text-[10px] font-bold text-rose-200 bg-rose-500/20 border border-rose-500/30 px-2.5 py-0.5 rounded-full">
+                        Reviewer: {reviewerName}
+                      </span>
                     </div>
-                    <p className="text-amber-600 dark:text-amber-300/80 text-[11px] leading-relaxed pl-5.5">
-                      {rejectLog.remarks || "Admin has requested changes. Please review and resubmit."}
-                    </p>
-                    {rejectLog.changedBy && (
-                      <p className="text-amber-500/60 text-[10px] pl-5.5">
-                        — {typeof rejectLog.changedBy === 'object' ? rejectLog.changedBy.fullName : rejectLog.changedBy}
+                    <div>
+                      <span className="text-[10px] font-bold text-rose-400 uppercase tracking-wider block mb-1">
+                        Reviewer Remarks:
+                      </span>
+                      <p className="text-sm font-semibold text-rose-100 bg-black/50 border border-rose-500/25 p-3.5 rounded-xl leading-relaxed whitespace-pre-wrap">
+                        {displayRemarks || "Changes requested during code review. Please review and resubmit."}
                       </p>
-                    )}
+                    </div>
+                    <p className="text-[10px] text-rose-300/90 italic text-right">
+                      Sent back by <strong className="text-rose-100 font-bold">{reviewerName}</strong>
+                    </p>
                   </div>
                 ) : null
               })()}

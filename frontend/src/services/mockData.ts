@@ -41,6 +41,8 @@ export interface Task {
   assignedDeveloper?: User
   createdBy: User
   devStartDate?: string
+  expectedSitDeploymentDate?: string
+  expectedUatDeploymentDate?: string
   sitDate?: string
   uatDate?: string
   preprodDate?: string
@@ -51,6 +53,7 @@ export interface Task {
   pds?: string // Deployment remarks/completion remarks
   gitLinks?: string
   codeReviewComments?: string
+  codeReviewer?: User
   remarks?: string
   brdDocumentId?: number | null
   createdDate: string
@@ -86,6 +89,7 @@ export interface Task {
   reassignedBy?: User
   reassignmentDate?: string
   module?: string
+  project?: string
   isQualityRisk?: boolean
   previousTester?: User
 }

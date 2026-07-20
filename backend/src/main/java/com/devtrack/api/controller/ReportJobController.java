@@ -38,12 +38,14 @@ public class ReportJobController {
     @PostMapping("/export")
     @PreAuthorize("isAuthenticated()")
     @Operation(summary = "Request asynchronous report generation", description = "Returns HTTP 202 Accepted with job status Location header.")
-    public ResponseEntity<Map<String, Object>> requestReport(@RequestParam(defaultValue = "TASKS") String type) {
+    public ResponseEntity<Map<String, Object>> requestReport(
+            @RequestParam(defaultValue = "TASKS") String type,
+            @RequestParam(defaultValue = "xlsx") String format) {
         String username = SecurityContextHolder.getContext().getAuthentication().getName();
         User currentUser = userRepository.findByUsername(username).orElseThrow();
 
         ReportJob job = asyncReportService.createJob(currentUser, type);
-        asyncReportService.processReportJob(job.getJobId()); // Fires asynchronously via ThreadPoolTaskExecutor
+        asyncReportService.processReportJob(job.getJobId(), format); // Fires asynchronously via ThreadPoolTaskExecutor
 
         URI statusUri = URI.create("/api/reports/jobs/" + job.getJobId());
         return ResponseEntity.status(HttpStatus.ACCEPTED)
@@ -67,7 +69,7 @@ public class ReportJobController {
 
     @GetMapping("/download/{token}")
     @PreAuthorize("isAuthenticated()")
-    @Operation(summary = "Download completed report file", description = "Streams raw Excel file using signed, time-limited download token.")
+    @Operation(summary = "Download completed report file", description = "Streams raw report file using signed, time-limited download token.")
     public void downloadReport(@PathVariable String token, HttpServletResponse response) throws IOException {
         ReportJob job = reportJobRepository.findByDownloadToken(token)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Invalid or expired download token."));
@@ -81,7 +83,15 @@ public class ReportJobController {
             throw new ResponseStatusException(HttpStatus.GONE, "Report file has expired or been purged.");
         }
 
-        response.setContentType("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
+        String fileName = job.getFileName().toLowerCase();
+        if (fileName.endsWith(".pdf")) {
+            response.setContentType("application/pdf");
+        } else if (fileName.endsWith(".csv")) {
+            response.setContentType("text/csv");
+        } else {
+            response.setContentType("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
+        }
+        
         response.setHeader(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + job.getFileName() + "\"");
         response.setContentLengthLong(file.length());
 

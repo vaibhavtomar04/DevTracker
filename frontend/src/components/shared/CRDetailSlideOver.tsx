@@ -351,8 +351,48 @@ const InfoRow: React.FC<{ label: string; value?: string | React.ReactNode }> = (
 );
 
 function OverviewTab({ task }: { task: Task }) {
+  const { auditLogs } = useTaskStore();
+
+  const rejectLog = auditLogs
+    ?.filter((l: any) => l.entityType === 'TASK' && l.entityId === task.id && l.fieldName === 'workflow_reject')
+    ?.sort((a: any, b: any) => new Date(b.changedDate || 0).getTime() - new Date(a.changedDate || 0).getTime())[0];
+
+  const reviewerName = typeof rejectLog?.changedBy === 'object' && rejectLog?.changedBy?.fullName 
+    ? rejectLog.changedBy.fullName 
+    : (typeof rejectLog?.changedBy === 'string' ? rejectLog.changedBy : (task.codeReviewer?.fullName || 'Code Reviewer'));
+
+  const displayRemarks = rejectLog?.remarks || task.remarks;
+
   return (
     <div className="space-y-6">
+      {/* Code Review Rejection & Required Changes Alert Card */}
+      {(task.status === 'CHANGES_REQUESTED' || task.status === 'IN_PROGRESS') && (rejectLog || task.remarks) && (
+        <div className="rounded-2xl border-2 border-rose-500/40 bg-gradient-to-r from-rose-500/15 via-amber-500/10 to-rose-500/15 p-4.5 shadow-[0_0_25px_rgba(244,63,94,0.15)] space-y-3">
+          <div className="flex items-center justify-between border-b border-rose-500/20 pb-2.5">
+            <div className="flex items-center gap-2">
+              <span className="text-rose-400 text-lg">⚠️</span>
+              <span className="text-xs font-black uppercase tracking-wider text-rose-300">
+                Code Review Rejection & Required Changes
+              </span>
+            </div>
+            <span className="text-xs font-bold text-rose-200 bg-rose-500/20 border border-rose-500/30 px-3 py-0.5 rounded-full">
+              Reviewer: {reviewerName}
+            </span>
+          </div>
+          <div>
+            <span className="text-[10px] font-bold text-rose-400 uppercase tracking-wider block mb-1">
+              Reviewer Remarks / Feedback:
+            </span>
+            <p className="text-sm font-semibold text-rose-100 bg-black/50 border border-rose-500/25 p-3.5 rounded-xl leading-relaxed whitespace-pre-wrap">
+              {displayRemarks || "Changes requested during code review. Please review and resubmit."}
+            </p>
+          </div>
+          <p className="text-xs text-rose-300/90 italic text-right">
+            Sent back by <strong className="text-rose-100 font-bold">{reviewerName}</strong>
+          </p>
+        </div>
+      )}
+
       {/* Description */}
       <div>
         <h3 className="text-xs font-semibold text-zinc-500 uppercase tracking-wider mb-2">Description</h3>
@@ -368,15 +408,96 @@ function OverviewTab({ task }: { task: Task }) {
           <InfoRow label="CR Type" value={task.type?.name} />
           <InfoRow label="Priority" value={task.priority} />
           <InfoRow label="Assigned Developer" value={task.assignedDeveloper?.fullName} />
+          <InfoRow label="Code Reviewer / Approver" value={task.codeReviewer?.fullName || reviewerName} />
           <InfoRow label="Tester" value={task.tester?.fullName} />
           <InfoRow label="Efforts" value={task.efforts ? `${task.efforts}h` : undefined} />
           <InfoRow label="Branch" value={task.branchName} />
           <InfoRow label="Dev Start" value={formatDate(task.devStartDate)} />
-          <InfoRow label="SIT Date" value={formatDate(task.sitDate)} />
-          <InfoRow label="UAT Date" value={formatDate(task.uatDate)} />
+          <InfoRow label="Expected SIT Deployment" value={formatDate(task.expectedSitDeploymentDate)} />
+          <InfoRow label="Actual SIT Deployment" value={formatDate(task.sitDate)} />
+          <InfoRow label="Expected UAT Deployment" value={formatDate(task.expectedUatDeploymentDate)} />
+          <InfoRow label="Actual UAT Deployment" value={formatDate(task.uatDate)} />
           <InfoRow label="Production Date" value={formatDate(task.productionDate)} />
           <InfoRow label="Created" value={formatDate(task.createdDate)} />
           <InfoRow label="Updated" value={formatDate(task.updatedDate)} />
+        </div>
+      </div>
+
+      {/* Deployment SLA status cards */}
+      <div>
+        <h3 className="text-xs font-semibold text-zinc-500 uppercase tracking-wider mb-3">Deployment SLA Status</h3>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {/* SIT card */}
+          {task.expectedSitDeploymentDate ? (
+            <div className={`p-4 rounded-xl border ${
+              task.sitDate 
+                ? (task.sitDate <= task.expectedSitDeploymentDate ? 'bg-emerald-500/5 border-emerald-500/20 text-emerald-400' : 'bg-rose-500/5 border-rose-500/20 text-rose-400')
+                : (new Date().toISOString().split('T')[0] <= task.expectedSitDeploymentDate ? 'bg-sky-500/5 border-sky-500/20 text-sky-400' : 'bg-rose-500/5 border-rose-500/20 text-rose-400')
+            }`}>
+              <div className="flex justify-between items-center mb-2">
+                <span className="text-[11px] font-extrabold uppercase tracking-wider">SIT Milestone</span>
+                <span className="text-xs font-semibold">
+                  {task.sitDate 
+                    ? (task.sitDate <= task.expectedSitDeploymentDate ? '✅ On Time' : '🚨 Delayed')
+                    : (new Date().toISOString().split('T')[0] <= task.expectedSitDeploymentDate ? '🕒 On Track' : '🚨 Missed')}
+                </span>
+              </div>
+              <p className="text-[11px] opacity-80">
+                Expected: {formatDate(task.expectedSitDeploymentDate)}
+              </p>
+              {task.sitDate ? (
+                <p className="text-[11px] opacity-80">
+                  Actual: {formatDate(task.sitDate)}
+                </p>
+              ) : (
+                <p className="text-[11px] opacity-80">
+                  {new Date().toISOString().split('T')[0] <= task.expectedSitDeploymentDate 
+                    ? `${Math.ceil((new Date(task.expectedSitDeploymentDate).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24))} days remaining`
+                    : `${Math.ceil((new Date().getTime() - new Date(task.expectedSitDeploymentDate).getTime()) / (1000 * 60 * 60 * 24))} days overdue`}
+                </p>
+              )}
+            </div>
+          ) : (
+            <div className="p-4 rounded-xl border border-white/[0.06] bg-white/[0.02] text-zinc-500 text-xs">
+              SIT Milestone not set.
+            </div>
+          )}
+
+          {/* UAT card */}
+          {task.expectedUatDeploymentDate ? (
+            <div className={`p-4 rounded-xl border ${
+              task.uatDate 
+                ? (task.uatDate <= task.expectedUatDeploymentDate ? 'bg-emerald-500/5 border-emerald-500/20 text-emerald-400' : 'bg-rose-500/5 border-rose-500/20 text-rose-400')
+                : (new Date().toISOString().split('T')[0] <= task.expectedUatDeploymentDate ? 'bg-sky-500/5 border-sky-500/20 text-sky-400' : 'bg-rose-500/5 border-rose-500/20 text-rose-400')
+            }`}>
+              <div className="flex justify-between items-center mb-2">
+                <span className="text-[11px] font-extrabold uppercase tracking-wider">UAT Milestone</span>
+                <span className="text-xs font-semibold">
+                  {task.uatDate 
+                    ? (task.uatDate <= task.expectedUatDeploymentDate ? '✅ On Time' : '🚨 Delayed')
+                    : (new Date().toISOString().split('T')[0] <= task.expectedUatDeploymentDate ? '🕒 On Track' : '🚨 Missed')}
+                </span>
+              </div>
+              <p className="text-[11px] opacity-80">
+                Expected: {formatDate(task.expectedUatDeploymentDate)}
+              </p>
+              {task.uatDate ? (
+                <p className="text-[11px] opacity-80">
+                  Actual: {formatDate(task.uatDate)}
+                </p>
+              ) : (
+                <p className="text-[11px] opacity-80">
+                  {new Date().toISOString().split('T')[0] <= task.expectedUatDeploymentDate 
+                    ? `${Math.ceil((new Date(task.expectedUatDeploymentDate).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24))} days remaining`
+                    : `${Math.ceil((new Date().getTime() - new Date(task.expectedUatDeploymentDate).getTime()) / (1000 * 60 * 60 * 24))} days overdue`}
+                </p>
+              )}
+            </div>
+          ) : (
+            <div className="p-4 rounded-xl border border-white/[0.06] bg-white/[0.02] text-zinc-500 text-xs">
+              UAT Milestone not set.
+            </div>
+          )}
         </div>
       </div>
 

@@ -83,6 +83,12 @@ public class Task {
     @Column(name = "production_date")
     private LocalDate productionDate;
 
+    @Column(name = "expected_sit_deployment_date")
+    private LocalDate expectedSitDeploymentDate;
+
+    @Column(name = "expected_uat_deployment_date")
+    private LocalDate expectedUatDeploymentDate;
+
     private String status;
     private String priority;
     private Double efforts;

@@ -6,4 +6,5 @@ import java.util.List;
 
 public interface AuditLogRepository extends JpaRepository<AuditLog, Long> {
     List<AuditLog> findByEntityTypeAndEntityId(String entityType, Long entityId);
+    boolean existsByEntityIdAndEntityTypeAndRemarks(Long entityId, String entityType, String remarks);
 }

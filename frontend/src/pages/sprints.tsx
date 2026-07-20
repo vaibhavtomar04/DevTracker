@@ -371,6 +371,34 @@ function TaskDetailsModal({ task, onClose }: { task: Task | null; onClose: () =>
               </code>
             </div>
           )}
+
+          {/* Rejection / Change Requested Remarks Banner */}
+          {(task.status === "CHANGES_REQUESTED" || task.remarks) && (
+            <div className="rounded-2xl border-2 border-rose-500/40 bg-gradient-to-r from-rose-500/15 via-amber-500/10 to-rose-500/15 p-4 shadow-[0_0_20px_rgba(244,63,94,0.15)] space-y-2.5 text-left">
+              <div className="flex items-center justify-between border-b border-rose-500/20 pb-2">
+                <div className="flex items-center gap-2">
+                  <span className="text-rose-400 text-sm">⚠️</span>
+                  <span className="text-xs font-black uppercase tracking-wider text-rose-300">
+                    Code Review Rejection & Remarks
+                  </span>
+                </div>
+                <span className="text-[10px] font-bold text-rose-200 bg-rose-500/20 border border-rose-500/30 px-2.5 py-0.5 rounded-full">
+                  Reviewer: {task.codeReviewer?.fullName || "Code Approver"}
+                </span>
+              </div>
+              <div>
+                <span className="text-[10px] font-bold text-rose-400 uppercase tracking-wider block mb-1">
+                  Reviewer Remarks:
+                </span>
+                <p className="text-xs font-semibold text-rose-100 bg-black/50 border border-rose-500/25 p-3 rounded-xl leading-relaxed whitespace-pre-wrap">
+                  {task.remarks || "Changes requested during code review. Please review and resubmit."}
+                </p>
+              </div>
+              <p className="text-[10px] text-rose-300/90 italic text-right">
+                Sent back by <strong className="text-rose-100 font-bold">{task.codeReviewer?.fullName || "Code Approver"}</strong>
+              </p>
+            </div>
+          )}
         </div>
         <button onClick={onClose} className="w-full py-2.5 text-xs font-bold rounded-xl bg-white/[0.05] hover:bg-white/[0.08] border border-white/[0.08] text-foreground transition-colors">
           Close
@@ -446,14 +474,49 @@ function TaskCard({
       onClick={onClick}
     >
       {/* Hover Details Card (Tooltip) */}
-      <div className="absolute left-full ml-3 top-0 bg-[#0c1222]/95 backdrop-blur-xl border border-white/10 rounded-2xl p-4 shadow-2xl opacity-0 scale-95 group-hover:opacity-100 group-hover:scale-100 transition-all pointer-events-none w-64 z-50 space-y-2 hidden md:block">
-        <h4 className="font-extrabold text-xs text-sky-400 font-mono">{task.jtrackId}</h4>
-        <p className="font-semibold text-xs text-white line-clamp-1">{task.title}</p>
-        {task.description && <p className="text-[10px] text-slate-400 line-clamp-3 leading-relaxed">{task.description}</p>}
-        <div className="text-[9px] text-slate-500 space-y-0.5 pt-1.5 border-t border-white/5">
-          <div><span className="font-bold text-slate-400">Branch:</span> {task.branchName || "None"}</div>
-          <div><span className="font-bold text-slate-400">Story Points:</span> {task.efforts || 0} pts</div>
-          {task.createdBy && <div><span className="font-bold text-slate-400">Created By:</span> {task.createdBy.fullName || task.createdBy.username}</div>}
+      <div className="absolute left-full ml-3 top-0 bg-slate-900 border border-slate-700/80 rounded-2xl p-4 shadow-[0_20px_50px_rgba(0,0,0,0.8)] opacity-0 scale-95 group-hover:opacity-100 group-hover:scale-100 transition-all pointer-events-none w-72 z-[100] space-y-2.5 hidden md:block text-left">
+        <div className="flex items-center justify-between">
+          <span className="font-extrabold text-xs text-sky-400 font-mono tracking-wider">{task.jtrackId}</span>
+          <span className={`text-[9px] font-extrabold px-2 py-0.5 rounded-full border uppercase ${PRIORITY_COLORS[task.priority] ?? PRIORITY_COLORS["Medium"]}`}>
+            {task.priority}
+          </span>
+        </div>
+
+        <h4 className="font-extrabold text-xs text-slate-100 leading-snug line-clamp-2">{task.title}</h4>
+
+        {task.description && (
+          <div className="bg-slate-950/80 border border-white/10 rounded-xl p-2.5 text-xs text-slate-200 leading-relaxed line-clamp-4 max-h-32 overflow-hidden">
+            {task.description}
+          </div>
+        )}
+
+        <div className="text-[10px] space-y-1 pt-2 border-t border-slate-800 text-slate-300">
+          <div className="flex items-center justify-between">
+            <span className="font-bold text-slate-400">Branch:</span>
+            <span className="font-mono text-sky-300 font-semibold truncate max-w-[150px]">{task.branchName || "None"}</span>
+          </div>
+          <div className="flex items-center justify-between">
+            <span className="font-bold text-slate-400">Story Points:</span>
+            <span className="font-mono text-slate-100 font-bold">{task.efforts || 0} pts</span>
+          </div>
+          {task.createdBy && (
+            <div className="flex items-center justify-between">
+              <span className="font-bold text-slate-400">Created By:</span>
+              <span className="text-slate-200 font-medium">{task.createdBy.fullName || task.createdBy.username}</span>
+            </div>
+          )}
+          {task.expectedSitDeploymentDate && (
+            <div className="flex items-center justify-between">
+              <span className="font-bold text-slate-400">Exp. SIT Date:</span>
+              <span className="font-mono text-amber-300 font-bold">{task.expectedSitDeploymentDate}</span>
+            </div>
+          )}
+          {task.expectedUatDeploymentDate && (
+            <div className="flex items-center justify-between">
+              <span className="font-bold text-slate-400">Exp. UAT Date:</span>
+              <span className="font-mono text-amber-300 font-bold">{task.expectedUatDeploymentDate}</span>
+            </div>
+          )}
         </div>
       </div>
 
@@ -880,7 +943,7 @@ function SprintReports({ sprints, tasks }: { sprints: Sprint[]; tasks: Task[] })
   })
   const maxVelocity = Math.max(...velocityData.flatMap(d => [d.planned, d.done]), 1)
 
-  // Burndown: simulate remaining tasks per day for active sprint
+  // Real Burndown: Calculate remaining story points day-by-day for active sprint
   const activeSprint = sprints.find(s => s.status === "ACTIVE")
   const burndownPoints: { day: string; remaining: number; ideal: number }[] = []
   if (activeSprint?.startDate && activeSprint?.endDate) {
@@ -889,13 +952,26 @@ function SprintReports({ sprints, tasks }: { sprints: Sprint[]; tasks: Task[] })
     const sprintLen = Math.max(1, Math.ceil((e.getTime() - s.getTime()) / 86400000))
     const sprintTasks = tasks.filter(t => t.sprintId === activeSprint.id)
     const totalPts = sprintTasks.reduce((sum, t) => sum + (t.efforts || 0), 0)
-    const donePts = sprintTasks.filter(t => ["CLOSED","PROD_DEPLOYED"].includes(t.status)).reduce((sum, t) => sum + (t.efforts || 0), 0)
+
     for (let i = 0; i <= Math.min(sprintLen, 14); i++) {
-      const progress = Math.min(i / sprintLen, 1)
+      const currentDay = new Date(s.getTime() + i * 86400000)
+      currentDay.setHours(23, 59, 59, 999)
+
+      const donePtsSoFar = sprintTasks
+        .filter(t => {
+          const isDone = ["CLOSED", "PROD_DEPLOYED", "PROD_COMPLETED"].includes(t.status)
+          if (!isDone) return false
+          const completedDateStr = t.productionDate || t.updatedDate || t.createdDate
+          if (!completedDateStr) return false
+          const compDate = new Date(completedDateStr)
+          return compDate <= currentDay
+        })
+        .reduce((sum, t) => sum + (t.efforts || 0), 0)
+
       burndownPoints.push({
         day: `D${i + 1}`,
-        remaining: Math.max(0, totalPts - (donePts * progress * 1.2)),
-        ideal: totalPts - (totalPts * (i / sprintLen)),
+        remaining: Math.max(0, totalPts - donePtsSoFar),
+        ideal: Math.max(0, Math.round(totalPts - (totalPts * (i / sprintLen)))),
       })
     }
   }
@@ -1106,7 +1182,7 @@ function SprintReports({ sprints, tasks }: { sprints: Sprint[]; tasks: Task[] })
             {[
               { label: "Total Tasks",   val: filteredTasks.length,                   color: "text-sky-400" },
               { label: "Story Points",  val: filteredTasks.reduce((a,t) => a + (t.efforts||0), 0), color: "text-teal-400" },
-              { label: "Completed",     val: filteredTasks.filter(t => t.status === "CLOSED").length, color: "text-emerald-400" },
+              { label: "Completed",     val: filteredTasks.filter(t => ["CLOSED", "PROD_DEPLOYED", "PROD_COMPLETED"].includes(t.status)).length, color: "text-emerald-400" },
             ].map(stat => (
               <div key={stat.label} className="text-center">
                 <p className={`text-lg font-black ${stat.color}`}>{stat.val}</p>

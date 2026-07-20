@@ -25,6 +25,68 @@ import {
 import { motion, AnimatePresence } from "framer-motion"
 import type { Task, Bug, AuditLog } from "@/services/mockData"
 
+export function getDeploymentSlaDetails(task: Task) {
+  const todayStr = new Date().toISOString().split('T')[0];
+  
+  let sitStatus = 'Not Set';
+  let sitDelay = 0;
+  let sitRemaining = 0;
+  if (task.expectedSitDeploymentDate) {
+    if (task.sitDate) {
+      if (task.sitDate <= task.expectedSitDeploymentDate) {
+        sitStatus = 'Met SLA';
+      } else {
+        sitStatus = 'Delayed';
+        sitDelay = Math.ceil((new Date(task.sitDate).getTime() - new Date(task.expectedSitDeploymentDate).getTime()) / (1000 * 60 * 60 * 24));
+      }
+    } else {
+      if (todayStr <= task.expectedSitDeploymentDate) {
+        sitStatus = 'On Track';
+        sitRemaining = Math.max(0, Math.ceil((new Date(task.expectedSitDeploymentDate).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24)));
+      } else {
+        sitStatus = 'Missed';
+        sitDelay = Math.ceil((new Date().getTime() - new Date(task.expectedSitDeploymentDate).getTime()) / (1000 * 60 * 60 * 24));
+      }
+    }
+  }
+
+  let uatStatus = 'Not Set';
+  let uatDelay = 0;
+  let uatRemaining = 0;
+  if (task.expectedUatDeploymentDate) {
+    if (task.uatDate) {
+      if (task.uatDate <= task.expectedUatDeploymentDate) {
+        uatStatus = 'Met SLA';
+      } else {
+        uatStatus = 'Delayed';
+        uatDelay = Math.ceil((new Date(task.uatDate).getTime() - new Date(task.expectedUatDeploymentDate).getTime()) / (1000 * 60 * 60 * 24));
+      }
+    } else {
+      if (todayStr <= task.expectedUatDeploymentDate) {
+        uatStatus = 'On Track';
+        uatRemaining = Math.max(0, Math.ceil((new Date(task.expectedUatDeploymentDate).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24)));
+      } else {
+        uatStatus = 'Missed';
+        uatDelay = Math.ceil((new Date().getTime() - new Date(task.expectedUatDeploymentDate).getTime()) / (1000 * 60 * 60 * 24));
+      }
+    }
+  }
+
+  const isMissed = sitStatus === 'Missed' || uatStatus === 'Missed';
+  const isDelayed = sitStatus === 'Delayed' || uatStatus === 'Delayed';
+  
+  return {
+    sitStatus,
+    sitDelay,
+    sitRemaining,
+    uatStatus,
+    uatDelay,
+    uatRemaining,
+    isMissed,
+    isDelayed
+  };
+}
+
 export default function DeveloperDashboard() {
   const { theme } = useThemeStore()
   const {
@@ -59,10 +121,10 @@ export default function DeveloperDashboard() {
   const [pinnedCRs, setPinnedCRs] = useState<number[]>([])
   const [layoutDensity, setLayoutDensity] = useState<"comfortable" | "compact" | "spacious">("comfortable")
   const [layoutOrder, setLayoutOrder] = useState<string[]>([
-    "hero", "summary", "activeWork", "approvals", "bugs", "sprint", "activity"
+    "hero", "summary", "deadlines", "activeWork", "approvals", "bugs", "sprint", "activity"
   ])
   const [visibleLayouts, setVisibleLayouts] = useState<string[]>([
-    "hero", "summary", "activeWork", "approvals", "bugs", "sprint", "activity"
+    "hero", "summary", "deadlines", "activeWork", "approvals", "bugs", "sprint", "activity"
   ])
   const [personalizeOpen, setPersonalizeOpen] = useState(false)
   const [taskDocs, setTaskDocs] = useState<any[]>([])
@@ -965,6 +1027,111 @@ export default function DeveloperDashboard() {
                     )
                   }
 
+                  if (sectionId === "deadlines") {
+                    return (
+                      <div key="deadlines" className="p-5 rounded-3xl bg-[#161619] border border-white/[0.06] space-y-4 text-left">
+                        <div className="flex justify-between items-center border-b border-white/[0.06] pb-3">
+                          <div className="flex items-center space-x-2">
+                            <GitPullRequest className="h-4.5 w-4.5 text-cyan-400" />
+                            <div>
+                              <h4 className="font-bold text-xs uppercase text-zinc-300 tracking-widest">Deployment Deadlines (SLA)</h4>
+                              <p className="text-[10px] text-zinc-500 mt-0.5">Tracking expected vs actual deployment dates, delays, and risk levels.</p>
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Deadlines list */}
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                          {(() => {
+                            const myCrs = tasks.filter(t => t.assignedDeveloper?.id === user?.id && t.status !== "CLOSED");
+                            const crsWithCommitments = myCrs.filter(t => t.expectedSitDeploymentDate || t.expectedUatDeploymentDate);
+                            
+                            if (crsWithCommitments.length === 0) {
+                              return <div className="col-span-full py-6 text-center text-xs text-zinc-500 italic">No active CRs with deployment deadline commitments.</div>;
+                            }
+
+                            return crsWithCommitments.map(t => {
+                              const sla = getDeploymentSlaDetails(t);
+                              
+                              // Risk levels
+                              let riskLevel = 'None';
+                              let riskColor = 'text-emerald-400 border-emerald-500/20 bg-emerald-500/10';
+                              if (sla.isMissed) {
+                                riskLevel = 'High (Overdue)';
+                                riskColor = 'text-rose-400 border-rose-500/20 bg-rose-500/10';
+                              } else {
+                                const minRemaining = Math.min(
+                                  t.expectedSitDeploymentDate && !t.sitDate ? sla.sitRemaining : Infinity,
+                                  t.expectedUatDeploymentDate && !t.uatDate ? sla.uatRemaining : Infinity
+                                );
+                                if (minRemaining !== Infinity) {
+                                  if (minRemaining <= 2) {
+                                    riskLevel = 'Medium (At Risk)';
+                                    riskColor = 'text-amber-400 border-amber-500/20 bg-amber-500/10';
+                                  } else {
+                                    riskLevel = 'Low (On Track)';
+                                    riskColor = 'text-sky-400 border-sky-500/20 bg-sky-500/10';
+                                  }
+                                }
+                              }
+
+                              return (
+                                <div 
+                                  key={t.id} 
+                                  onClick={() => { setSelectedTask(t); setSelectedBug(null); }}
+                                  className="p-4 bg-[#0f0f11] border border-white/[0.04] rounded-2xl hover:border-cyan-500/30 cursor-pointer space-y-3.5 transition-all text-left"
+                                >
+                                  <div className="flex justify-between items-center">
+                                    <span className="font-mono text-xs font-bold text-cyan-400">{t.jtrackId}</span>
+                                    <span className={`text-[9px] font-black uppercase px-2 py-0.5 rounded border ${riskColor}`}>
+                                      {riskLevel}
+                                    </span>
+                                  </div>
+                                  
+                                  <h5 className="font-bold text-xs text-zinc-200 line-clamp-1">{t.title}</h5>
+
+                                  <div className="space-y-1.5 text-[10px] text-zinc-400 pt-2 border-t border-white/[0.04]">
+                                    {t.expectedSitDeploymentDate && (
+                                      <div className="flex justify-between">
+                                        <span>SIT Expected:</span>
+                                        <span className="font-semibold text-zinc-300">
+                                          {new Date(t.expectedSitDeploymentDate).toLocaleDateString('en-GB', { day: '2-digit', month: 'short' })}
+                                          {t.sitDate ? (
+                                            <span className="text-emerald-400 ml-1"> (Met)</span>
+                                          ) : sla.sitStatus === 'Missed' ? (
+                                            <span className="text-rose-400 ml-1"> (Overdue {sla.sitDelay}d)</span>
+                                          ) : (
+                                            <span className="text-sky-400 ml-1"> ({sla.sitRemaining}d left)</span>
+                                          )}
+                                        </span>
+                                      </div>
+                                    )}
+
+                                    {t.expectedUatDeploymentDate && (
+                                      <div className="flex justify-between">
+                                        <span>UAT Expected:</span>
+                                        <span className="font-semibold text-zinc-300">
+                                          {new Date(t.expectedUatDeploymentDate).toLocaleDateString('en-GB', { day: '2-digit', month: 'short' })}
+                                          {t.uatDate ? (
+                                            <span className="text-emerald-400 ml-1"> (Met)</span>
+                                          ) : sla.uatStatus === 'Missed' ? (
+                                            <span className="text-rose-400 ml-1"> (Overdue {sla.uatDelay}d)</span>
+                                          ) : (
+                                            <span className="text-sky-400 ml-1"> ({sla.uatRemaining}d left)</span>
+                                          )}
+                                        </span>
+                                      </div>
+                                    )}
+                                  </div>
+                                </div>
+                              );
+                            });
+                          })()}
+                        </div>
+                      </div>
+                    );
+                  }
+
                   if (sectionId === "activeWork") {
                     return (
                       /* 3. My Active Work Widget */
@@ -1050,6 +1217,18 @@ export default function DeveloperDashboard() {
                                           }`}>
                                             {details.status}
                                           </span>
+                                          {(() => {
+                                            const sla = getDeploymentSlaDetails(task);
+                                            if (!sla.isMissed) return null;
+                                            return (
+                                              <span 
+                                                className="text-[9px] font-bold px-2 py-0.5 rounded border bg-rose-500/15 text-rose-400 border-rose-500/20 animate-pulse"
+                                                title={`SIT: ${sla.sitStatus === 'Missed' ? 'Missed by ' + sla.sitDelay + 'd' : 'OK'}, UAT: ${sla.uatStatus === 'Missed' ? 'Missed by ' + sla.uatDelay + 'd' : 'OK'}`}
+                                              >
+                                                🚨 Deadline Missed
+                                              </span>
+                                            );
+                                          })()}
                                           {(() => {
                                             const latestReject = auditLogs
                                               .filter(l => l.entityType === "TASK" && l.entityId === task.id && l.fieldName === "workflow_reject")
@@ -1592,20 +1771,37 @@ export default function DeveloperDashboard() {
                           const rejectLog = auditLogs
                             .filter(l => l.entityType === "TASK" && l.entityId === selectedTask.id && l.fieldName === "workflow_reject")
                             .sort((a: any, b: any) => new Date(b.changedDate || 0).getTime() - new Date(a.changedDate || 0).getTime())[0]
-                          return rejectLog && (selectedTask.status === "IN_PROGRESS" || selectedTask.status === "CHANGES_REQUESTED") ? (
-                            <div className="bg-amber-500/10 border border-amber-500/30 rounded-xl p-3.5 space-y-1.5 text-left">
-                              <div className="flex items-center gap-2">
-                                <AlertTriangle className="h-3.5 w-3.5 text-amber-400 shrink-0" />
-                                <span className="text-amber-400 text-[10px] font-black uppercase tracking-widest">Change Requested by Admin</span>
+
+                          const reviewerName = typeof rejectLog?.changedBy === 'object' && rejectLog?.changedBy?.fullName 
+                            ? rejectLog.changedBy.fullName 
+                            : (typeof rejectLog?.changedBy === 'string' ? rejectLog.changedBy : (selectedTask.codeReviewer?.fullName || 'Code Reviewer'));
+
+                          const displayRemarks = rejectLog?.remarks || selectedTask.remarks;
+
+                          return (rejectLog || selectedTask.status === "CHANGES_REQUESTED") && (selectedTask.status === "IN_PROGRESS" || selectedTask.status === "CHANGES_REQUESTED") ? (
+                            <div className="rounded-2xl border-2 border-rose-500/40 bg-gradient-to-r from-rose-500/15 via-amber-500/10 to-rose-500/15 p-4 shadow-[0_0_25px_rgba(244,63,94,0.15)] space-y-2.5 text-left">
+                              <div className="flex items-center justify-between border-b border-rose-500/20 pb-2">
+                                <div className="flex items-center gap-2">
+                                  <AlertTriangle className="h-4 w-4 text-rose-400 shrink-0 animate-pulse" />
+                                  <span className="text-xs font-black uppercase tracking-wider text-rose-300">
+                                    Change Requested by {reviewerName}
+                                  </span>
+                                </div>
+                                <span className="text-[10px] font-bold text-rose-200 bg-rose-500/20 border border-rose-500/30 px-2.5 py-0.5 rounded-full">
+                                  Reviewer: {reviewerName}
+                                </span>
                               </div>
-                              <p className="text-amber-300/80 text-[11px] leading-relaxed pl-5.5">
-                                {rejectLog.remarks || "Admin has requested changes. Please review and resubmit."}
-                              </p>
-                              {rejectLog.changedBy && (
-                                <p className="text-amber-500/60 text-[10px] pl-5.5">
-                                  — {typeof rejectLog.changedBy === 'object' ? rejectLog.changedBy.fullName : rejectLog.changedBy}
+                              <div>
+                                <span className="text-[10px] font-bold text-rose-400 uppercase tracking-wider block mb-1">
+                                  Reviewer Remarks:
+                                </span>
+                                <p className="text-sm font-semibold text-rose-100 bg-black/50 border border-rose-500/25 p-3.5 rounded-xl leading-relaxed whitespace-pre-wrap">
+                                  {displayRemarks || "Changes requested during code review. Please review and resubmit."}
                                 </p>
-                              )}
+                              </div>
+                              <p className="text-[10px] text-rose-300/90 italic text-right">
+                                Sent back by <strong className="text-rose-100 font-bold">{reviewerName}</strong>
+                              </p>
                             </div>
                           ) : null
                         })()}
@@ -1640,6 +1836,67 @@ export default function DeveloperDashboard() {
                               </div>
                             </div>
                           )
+                        })()}
+
+                        {/* Deployment SLA Commitments Panel */}
+                        {(() => {
+                          const sla = getDeploymentSlaDetails(selectedTask);
+                          if (sla.sitStatus === 'Not Set' && sla.uatStatus === 'Not Set') return null;
+                          return (
+                            <div className="p-3.5 rounded-xl border border-white/[0.06] bg-black/40 space-y-2 text-[11px] text-left">
+                              <span className="text-[9px] font-bold text-zinc-500 uppercase tracking-wider block">Deployment Commitments (SLA)</span>
+                              
+                              <div className="grid grid-cols-2 gap-3">
+                                {/* SIT Milestone */}
+                                {selectedTask.expectedSitDeploymentDate && (
+                                  <div className="space-y-1">
+                                    <span className="text-zinc-500 block">SIT Deployment:</span>
+                                    <span className={`font-bold block ${
+                                      sla.sitStatus === 'Met SLA' || sla.sitStatus === 'On Track' ? 'text-emerald-400' : 'text-rose-400'
+                                    }`}>
+                                      {sla.sitStatus}
+                                    </span>
+                                    <span className="text-[9.5px] text-zinc-400 block">
+                                      Expected: {new Date(selectedTask.expectedSitDeploymentDate).toLocaleDateString('en-GB', { day: '2-digit', month: 'short' })}
+                                    </span>
+                                    {selectedTask.sitDate ? (
+                                      <span className="text-[9.5px] text-zinc-400 block">
+                                        Actual: {new Date(selectedTask.sitDate).toLocaleDateString('en-GB', { day: '2-digit', month: 'short' })}
+                                      </span>
+                                    ) : (
+                                      <span className="text-[9.5px] text-zinc-400 block">
+                                        {sla.sitStatus === 'On Track' ? `${sla.sitRemaining}d remaining` : `${sla.sitDelay}d overdue`}
+                                      </span>
+                                    )}
+                                  </div>
+                                )}
+
+                                {/* UAT Milestone */}
+                                {selectedTask.expectedUatDeploymentDate && (
+                                  <div className="space-y-1">
+                                    <span className="text-zinc-500 block">UAT Deployment:</span>
+                                    <span className={`font-bold block ${
+                                      sla.uatStatus === 'Met SLA' || sla.uatStatus === 'On Track' ? 'text-emerald-400' : 'text-rose-400'
+                                    }`}>
+                                      {sla.uatStatus}
+                                    </span>
+                                    <span className="text-[9.5px] text-zinc-400 block">
+                                      Expected: {new Date(selectedTask.expectedUatDeploymentDate).toLocaleDateString('en-GB', { day: '2-digit', month: 'short' })}
+                                    </span>
+                                    {selectedTask.uatDate ? (
+                                      <span className="text-[9.5px] text-zinc-400 block">
+                                        Actual: {new Date(selectedTask.uatDate).toLocaleDateString('en-GB', { day: '2-digit', month: 'short' })}
+                                      </span>
+                                    ) : (
+                                      <span className="text-[9.5px] text-zinc-400 block">
+                                        {sla.uatStatus === 'On Track' ? `${sla.uatRemaining}d remaining` : `${sla.uatDelay}d overdue`}
+                                      </span>
+                                    )}
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+                          );
                         })()}
 
                         {/* Core Fields */}

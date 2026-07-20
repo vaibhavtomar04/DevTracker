@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { X, Upload, Users, FileText, CheckCircle2, Sparkles, Code2, Layers, Cpu, Clock, Trash2 } from "lucide-react";
+import { X, Upload, Users, FileText, CheckCircle2, Sparkles, Code2, Layers, Cpu, Clock, Trash2, Calendar } from "lucide-react";
 import { useTaskStore } from "@/store/taskStore";
 import { useSprintStore } from "@/store/sprintStore";
 import { useAuthStore } from "@/store/authStore";
@@ -27,11 +27,13 @@ export const CreateCRModal: React.FC<CreateCRModalProps> = ({ isOpen, onClose, o
   const [priority, setPriority] = useState("MEDIUM");
   const [efforts, setEfforts] = useState<number | "">(3);
   const [branchName, setBranchName] = useState("");
-  const [branchCreationDate, setBranchCreationDate] = useState(new Date().toISOString().split("T")[0]);
+  const branchCreationDate = new Date().toISOString().split("T")[0];
   const [selectedDeveloperIds, setSelectedDeveloperIds] = useState<number[]>([]);
   const [selectedSprintTaskIds, setSelectedSprintTaskIds] = useState<number[]>([]);
   const [brdFile, setBrdFile] = useState<File | null>(null);
   const [module, setModule] = useState("Core");
+  const [expectedSitDeploymentDate, setExpectedSitDeploymentDate] = useState("");
+  const [expectedUatDeploymentDate, setExpectedUatDeploymentDate] = useState("");
 
   const [availableDevelopers, setAvailableDevelopers] = useState<any[]>([]);
   const [selectedWorkflowId, setSelectedWorkflowId] = useState<number | null>(null);
@@ -112,6 +114,25 @@ export const CreateCRModal: React.FC<CreateCRModalProps> = ({ isOpen, onClose, o
       return;
     }
 
+    if (!expectedSitDeploymentDate || !expectedUatDeploymentDate) {
+      addToast("Expected SIT and UAT deployment dates are mandatory.", "error");
+      return;
+    }
+
+    const todayStr = new Date().toISOString().split("T")[0];
+    if (expectedSitDeploymentDate <= todayStr) {
+      addToast("Expected SIT Deployment Date must be a future date.", "error");
+      return;
+    }
+    if (expectedUatDeploymentDate <= todayStr) {
+      addToast("Expected UAT Deployment Date must be a future date.", "error");
+      return;
+    }
+    if (expectedUatDeploymentDate < expectedSitDeploymentDate) {
+      addToast("Expected UAT Deployment Date cannot be before Expected SIT Deployment Date.", "error");
+      return;
+    }
+
     const prefix = crType === "CR" ? "CR-" :
                    crType === "Enhancement" ? "Enc-" :
                    crType === "Bug Fix" ? "Fix-" :
@@ -142,6 +163,8 @@ export const CreateCRModal: React.FC<CreateCRModalProps> = ({ isOpen, onClose, o
         efforts: efforts !== "" ? Number(efforts) : 1,
         branchName: branchName || `feature/${finalJtrackId.toLowerCase()}`,
         branchCreationDate,
+        expectedSitDeploymentDate,
+        expectedUatDeploymentDate,
         brdDocumentId: null,
         status: "CREATED",
         assignedDeveloper: primaryDev,
@@ -356,30 +379,54 @@ export const CreateCRModal: React.FC<CreateCRModalProps> = ({ isOpen, onClose, o
             </div>
           </div>
 
-          {/* Row 3: Git Branch Info */}
+          {/* Row 2.5: Expected SIT & UAT Dates */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
             <div className="space-y-2">
               <label className="text-[11px] font-bold tracking-wider text-slate-400 uppercase flex items-center gap-1.5">
-                <Code2 className="h-3.5 w-3.5 text-violet-400" /> Git Branch Name
+                <Calendar className="h-3.5 w-3.5 text-violet-400" /> Expected SIT Deployment Date <span className="text-rose-500">*</span>
               </label>
-              <input
-                type="text"
-                value={branchName}
-                onChange={(e) => setBranchName(e.target.value)}
-                placeholder={`feature/${jtrackId.toLowerCase()}`}
-                className="w-full bg-slate-900/90 border border-white/10 rounded-2xl px-4 py-2.5 text-xs text-slate-100 outline-none focus:border-violet-500/60 focus:ring-4 focus:ring-violet-500/15 transition-all font-mono shadow-inner"
-              />
+              <div className="relative">
+                <input
+                  type="date"
+                  value={expectedSitDeploymentDate}
+                  onChange={(e) => setExpectedSitDeploymentDate(e.target.value)}
+                  onClick={(e) => e.currentTarget.showPicker?.()}
+                  className="w-full bg-slate-900/90 border border-white/10 rounded-2xl px-4 py-2.5 pr-10 text-xs text-slate-100 outline-none focus:border-violet-500/60 focus:ring-4 focus:ring-violet-500/15 transition-all shadow-inner [color-scheme:dark] cursor-pointer [&::-webkit-calendar-picker-indicator]:opacity-0 [&::-webkit-calendar-picker-indicator]:absolute [&::-webkit-calendar-picker-indicator]:inset-0 [&::-webkit-calendar-picker-indicator]:w-full [&::-webkit-calendar-picker-indicator]:h-full [&::-webkit-calendar-picker-indicator]:cursor-pointer"
+                  required
+                />
+                <Calendar className="h-4 w-4 text-violet-400 absolute right-3.5 top-3 pointer-events-none" />
+              </div>
             </div>
-
             <div className="space-y-2">
-              <label className="text-[11px] font-bold tracking-wider text-slate-400 uppercase">Branch Creation Date</label>
-              <input
-                type="date"
-                value={branchCreationDate}
-                onChange={(e) => setBranchCreationDate(e.target.value)}
-                className="w-full bg-slate-900/90 border border-white/10 rounded-2xl px-4 py-2.5 text-xs text-slate-200 outline-none focus:border-violet-500/60 focus:ring-4 focus:ring-violet-500/15 transition-all shadow-inner"
-              />
+              <label className="text-[11px] font-bold tracking-wider text-slate-400 uppercase flex items-center gap-1.5">
+                <Calendar className="h-3.5 w-3.5 text-violet-400" /> Expected UAT Deployment Date <span className="text-rose-500">*</span>
+              </label>
+              <div className="relative">
+                <input
+                  type="date"
+                  value={expectedUatDeploymentDate}
+                  onChange={(e) => setExpectedUatDeploymentDate(e.target.value)}
+                  onClick={(e) => e.currentTarget.showPicker?.()}
+                  className="w-full bg-slate-900/90 border border-white/10 rounded-2xl px-4 py-2.5 pr-10 text-xs text-slate-100 outline-none focus:border-violet-500/60 focus:ring-4 focus:ring-violet-500/15 transition-all shadow-inner [color-scheme:dark] cursor-pointer [&::-webkit-calendar-picker-indicator]:opacity-0 [&::-webkit-calendar-picker-indicator]:absolute [&::-webkit-calendar-picker-indicator]:inset-0 [&::-webkit-calendar-picker-indicator]:w-full [&::-webkit-calendar-picker-indicator]:h-full [&::-webkit-calendar-picker-indicator]:cursor-pointer"
+                  required
+                />
+                <Calendar className="h-4 w-4 text-violet-400 absolute right-3.5 top-3 pointer-events-none" />
+              </div>
             </div>
+          </div>
+
+          {/* Row 3: Git Branch Info */}
+          <div className="space-y-2">
+            <label className="text-[11px] font-bold tracking-wider text-slate-400 uppercase flex items-center gap-1.5">
+              <Code2 className="h-3.5 w-3.5 text-violet-400" /> Git Branch Name
+            </label>
+            <input
+              type="text"
+              value={branchName}
+              onChange={(e) => setBranchName(e.target.value)}
+              placeholder={`feature/${jtrackId.toLowerCase()}`}
+              className="w-full bg-slate-900/90 border border-white/10 rounded-2xl px-4 py-2.5 text-xs text-slate-100 outline-none focus:border-violet-500/60 focus:ring-4 focus:ring-violet-500/15 transition-all font-mono shadow-inner"
+            />
           </div>
 
           {/* Multi-developer Allocation Glass Box */}
