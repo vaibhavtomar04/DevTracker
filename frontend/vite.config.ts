@@ -5,8 +5,8 @@ import path from 'path'
 
 // https://vite.dev/config/
 export default defineConfig({
-  base: './',
   plugins: [react(), tailwindcss()],
+  base: '/devtrack/',
   resolve: {
     alias: {
       '@': path.resolve(__dirname, './src'),
@@ -17,15 +17,15 @@ export default defineConfig({
       ignored: ['**/node/**']
     },
     proxy: {
-      '/api': {
+      '/devtrack/api': {
         target: 'http://127.0.0.1:8080',
         changeOrigin: true,
       },
-      '/mfa': {
+      '/devtrack/mfa': {
         target: 'http://127.0.0.1:8080',
         changeOrigin: true,
       },
-      '/ws': {
+      '/devtrack/ws': {
         target: 'ws://127.0.0.1:8080',
         ws: true,
         changeOrigin: true,

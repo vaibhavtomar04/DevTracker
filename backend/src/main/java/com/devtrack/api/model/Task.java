@@ -97,14 +97,14 @@ public class Task {
     @Transient
     private String remarks;
 
-    // ── DevOps deployment email fields (transient, not persisted) ────────────
-    @Transient
+    // ── DevOps deployment email fields (persisted) ───────────────────────────
+    @Column(name = "deployment_note", columnDefinition = "TEXT")
     private String deploymentNote;
 
-    @Transient
+    @Column(name = "server_path", columnDefinition = "TEXT")
     private String serverPath;
 
-    @Transient
+    @Column(name = "items_to_deploy", columnDefinition = "TEXT")
     private String itemsToDeploy;
 
     @Column(name = "created_date")

@@ -453,6 +453,15 @@ public class TaskController {
                         task.setUnitTestDocName(null);
                     }
 
+                    if (taskDetails.getDeploymentNote() != null) {
+                        task.setDeploymentNote(taskDetails.getDeploymentNote());
+                    }
+                    if (taskDetails.getServerPath() != null) {
+                        task.setServerPath(taskDetails.getServerPath());
+                    }
+                    if (taskDetails.getItemsToDeploy() != null) {
+                        task.setItemsToDeploy(taskDetails.getItemsToDeploy());
+                    }
                     
                     if (taskDetails.getDevStartDate() != null) {
                         task.setDevStartDate(taskDetails.getDevStartDate());
@@ -529,11 +538,6 @@ public class TaskController {
                                     emailNotificationService.sendMailOnCodeReview(savedFinal, remarksForNotif != null ? remarksForNotif : "Sent to Code Review");
                                 } catch (Exception e) {
                                     log.error("Failed to send Code Review mail", e);
-                                }
-                                try {
-                                    emailNotificationService.sendDevOpsDeploymentMail(savedFinal, deploymentNoteFinal, serverPathFinal, itemsToDeployFinal);
-                                } catch (Exception e) {
-                                    log.error("Failed to send DevOps Deployment mail", e);
                                 }
                             }
 
@@ -1221,6 +1225,9 @@ public class TaskController {
                 if (taskDetails.getPreprodDate() != null) task.setPreprodDate(taskDetails.getPreprodDate());
                 if (taskDetails.getGitLinks() != null) task.setGitLinks(taskDetails.getGitLinks());
                 if (taskDetails.getAssignedDeveloper() != null) task.setAssignedDeveloper(taskDetails.getAssignedDeveloper());
+                if (taskDetails.getDeploymentNote() != null) task.setDeploymentNote(taskDetails.getDeploymentNote());
+                if (taskDetails.getServerPath() != null) task.setServerPath(taskDetails.getServerPath());
+                if (taskDetails.getItemsToDeploy() != null) task.setItemsToDeploy(taskDetails.getItemsToDeploy());
                 
                 // Save the task fields before transitioning the workflow step
                 taskRepository.save(task);
@@ -1234,14 +1241,15 @@ public class TaskController {
             log.info("current step , next step {} {}",currentStep.getStepName(),nextStage);
             if( currentStep.getStepName().equalsIgnoreCase("SIT_COMPLETED")) {
             	emailNotificationService.sendMailOnCodeReview(task, taskDetails != null ? taskDetails.getRemarks() : "SIT Completed");
-            	emailNotificationService.sendDevOpsDeploymentMail(task,
-            		taskDetails != null ? taskDetails.getDeploymentNote() : null,
-            		taskDetails != null ? taskDetails.getServerPath() : null,
-            		taskDetails != null ? taskDetails.getItemsToDeploy() : null);
             }
             
-            if(currentStep.getStepName().equalsIgnoreCase("CODE_REVIEW"))
+            if(currentStep.getStepName().equalsIgnoreCase("CODE_REVIEW")) {
             	emailNotificationService.sendMailOnCodeReviewUpdate(task, taskDetails != null ? taskDetails.getRemarks() : "Approved", oldStatus, currentUser);
+            	String deploymentNoteVal = (taskDetails != null && taskDetails.getDeploymentNote() != null) ? taskDetails.getDeploymentNote() : task.getDeploymentNote();
+            	String serverPathVal = (taskDetails != null && taskDetails.getServerPath() != null) ? taskDetails.getServerPath() : task.getServerPath();
+            	String itemsToDeployVal = (taskDetails != null && taskDetails.getItemsToDeploy() != null) ? taskDetails.getItemsToDeploy() : task.getItemsToDeploy();
+            	emailNotificationService.sendDevOpsDeploymentMail(task, deploymentNoteVal, serverPathVal, itemsToDeployVal);
+            }
             
             if(nextStage!=null && nextStage.equalsIgnoreCase("UAT_TESTING") && task.getUnitTestDocUrl() != null) {
             	emailNotificationService.sendMailForUatTesting(task, taskDetails != null ? taskDetails.getRemarks() : "Sent to UAT", currentUser);
