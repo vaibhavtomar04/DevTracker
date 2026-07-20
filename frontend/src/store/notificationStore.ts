@@ -10,6 +10,7 @@
 
 import { create } from 'zustand';
 import { useTaskStore } from './taskStore';
+import { APP_CONFIG } from '@/config/appConfig';
 
 export interface AppNotification {
   id: number;
@@ -251,7 +252,7 @@ export const useNotificationStore = create<NotificationState>((set, get) => ({
     get().fetchNotifications(userId);
 
     const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-    const wsUrl = `${wsProtocol}//${window.location.host}/ws/notifications?userId=${userId}`;
+    const wsUrl = `${wsProtocol}//${window.location.host}${APP_CONFIG.contextPath}/ws/notifications?userId=${userId}`;
     
     set({ wsStatus: 'connecting' });
 

@@ -69,6 +69,9 @@ public class MfaController {
     @Autowired
     private ApplicationEventPublisher eventPublisher;
 
+    @Value("${server.servlet.context-path:/}")
+    private String contextPath;
+
     private final SecureRandom random = new SecureRandom();
 
     @PostMapping("/enable")
@@ -168,7 +171,7 @@ public class MfaController {
                 .httpOnly(true)
                 .secure(false)
                 .sameSite("Lax")
-                .path("/")
+                .path(contextPath.isEmpty() || "/".equals(contextPath) ? "/" : contextPath)
                 .maxAge(24 * 60 * 60)
                 .build();
 
@@ -325,7 +328,7 @@ public class MfaController {
                 .httpOnly(true)
                 .secure(false)
                 .sameSite("Lax")
-                .path("/")
+                .path(contextPath.isEmpty() || "/".equals(contextPath) ? "/" : contextPath)
                 .maxAge(24 * 60 * 60)
                 .build();
 

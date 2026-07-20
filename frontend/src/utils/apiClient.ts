@@ -1,6 +1,8 @@
 import { useAuthStore } from "@/store/authStore";
 
-const API_BASE = import.meta.env.VITE_API_URL || "";
+import { APP_CONFIG } from "@/config/appConfig";
+
+const API_BASE = APP_CONFIG.apiUrl;
 
 function extractErrorMessage(text: string, status: number): string {
   if (!text || !text.trim()) {
@@ -114,7 +116,7 @@ export async function apiClient(endpoint: string, options: RequestOptions = {}):
         isRefreshing = false;
         refreshSubscribers = [];
         await logout();
-        window.location.href = "/login";
+        window.location.href = `${APP_CONFIG.contextPath}/login`;
         throw new Error("Session expired. Please log in again.");
       }
     }
@@ -147,7 +149,7 @@ export async function apiClient(endpoint: string, options: RequestOptions = {}):
 
   if (response.status === 401 && endpoint !== "/mfa/verify" && endpoint !== "/mfa/backup-codes/verify") {
     await logout();
-    window.location.href = "/login";
+    window.location.href = `${APP_CONFIG.contextPath}/login`;
     throw new Error("Session expired. Please log in again.");
   }
 

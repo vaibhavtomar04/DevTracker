@@ -54,6 +54,9 @@ public class AuthController {
     @Value("${devtrack.security.temp-password-ttl-hours:24}")
     private int tempPasswordTtlHours;
 
+    @Value("${server.servlet.context-path:/}")
+    private String contextPath;
+
     @Autowired
     AuthenticationManager authenticationManager;
 
@@ -273,7 +276,7 @@ public class AuthController {
                     .httpOnly(true)
                     .secure(false)
                     .sameSite("Lax")
-                    .path("/")
+                    .path(contextPath.isEmpty() || "/".equals(contextPath) ? "/" : contextPath)
                     .maxAge(24 * 60 * 60)
                     .build();
 
@@ -449,7 +452,7 @@ public class AuthController {
                 .httpOnly(true)
                 .secure(false)
                 .sameSite("Lax")
-                .path("/")
+                .path(contextPath.isEmpty() || "/".equals(contextPath) ? "/" : contextPath)
                 .maxAge(24 * 60 * 60)
                 .build();
 
@@ -497,7 +500,7 @@ public class AuthController {
                 .httpOnly(true)
                 .secure(true)
                 .sameSite("None")
-                .path("/")
+                .path(contextPath.isEmpty() || "/".equals(contextPath) ? "/" : contextPath)
                 .maxAge(0)
                 .build();
 
@@ -600,7 +603,7 @@ public class AuthController {
                 .httpOnly(true)
                 .secure(true)
                 .sameSite("None")
-                .path("/")
+                .path(contextPath.isEmpty() || "/".equals(contextPath) ? "/" : contextPath)
                 .maxAge(24 * 60 * 60)
                 .build();
 

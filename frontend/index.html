@@ -1,6 +1,50 @@
 <!doctype html>
 <html lang="en">
   <head>
+    <script>
+      (function() {
+        var pathname = window.location.pathname;
+        var parts = pathname.split('/');
+        var appRoutes = ['login', 'set-new-password', 'reset-password', 'dashboard'];
+        var appRouteIndex = -1;
+        for (var i = 0; i < parts.length; i++) {
+          if (appRoutes.indexOf(parts[i]) !== -1) {
+            appRouteIndex = i;
+            break;
+          }
+        }
+        var contextPath = '';
+        if (appRouteIndex > 1) {
+          contextPath = parts.slice(0, appRouteIndex).join('/');
+        } else if (parts.length > 1 && parts[1] !== '' && appRoutes.indexOf(parts[1]) === -1) {
+          contextPath = '/' + parts[1];
+        }
+
+        window.__contextPath__ = contextPath;
+
+        var base = document.createElement('base');
+        base.href = contextPath + '/';
+        document.head.insertBefore(base, document.head.firstChild);
+
+        if (contextPath) {
+          var originalFetch = window.fetch;
+          window.fetch = function(input, init) {
+            if (typeof input === 'string') {
+              if (input.indexOf('/api/') === 0 || input.indexOf('/mfa/') === 0) {
+                input = contextPath + input;
+              }
+            } else if (input && typeof input === 'object' && typeof input.url === 'string') {
+              if (input.url.indexOf('/api/') === 0 || input.url.indexOf('/mfa/') === 0) {
+                try {
+                  input = new Request(contextPath + input.url, input);
+                } catch (e) {}
+              }
+            }
+            return originalFetch.call(this, input, init);
+          };
+        }
+      })();
+    </script>
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />

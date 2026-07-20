@@ -4,6 +4,7 @@ import { useAuthStore } from "@/store/authStore"
 import { useThemeStore } from "@/store/themeStore"
 import DashboardLayout from "@/layouts/DashboardLayout"
 import DownloadPromptModal from "@/components/shared/DownloadPromptModal"
+import { APP_CONFIG } from "@/config/appConfig"
 
 // Lazy load page components for production code splitting
 const LoginPage = lazy(() => import("@/pages/login"))
@@ -206,7 +207,7 @@ function App() {
 
   return (
     <ErrorBoundary>
-      <Router>
+      <Router basename={APP_CONFIG.contextPath || undefined}>
         <Suspense fallback={<LoadingSpinner />}>
           <Routes>
             <Route
