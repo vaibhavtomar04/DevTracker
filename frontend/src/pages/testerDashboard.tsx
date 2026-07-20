@@ -51,6 +51,9 @@ export default function TesterDashboard() {
 
   const { user } = useAuthStore()
 
+  const normalizedUserRoles = (user?.roles || []).map((role) => role.replace(/^ROLE_/, ""))
+  const isAdmin = normalizedUserRoles.some((role) => ["ADMIN", "DEVADMIN", "TESTADMIN"].includes(role))
+
   const [activeQueue, setActiveQueue] = useState<"pool" | "my-assigned" | "bugs" | "rejections" | "completed">("pool")
   const [selectedTask, setSelectedTask] = useState<Task | null>(null)
   const [selectedReview, setSelectedReview] = useState<any | null>(null)
@@ -102,32 +105,34 @@ export default function TesterDashboard() {
     return item.title.toLowerCase().includes(s) || item.jtrackId.toLowerCase().includes(s) || item.description.toLowerCase().includes(s)
   }
 
-  const testingPool = tasks.filter(t => t.status === "TESTING_POOL" && !t.tester && filterBySearch(t))
+  const testingPool = tasks.filter(t => (t.status === "TESTING_POOL" || t.status === "MOVE_TO_UAT" || (t.status === "SIT_DEPLOYED" && !t.tester) || (t.status === "SIT_TESTING" && !t.tester)) && !t.tester && filterBySearch(t))
   const myAssignedTesting = tasks.filter(t => {
-    if (t.tester?.id !== user?.id) return false
+    if (!t.tester) return false
     if (!filterBySearch(t)) return false
-    if (t.status === "TESTING_IN_PROGRESS") return true
-    if (t.status === "BUG_FOUND") {
-      const taskBugs = bugs.filter(b => b.crTaskId === t.id)
-      const hasActiveUnresolvedBug = taskBugs.some(b => b.status === "OPEN" || b.status === "IN_PROGRESS")
-      return !hasActiveUnresolvedBug
-    }
-    return false
+    if (!isAdmin && t.tester.id !== user?.id) return false
+    return ["TESTING_IN_PROGRESS", "SIT_TESTING", "UAT_TESTING", "MOVE_TO_UAT", "TESTING_POOL", "BUG_FOUND"].includes(t.status)
   })
-  const bugQueue = bugs.filter(b => b.status === "RESOLVED" && filterBySearch(b))
+  const bugQueue = bugs.filter(b => {
+    if (!filterBySearch(b)) return false
+    if (!isAdmin && b.raisedBy?.id !== user?.id) return false
+    return b.status === "RESOLVED" || b.status === "OPEN" || b.status === "IN_PROGRESS"
+  })
   const defectiveCRs = tasks.filter(t => {
     if (t.status !== "BUG_FOUND") return false
     if (!filterBySearch(t)) return false
-    if (!t.tester || t.tester.id !== user?.id) return true
-    const taskBugs = bugs.filter(b => b.crTaskId === t.id)
-    const hasActiveUnresolvedBug = taskBugs.some(b => b.status === "OPEN" || b.status === "IN_PROGRESS")
-    return hasActiveUnresolvedBug
+    if (!isAdmin && t.tester?.id !== user?.id) return false
+    return true
   })
-  const completedCRs = tasks.filter(t => (t.status === "TESTING_COMPLETED" || t.status === "UAT_COMPLETED" || t.status === "SIT_COMPLETED") && t.tester?.id === user?.id && filterBySearch(t))
+  const completedCRs = tasks.filter(t => {
+    const isComp = ["TESTING_COMPLETED", "UAT_COMPLETED", "SIT_COMPLETED", "PROD_DEPLOYED", "CLOSED"].includes(t.status)
+    if (!isComp || !filterBySearch(t)) return false
+    if (!isAdmin && t.tester?.id !== user?.id) return false
+    return true
+  })
   const myRejectedReviews = (bugReviews || []).filter(r => {
-    const isOwner = r.raisedBy?.id === user?.id
-    const isRejected = r.status === "REJECTED"
-    if (!isOwner || !isRejected) return false
+    const isRejected = r.status === "REJECTED" || r.status === "CHALLENGED" || r.status === "BUG_REVIEW_PENDING"
+    if (!isRejected) return false
+    if (!isAdmin && r.raisedBy?.id !== user?.id) return false
     if (!searchQuery) return true
     const s = searchQuery.toLowerCase()
     return (r.title?.toLowerCase().includes(s) || false) || 
@@ -348,7 +353,7 @@ export default function TesterDashboard() {
                   : "text-slate-400 hover:text-slate-200"
               }`}
             >
-              My Assigned Testing ({myAssignedTesting.length})
+              {isAdmin ? "Assigned CRs" : "My Assigned Testing"} ({myAssignedTesting.length})
             </button>
             <button
               onClick={() => { setActiveQueue("bugs"); setSelectedTask(null); setSelectedReview(null); }}
@@ -368,7 +373,7 @@ export default function TesterDashboard() {
                   : "text-slate-400 hover:text-slate-200"
               }`}
             >
-              My Rejected Bugs ({myRejectedReviews.length})
+              {isAdmin ? "Rejected Bugs" : "My Rejected Bugs"} ({myRejectedReviews.length})
             </button>
             <button
               onClick={() => { setActiveQueue("completed"); setSelectedTask(null); setSelectedReview(null); }}
@@ -479,7 +484,7 @@ export default function TesterDashboard() {
             >
               {myAssignedTesting.length === 0 ? (
                 <div className="col-span-2 text-center py-12 text-xs text-slate-400 bg-white/[0.02] rounded-2xl border border-white/[0.06] font-medium backdrop-blur-md">
-                  No CRs currently assigned to you for testing.
+                  {isAdmin ? "No CRs currently assigned for testing." : "No CRs currently assigned to you for testing."}
                 </div>
               ) : (
                 myAssignedTesting.map(task => {
@@ -528,6 +533,10 @@ export default function TesterDashboard() {
                       </p>
                       
                       <div className="grid grid-cols-2 gap-2 text-[10px] text-slate-400 border-t border-white/[0.06] pt-3">
+                        <div>
+                          <span className="text-slate-500">Tester:</span>{" "}
+                          <span className="text-cyan-300 font-semibold">{task.tester?.fullName || "Unassigned"}</span>
+                        </div>
                         <div>
                           <span className="text-slate-500">Developer:</span>{" "}
                           <span className="text-slate-300 font-semibold">{task.assignedDeveloper?.fullName || "Unassigned"}</span>
@@ -640,7 +649,7 @@ export default function TesterDashboard() {
             >
               {myRejectedReviews.length === 0 ? (
                 <div className="col-span-2 text-center py-12 text-xs text-slate-400 bg-white/[0.02] rounded-2xl border border-white/[0.06] font-medium backdrop-blur-md">
-                  No rejected bug reviews raised by you.
+                  {isAdmin ? "No rejected bug reviews found." : "No rejected bug reviews raised by you."}
                 </div>
               ) : (
                 myRejectedReviews.map(review => {
