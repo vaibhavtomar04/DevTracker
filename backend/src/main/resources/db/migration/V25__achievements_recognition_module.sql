@@ -290,41 +290,30 @@ CREATE TABLE IF NOT EXISTS achievement_notification (
 -- ─────────────────────────────────────────────────────────────
 -- INDEXES (performance critical for event-driven queries)
 -- ─────────────────────────────────────────────────────────────
-CREATE INDEX idx_ach_category_id  ON achievement(category_id);
 CREATE INDEX idx_ach_rarity       ON achievement(rarity);
 CREATE INDEX idx_ach_active_flag  ON achievement(active_flag);
 
-CREATE INDEX idx_ar_achievement_id ON achievement_rule(achievement_id);
 CREATE INDEX idx_ar_rule_type      ON achievement_rule(rule_type);
 CREATE INDEX idx_ar_metric_key     ON achievement_rule(metric_key);
 
-CREATE INDEX idx_ua_user_id       ON user_achievement(user_id);
-CREATE INDEX idx_ua_achievement_id ON user_achievement(achievement_id);
 CREATE INDEX idx_ua_unlock_date   ON user_achievement(unlock_date);
 CREATE INDEX idx_ua_source_event  ON user_achievement(source_event_id);
 
-CREATE INDEX idx_ap_user_id        ON achievement_progress(user_id);
-CREATE INDEX idx_ap_achievement_id ON achievement_progress(achievement_id);
 CREATE INDEX idx_ap_last_evaluated ON achievement_progress(last_evaluated);
 
-CREATE INDEX idx_re_user_id         ON recognition_event(user_id);
 CREATE INDEX idx_re_idempotency_key ON recognition_event(idempotency_key);
 CREATE INDEX idx_re_event_type      ON recognition_event(event_type);
 CREATE INDEX idx_re_event_date      ON recognition_event(event_date);
 CREATE INDEX idx_re_source_entity   ON recognition_event(source_entity_type, source_entity_id);
 CREATE INDEX idx_re_is_reversed     ON recognition_event(is_reversed);
 
-CREATE INDEX idx_rs_user_id       ON recognition_score(user_id);
 CREATE INDEX idx_rs_total_score   ON recognition_score(total_score);
 CREATE INDEX idx_rs_monthly_rank  ON recognition_score(monthly_rank);
 CREATE INDEX idx_rs_overall_rank  ON recognition_score(overall_rank);
 
-CREATE INDEX idx_ah_award_id     ON award_history(award_id);
-CREATE INDEX idx_ah_recipient_id ON award_history(recipient_id);
 CREATE INDEX idx_ah_award_date   ON award_history(award_date);
 CREATE INDEX idx_ah_period       ON award_history(period_year, period_month);
 
-CREATE INDEX idx_an_user_id         ON achievement_notification(user_id);
 CREATE INDEX idx_an_notification_type ON achievement_notification(notification_type);
 CREATE INDEX idx_an_is_read         ON achievement_notification(is_read);
 CREATE INDEX idx_an_created_date    ON achievement_notification(created_date);
