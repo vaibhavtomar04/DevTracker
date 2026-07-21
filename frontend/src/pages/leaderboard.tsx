@@ -37,35 +37,35 @@ export default function LeaderboardPage() {
 
   return (
     <div className="space-y-6 pb-12">
-      {/* ── Page Banner Header ───────────────────────────────────────── */}
-      <div className="relative overflow-hidden rounded-3xl border border-white/[0.08] bg-gradient-to-r from-amber-950/30 via-purple-950/30 to-indigo-950/40 p-6 md:p-8 backdrop-blur-xl shadow-2xl">
+      {/* ── Page Banner Header (High contrast dark theme container) ───── */}
+      <div className="relative overflow-hidden rounded-3xl border border-slate-800 dark:border-white/[0.1] bg-slate-900 text-white p-6 md:p-8 backdrop-blur-xl shadow-2xl">
         <div className="absolute top-0 right-0 -mt-12 -mr-12 w-64 h-64 bg-amber-500/10 rounded-full blur-3xl pointer-events-none" />
 
         <div className="relative flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
           <div className="space-y-2">
             <div className="flex items-center space-x-3">
-              <div className="p-2.5 rounded-2xl bg-amber-500/20 border border-amber-500/30 text-amber-400 shadow-[0_0_20px_rgba(245,158,11,0.3)]">
+              <div className="p-2.5 rounded-2xl bg-amber-500/20 border border-amber-500/40 text-amber-400 shadow-[0_0_20px_rgba(245,158,11,0.3)]">
                 <Trophy className="h-6 w-6" />
               </div>
               <h1 className="text-2xl md:text-3xl font-black tracking-tight text-white">
                 Developer Leaderboard
               </h1>
             </div>
-            <p className="text-xs md:text-sm text-muted-foreground max-w-xl">
+            <p className="text-xs md:text-sm text-slate-300 max-w-xl font-medium">
               Relative recognition rankings based on total server-verified points and quality-gated metrics.
             </p>
           </div>
 
           {/* Period filter buttons */}
-          <div className="flex items-center space-x-1.5 p-1.5 rounded-2xl bg-black/40 border border-white/[0.08] shrink-0">
+          <div className="flex items-center space-x-1.5 p-1.5 rounded-2xl bg-slate-950/80 border border-slate-700/60 shrink-0">
             {(["ALL_TIME", "MONTHLY", "QUARTERLY"] as const).map((p) => (
               <button
                 key={p}
                 onClick={() => setPeriod(p)}
-                className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                className={`px-4 py-1.5 rounded-xl text-xs font-black transition-all cursor-pointer ${
                   period === p
-                    ? "bg-gradient-to-r from-amber-500 to-orange-500 text-white shadow-lg"
-                    : "text-muted-foreground hover:text-white hover:bg-white/[0.05]"
+                    ? "bg-gradient-to-r from-amber-500 to-orange-500 text-white shadow-lg shadow-amber-500/20"
+                    : "text-slate-300 hover:text-white hover:bg-white/10"
                 }`}
               >
                 {p.replace("_", " ")}
@@ -75,10 +75,10 @@ export default function LeaderboardPage() {
         </div>
 
         {/* Non-evaluative notice banner (Spec §4 compliance) */}
-        <div className="mt-6 flex items-center space-x-2 rounded-xl bg-amber-500/[0.08] border border-amber-500/20 px-3.5 py-2 text-[11px] text-amber-300/90 font-medium">
+        <div className="mt-6 flex items-center space-x-3 rounded-2xl bg-amber-500/10 border border-amber-500/30 px-4 py-3 text-xs text-amber-200 font-medium">
           <AlertCircle className="h-4 w-4 text-amber-400 shrink-0" />
           <span>
-            <strong>Policy Notice:</strong> Rankings are strictly non-evaluative gamification metrics. Raw score exports and rankings are prohibited from being used in HR reviews, performance appraisals, or compensation decisions.
+            <strong className="text-amber-300 font-bold">Policy Notice:</strong> Rankings are strictly non-evaluative gamification metrics. Raw score exports and rankings are prohibited from being used in HR reviews, performance appraisals, or compensation decisions.
           </span>
         </div>
       </div>
@@ -98,9 +98,9 @@ export default function LeaderboardPage() {
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               {topThree.map((item, idx) => {
                 const ranks = [
-                  { title: "1st Place", color: "from-amber-500/20 to-amber-700/10", border: "border-amber-500/40", text: "text-amber-400", badge: "bg-amber-500/20 text-amber-400 border-amber-500/40", icon: Crown },
-                  { title: "2nd Place", color: "from-slate-400/20 to-slate-600/10", border: "border-slate-400/40", text: "text-slate-300", badge: "bg-slate-400/20 text-slate-300 border-slate-400/40", icon: Medal },
-                  { title: "3rd Place", color: "from-amber-700/20 to-orange-950/10", border: "border-amber-700/40", text: "text-amber-600", badge: "bg-amber-700/20 text-amber-500 border-amber-700/40", icon: Award }
+                  { title: "1st Place", color: "from-amber-500/20 via-amber-600/10 to-transparent", border: "border-amber-500/40", text: "text-amber-400", badge: "bg-amber-500/20 text-amber-400 border-amber-500/40", icon: Crown },
+                  { title: "2nd Place", color: "from-slate-400/20 via-slate-500/10 to-transparent", border: "border-slate-400/40", text: "text-slate-300", badge: "bg-slate-400/20 text-slate-300 border-slate-400/40", icon: Medal },
+                  { title: "3rd Place", color: "from-amber-700/20 via-orange-950/10 to-transparent", border: "border-amber-700/40", text: "text-amber-500", badge: "bg-amber-700/20 text-amber-400 border-amber-700/40", icon: Award }
                 ];
                 const rankInfo = ranks[idx] || ranks[2];
                 const RankIcon = rankInfo.icon;
@@ -111,7 +111,7 @@ export default function LeaderboardPage() {
                     initial={{ y: 16, opacity: 0 }}
                     animate={{ y: 0, opacity: 1 }}
                     transition={{ delay: idx * 0.1 }}
-                    className={`relative overflow-hidden rounded-3xl border ${rankInfo.border} bg-gradient-to-b ${rankInfo.color} p-6 backdrop-blur-xl shadow-xl flex flex-col justify-between`}
+                    className={`relative overflow-hidden rounded-3xl border ${rankInfo.border} bg-card bg-gradient-to-b ${rankInfo.color} p-6 backdrop-blur-xl shadow-xl flex flex-col justify-between`}
                   >
                     <div className="flex justify-between items-start">
                       <div className={`p-3 rounded-2xl ${rankInfo.badge} border shadow-md`}>
@@ -123,14 +123,14 @@ export default function LeaderboardPage() {
                     </div>
 
                     <div className="mt-4 space-y-1">
-                      <h3 className="text-lg font-black text-white truncate">{item.fullName || item.username}</h3>
-                      <p className="text-xs text-muted-foreground flex items-center space-x-1">
+                      <h3 className="text-lg font-black text-foreground truncate">{item.fullName || item.username}</h3>
+                      <p className="text-xs text-muted-foreground flex items-center space-x-1 font-medium">
                         <Shield className="h-3.5 w-3.5 text-purple-400" />
                         <span>{item.levelTitle || "Level 1 (Novice)"}</span>
                       </p>
                     </div>
 
-                    <div className="mt-6 pt-4 border-t border-white/[0.08] flex items-center justify-between">
+                    <div className="mt-6 pt-4 border-t border-border flex items-center justify-between">
                       <div>
                         <span className="text-[10px] text-muted-foreground uppercase font-bold tracking-wider">Quality Score</span>
                         <div className="text-xs font-bold text-emerald-400 flex items-center space-x-1">
@@ -153,18 +153,18 @@ export default function LeaderboardPage() {
           )}
 
           {/* ── Ranked Table (Rank #4 and below) ───────────────────────── */}
-          <div className="rounded-3xl border border-white/[0.08] bg-card/60 backdrop-blur-xl shadow-xl overflow-hidden">
-            <div className="px-6 py-4 border-b border-white/[0.08] flex items-center justify-between">
-              <h3 className="text-sm font-bold text-white uppercase tracking-wider">
-                Rankings
+          <div className="rounded-3xl border border-border bg-card backdrop-blur-xl shadow-xl overflow-hidden">
+            <div className="px-6 py-4 border-b border-border flex items-center justify-between bg-muted/30">
+              <h3 className="text-sm font-black text-foreground uppercase tracking-wider">
+                Developer Roster Rankings
               </h3>
-              <span className="text-xs text-muted-foreground">{entries.length} active developers</span>
+              <span className="text-xs font-semibold text-muted-foreground">{entries.length} active developers</span>
             </div>
 
             <div className="overflow-x-auto">
               <table className="w-full text-left border-collapse">
                 <thead>
-                  <tr className="border-b border-white/[0.06] text-[10px] font-bold text-muted-foreground uppercase tracking-wider">
+                  <tr className="border-b border-border bg-muted/40 text-[10px] font-extrabold text-muted-foreground uppercase tracking-wider">
                     <th className="px-6 py-3.5">Rank</th>
                     <th className="px-6 py-3.5">Developer</th>
                     <th className="px-6 py-3.5">Level Tier</th>
@@ -173,21 +173,21 @@ export default function LeaderboardPage() {
                     <th className="px-6 py-3.5 text-right">Total Score</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-white/[0.04] text-xs">
+                <tbody className="divide-y divide-border/60 text-xs">
                   {entries.map((item, idx) => (
                     <tr
                       key={item.userId}
-                      className="hover:bg-white/[0.02] transition-colors"
+                      className="hover:bg-muted/20 transition-colors"
                     >
                       <td className="px-6 py-4 font-mono font-bold text-muted-foreground">
                         #{idx + 1}
                       </td>
                       <td className="px-6 py-4">
-                        <div className="font-bold text-white">{item.fullName || item.username}</div>
-                        <div className="text-[10px] text-muted-foreground">@{item.username}</div>
+                        <div className="font-bold text-foreground text-sm">{item.fullName || item.username}</div>
+                        <div className="text-[10px] text-muted-foreground font-mono">@{item.username}</div>
                       </td>
                       <td className="px-6 py-4">
-                        <span className="inline-flex items-center space-x-1 px-2.5 py-1 rounded-lg bg-purple-500/10 border border-purple-500/20 text-purple-300 font-semibold text-[11px]">
+                        <span className="inline-flex items-center space-x-1 px-2.5 py-1 rounded-lg bg-purple-500/10 border border-purple-500/20 text-purple-400 font-semibold text-[11px]">
                           <Shield className="h-3 w-3" />
                           <span>{item.levelTitle || "Level 1"}</span>
                         </span>
@@ -198,7 +198,7 @@ export default function LeaderboardPage() {
                       <td className="px-6 py-4 text-right font-mono text-emerald-400 font-semibold">
                         {item.qualityScore !== undefined ? Number(item.qualityScore).toFixed(1) : "100.0"}%
                       </td>
-                      <td className="px-6 py-4 text-right font-bold text-amber-400 font-mono text-sm">
+                      <td className="px-6 py-4 text-right font-bold text-amber-500 dark:text-amber-400 font-mono text-sm">
                         {item.totalScore} pts
                       </td>
                     </tr>
