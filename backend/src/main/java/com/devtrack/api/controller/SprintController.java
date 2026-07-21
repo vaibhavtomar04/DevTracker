@@ -1,15 +1,20 @@
 package com.devtrack.api.controller;
 
+import com.devtrack.api.event.RecognitionTriggerEvent;
+import com.devtrack.api.model.Role;
 import com.devtrack.api.model.Sprint;
 import com.devtrack.api.model.Task;
 import com.devtrack.api.repository.SprintRepository;
 import com.devtrack.api.repository.TaskRepository;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/sprints")
@@ -20,6 +25,9 @@ public class SprintController {
 
     @Autowired
     private TaskRepository taskRepository;
+
+    @Autowired
+    private ApplicationEventPublisher applicationEventPublisher;
 
     @GetMapping
     public List<Sprint> getAllSprints() {
@@ -78,6 +86,7 @@ public class SprintController {
                         if ("ACTIVE".equals(s.getStatus())) {
                             s.setStatus("COMPLETED");
                             sprintRepository.save(s);
+                            triggerSprintCompletedEvents(s.getId(), s.getName());
                         }
                     }
                     sprint.setStatus("ACTIVE");
@@ -92,8 +101,30 @@ public class SprintController {
         return sprintRepository.findById(id)
                 .map(sprint -> {
                     sprint.setStatus("COMPLETED");
-                    return ResponseEntity.ok(sprintRepository.save(sprint));
+                    Sprint saved = sprintRepository.save(sprint);
+                    triggerSprintCompletedEvents(saved.getId(), saved.getName());
+                    return ResponseEntity.ok(saved);
                 })
                 .orElse(ResponseEntity.notFound().build());
+    }
+
+    private void triggerSprintCompletedEvents(Long sprintId, String sprintName) {
+        try {
+            String actor = SecurityContextHolder.getContext().getAuthentication() != null
+                    ? SecurityContextHolder.getContext().getAuthentication().getName() : "SYSTEM";
+            List<Task> tasks = taskRepository.findBySprintId(sprintId);
+            tasks.stream()
+                 .filter(t -> t.getAssignedDeveloper() != null)
+                 .map(t -> t.getAssignedDeveloper().getId())
+                 .distinct()
+                 .forEach(devId -> applicationEventPublisher.publishEvent(
+                     new RecognitionTriggerEvent(
+                         this, "SPRINT_COMPLETED", devId, "SPRINT", sprintId, actor,
+                         Map.of("sprintName", sprintName != null ? sprintName : "")
+                     )
+                 ));
+        } catch (Exception e) {
+            // Ignore non-critical recognition event firing failures
+        }
     }
 }

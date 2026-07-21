@@ -19,6 +19,14 @@ public interface AchievementRepository extends JpaRepository<Achievement, Long> 
 
     Page<Achievement> findByActiveFlagOrderByCategoryAscDisplayOrderAsc(int activeFlag, Pageable pageable);
 
+    Page<Achievement> findByActiveFlag(int activeFlag, Pageable pageable);
+
+    Page<Achievement> findByCategoryCodeAndActiveFlag(String categoryCode, int activeFlag, Pageable pageable);
+
+    Page<Achievement> findByRarityAndActiveFlag(String rarity, int activeFlag, Pageable pageable);
+
+    Page<Achievement> findByCategoryCodeAndRarityAndActiveFlag(String categoryCode, String rarity, int activeFlag, Pageable pageable);
+
     List<Achievement> findByIsMilestoneAndActiveFlag(int isMilestone, int activeFlag);
 
     /**

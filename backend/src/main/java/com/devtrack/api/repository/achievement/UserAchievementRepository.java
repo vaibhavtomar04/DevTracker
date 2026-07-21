@@ -7,7 +7,9 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
+
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 @Repository
@@ -16,6 +18,8 @@ public interface UserAchievementRepository extends JpaRepository<UserAchievement
     boolean existsByUserIdAndAchievementIdAndActiveFlag(Long userId, Long achievementId, int activeFlag);
 
     Optional<UserAchievement> findByUserIdAndAchievementId(Long userId, Long achievementId);
+
+    Page<UserAchievement> findByUserIdAndActiveFlag(Long userId, int activeFlag, Pageable pageable);
 
     Page<UserAchievement> findByUserIdAndActiveFlagOrderByUnlockDateDesc(Long userId, int activeFlag, Pageable pageable);
 
@@ -52,4 +56,20 @@ public interface UserAchievementRepository extends JpaRepository<UserAchievement
 
     /** Idempotency guard — check if a source event already granted an achievement. */
     boolean existsBySourceEventId(String sourceEventId);
+
+    /** Achievement count leaderboard */
+    @Query(value = """
+        SELECT
+            u.id AS userId,
+            u.full_name AS fullName,
+            u.username AS username,
+            COUNT(ua.id) AS achievementCount,
+            COALESCE(SUM(ua.points_awarded), 0) AS totalAchievementPoints
+        FROM user_achievement ua
+        JOIN users u ON ua.user_id = u.id
+        WHERE ua.active_flag = 1
+        GROUP BY u.id, u.full_name, u.username
+        ORDER BY achievementCount DESC, totalAchievementPoints DESC
+        """, nativeQuery = true)
+    List<Map<String, Object>> findAchievementLeaderboard(Pageable pageable);
 }

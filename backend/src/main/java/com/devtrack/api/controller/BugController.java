@@ -38,6 +38,7 @@ import com.devtrack.api.repository.WorkflowRepository;
 import com.devtrack.api.services.EmailNotificationService;
 import java.time.LocalDateTime;
 import com.devtrack.api.model.BugDeveloperFixSummary;
+import com.devtrack.api.event.RecognitionTriggerEvent;
 import com.devtrack.api.dto.BugDeveloperFixSummaryDto;
 
 import lombok.extern.slf4j.Slf4j;
@@ -85,6 +86,9 @@ public class BugController {
 
     @Autowired
     private com.devtrack.api.services.QualityRiskService qualityRiskService;
+
+    @Autowired
+    private org.springframework.context.ApplicationEventPublisher applicationEventPublisher;
 
     @GetMapping
     public ResponseEntity<?> getAllBugs(
@@ -551,6 +555,30 @@ public class BugController {
                         } catch (Exception e) {
                             log.error("Failed to evaluate CR risk in updateBug", e);
                         }
+                    }
+
+                    // ── Recognition hook — BUG_RESOLVED ─────────────────────────────
+                    try {
+                        String newSt = savedBug.getStatus();
+                        boolean isResolution = newSt != null &&
+                            (newSt.contains("RESOLVED") || newSt.contains("CLOSED") || newSt.contains("VERIFIED"));
+                        if (isResolution && savedBug.getAssignedDeveloper() != null) {
+                            applicationEventPublisher.publishEvent(new RecognitionTriggerEvent(
+                                savedBug,
+                                "BUG_RESOLVED",
+                                savedBug.getAssignedDeveloper().getId(),
+                                "BUG",
+                                savedBug.getId(),
+                                SecurityContextHolder.getContext().getAuthentication().getName(),
+                                java.util.Map.of(
+                                    "jtrackId", savedBug.getJtrackId(),
+                                    "severity",  savedBug.getSeverity() != null ? savedBug.getSeverity() : "",
+                                    "environment", savedBug.getEnvironment() != null ? savedBug.getEnvironment() : ""
+                                )
+                            ));
+                        }
+                    } catch (Exception e) {
+                        log.error("Failed to publish BUG_RESOLVED recognition trigger: {}", e.getMessage());
                     }
                     
                     // Auto-transition task back to UAT_TESTING if all sibling bugs are VERIFIED or CLOSED

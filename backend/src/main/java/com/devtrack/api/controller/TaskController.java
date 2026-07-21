@@ -51,8 +51,10 @@ import com.devtrack.api.repository.ConfigRepository;
 import com.devtrack.api.repository.TaskRepository;
 import com.devtrack.api.repository.TaskWorkflowMapRepository;
 import com.devtrack.api.repository.UserRepository;
+import com.devtrack.api.event.RecognitionTriggerEvent;
 import com.devtrack.api.services.EmailNotificationService;
 import com.devtrack.api.services.WorkflowExecutionService;
+import org.springframework.context.ApplicationEventPublisher;
 
 import lombok.extern.slf4j.Slf4j;
 
@@ -98,6 +100,9 @@ public class TaskController {
 
     @Autowired
     private com.devtrack.api.services.QualityRiskService qualityRiskService;
+
+    @Autowired
+    private ApplicationEventPublisher applicationEventPublisher;
 
     TaskController(EmailNotificationService emailNotificationService) {
         this.emailNotificationService = emailNotificationService;
@@ -631,6 +636,48 @@ public class TaskController {
                                 qualityRiskService.evaluateCrRisk(savedFinal.getId(), triggeredEvent);
                             } catch (Exception e) {
                                 log.error("Failed to evaluate CR risk in updateTask status transition", e);
+                            }
+
+                            // ── Recognition hook — fire AFTER_COMMIT via ApplicationEventPublisher ──
+                            // Each event type maps to a point delta in RecognitionEventListener.
+                            try {
+                                Long devId = savedFinal.getAssignedDeveloper() != null
+                                        ? savedFinal.getAssignedDeveloper().getId() : null;
+                                Long testerId = savedFinal.getTester() != null
+                                        ? savedFinal.getTester().getId() : null;
+                                String newSt = savedFinal.getStatus();
+                                java.util.Map<String, Object> meta = java.util.Map.of(
+                                    "jtrackId", savedFinal.getJtrackId(),
+                                    "priority", savedFinal.getPriority() != null ? savedFinal.getPriority() : ""
+                                );
+                                if (("PROD_COMPLETED".equals(newSt) || "CLOSED".equals(newSt)) && devId != null) {
+                                    applicationEventPublisher.publishEvent(new RecognitionTriggerEvent(
+                                        savedFinal, "CR_COMPLETED", devId, "TASK", savedFinal.getId(),
+                                        currentUserFinal.getUsername(), meta));
+                                }
+                                if ("PROD_DEPLOYED".equals(newSt) && devId != null) {
+                                    applicationEventPublisher.publishEvent(new RecognitionTriggerEvent(
+                                        savedFinal, "DEPLOYMENT_SUCCESS", devId, "TASK", savedFinal.getId(),
+                                        currentUserFinal.getUsername(), meta));
+                                }
+                                if ("CODE_REVIEW_DONE".equals(newSt) && devId != null) {
+                                    applicationEventPublisher.publishEvent(new RecognitionTriggerEvent(
+                                        savedFinal, "CODE_APPROVED", devId, "TASK", savedFinal.getId(),
+                                        currentUserFinal.getUsername(), meta));
+                                }
+                                if ("CHANGES_REQUESTED".equals(newSt) && devId != null) {
+                                    applicationEventPublisher.publishEvent(new RecognitionTriggerEvent(
+                                        savedFinal, "CODE_CHANGES_REQUESTED", devId, "TASK", savedFinal.getId(),
+                                        currentUserFinal.getUsername(), meta));
+                                }
+                                if ("TESTING_COMPLETED".equals(newSt) && testerId != null) {
+                                    applicationEventPublisher.publishEvent(new RecognitionTriggerEvent(
+                                        savedFinal, "TESTING_COMPLETED", testerId, "TASK", savedFinal.getId(),
+                                        currentUserFinal.getUsername(), meta));
+                                }
+                            } catch (Exception e) {
+                                log.error("Failed to publish recognition trigger for task {}: {}",
+                                        savedFinal.getId(), e.getMessage());
                             }
                         });
                     }
