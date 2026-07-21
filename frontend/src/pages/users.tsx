@@ -777,6 +777,8 @@ export default function UsersPage() {
             </motion.div>
           </motion.div>
         )}
+      </AnimatePresence>
+
       {/* ── Edit User Roles Modal ── */}
       <AnimatePresence>
         {editRolesUser && (
