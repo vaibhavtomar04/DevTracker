@@ -132,7 +132,7 @@ export const DevOpsDeploymentModal: React.FC<DevOpsDeploymentModalProps> = ({
                       Developer: <span className="text-slate-700 font-medium">{developerName}</span>
                     </p>
                   </div>
-                  <span className="shrink-0 text-[10px] px-2.5 py-1 rounded-full bg-emerald-50 border border-emerald-200 text-emerald-700 font-semibold uppercase tracking-wide">
+                  <span className="shrink-0 text-[10px] px-2.5 py-1 rounded-full bg-emerald-600 text-white font-bold uppercase tracking-wide shadow-sm shadow-emerald-500/30">
                     DevOps Email
                   </span>
                 </div>

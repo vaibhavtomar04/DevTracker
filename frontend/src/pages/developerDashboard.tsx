@@ -2220,7 +2220,8 @@ export default function DeveloperDashboard() {
                             <span className="block text-[10px] font-bold uppercase tracking-wider text-cyan-600 dark:text-cyan-400">Unit Test Document Required</span>
                             <input
                               type="file"
-                              accept=".pdf,.doc,.docx,.txt"
+                              accept="*"
+                              multiple
                               onChange={handleUnitDocChange}
                               id="unit-test-input-drawer"
                               className="hidden"

@@ -513,7 +513,7 @@ export const CreateCRModal: React.FC<CreateCRModalProps> = ({ isOpen, onClose, o
               <label className="w-full border border-dashed border-white/[0.12] rounded-xl p-4 flex flex-col items-center gap-2 hover:border-violet-500/40 hover:bg-violet-500/[0.03] transition-all text-slate-500 hover:text-slate-300 cursor-pointer">
                 <Upload className="h-5 w-5" />
                 <span className="text-[11px]">Click to attach files</span>
-                <input type="file" onChange={handleFileUpload} className="hidden" accept=".pdf,.doc,.docx,.png,.jpg,.jpeg" />
+                <input type="file" multiple onChange={handleFileUpload} className="hidden" accept="*" />
               </label>
               {brdFile ? (
                 <div className="mt-2 flex items-center gap-2.5 p-2.5 rounded-xl border border-white/[0.06] bg-white/[0.02]">

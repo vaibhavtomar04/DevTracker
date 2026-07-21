@@ -141,14 +141,14 @@ export const DocumentUpload: React.FC<DocumentUploadProps> = ({
         <p className="text-sm text-zinc-400 group-hover:text-zinc-300 transition-colors">
           {isDragOver ? 'Drop files here' : 'Drag files here or click to browse'}
         </p>
-        <p className="text-xs text-zinc-600">
-          {ALLOWED_EXTENSIONS.join(', ')} · max 25 MB
+        <p className="text-xs text-zinc-500">
+          Any file type · max 25 MB
         </p>
         <input
           ref={fileInputRef}
           type="file"
           multiple
-          accept={ALLOWED_EXTENSIONS.join(',')}
+          accept="*"
           className="hidden"
           onChange={(e) => handleFiles(e.target.files)}
         />

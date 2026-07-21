@@ -872,7 +872,7 @@ export default function TesterDashboard() {
                     
                     <input
                       type="file"
-                      accept="image/*,.pdf,.doc,.docx,.zip,.rar,.7z,.xls,.xlsx,.ppt,.pptx,.txt"
+                      accept="*"
                       onChange={handleMultipleFilesChange}
                       id="screenshot-file-input"
                       multiple

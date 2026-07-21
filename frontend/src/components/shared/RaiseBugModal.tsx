@@ -20,14 +20,8 @@ interface RaiseBugModalProps {
   onSuccess?: () => void
 }
 
-const ACCEPTED_TYPES = [
-  "image/png", "image/jpeg", "image/jpg",
-  "video/mp4", "video/quicktime",
-  "application/pdf",
-  "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-  "text/plain", "text/x-log"
-]
-const ACCEPTED_EXT = ".png,.jpg,.jpeg,.mp4,.mov,.pdf,.docx,.txt,.log"
+const ACCEPTED_TYPES: string[] = [] // empty = accept all
+const ACCEPTED_EXT = "*"
 const MAX_FILE_SIZE_MB = 5
 
 function formatBytes(bytes: number): string {
@@ -80,10 +74,6 @@ export default function RaiseBugModal({ crTaskId, crJtrackId, onClose, onSuccess
   const handleFileAdd = (files: FileList | null) => {
     if (!files) return
     Array.from(files).forEach(file => {
-      if (!ACCEPTED_TYPES.includes(file.type) && !file.name.endsWith(".log")) {
-        addToast(`Unsupported file type: ${file.name}`, "error")
-        return
-      }
       if (file.size > MAX_FILE_SIZE_MB * 1024 * 1024) {
         addToast(`${file.name} exceeds ${MAX_FILE_SIZE_MB}MB limit`, "error")
         return
@@ -261,12 +251,12 @@ export default function RaiseBugModal({ crTaskId, crJtrackId, onClose, onSuccess
 
             {/* Artifact Upload */}
             <div>
-              <label className={labelCls}>Attachments <span className="text-slate-500 normal-case font-normal tracking-normal">(PNG, JPG, MP4, MOV, PDF, DOCX, TXT, LOG — max {MAX_FILE_SIZE_MB}MB each)</span></label>
+              <label className={labelCls}>Attachments <span className="text-slate-500 normal-case font-normal tracking-normal">(Any file — max {MAX_FILE_SIZE_MB}MB each)</span></label>
               <input
                 ref={fileInputRef}
                 type="file"
                 multiple
-                accept={ACCEPTED_EXT}
+                accept="*"
                 className="hidden"
                 onChange={e => handleFileAdd(e.target.files)}
               />

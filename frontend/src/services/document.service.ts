@@ -190,14 +190,5 @@ export const DOC_TYPE_COLORS: Record<DocType, string> = {
   SUPPORT: 'bg-zinc-500/20 text-zinc-400 border-zinc-500/30',
 };
 
-export const ALLOWED_EXTENSIONS = ['.pdf', '.docx', '.doc', '.xlsx', '.md', '.txt', '.png', '.jpg', '.jpeg'];
-export const ALLOWED_MIME_TYPES = [
-  'application/pdf',
-  'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-  'application/msword',
-  'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-  'text/markdown',
-  'text/plain',
-  'image/png',
-  'image/jpeg',
-];
+export const ALLOWED_EXTENSIONS = ['.pdf', '.docx', '.doc', '.xlsx', '.xls', '.csv', '.md', '.txt', '.log', '.png', '.jpg', '.jpeg', '.gif', '.webp', '.mp4', '.mov', '.zip', '.rar', '.7z', '.ppt', '.pptx'];
+export const ALLOWED_MIME_TYPES: string[] = []; // empty = accept all mime types

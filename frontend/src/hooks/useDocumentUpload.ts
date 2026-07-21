@@ -15,7 +15,6 @@ import {
   type DocumentDto,
   type UploadProgress,
   uploadDocument,
-  ALLOWED_MIME_TYPES,
 } from '../services/document.service';
 
 export interface FileUploadState {
@@ -49,16 +48,6 @@ export function useDocumentUpload(crId: number): UseDocumentUploadReturn {
 
   const doUpload = useCallback(
     async (entry: FileUploadState) => {
-      // Pre-flight MIME check on client side (server also validates)
-      if (!ALLOWED_MIME_TYPES.includes(entry.file.type)) {
-        updateProgress(entry.fileKey, {
-          status: 'error',
-          percentage: 0,
-          error: `File type "${entry.file.type}" is not allowed. Use PDF, DOCX, XLSX, Markdown, TXT, or images.`,
-        });
-        return;
-      }
-
       // 25 MB client-side check
       if (entry.file.size > 25 * 1024 * 1024) {
         updateProgress(entry.fileKey, {
