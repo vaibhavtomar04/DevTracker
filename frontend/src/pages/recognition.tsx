@@ -23,11 +23,11 @@ import {
 import { useAuthStore } from "@/store/authStore";
 
 const RARITY_COLORS: Record<string, { bg: string; text: string; border: string; glow: string }> = {
-  COMMON: { bg: "bg-slate-500/10", text: "text-slate-400", border: "border-slate-500/30", glow: "shadow-slate-500/20" },
-  UNCOMMON: { bg: "bg-emerald-500/10", text: "text-emerald-400", border: "border-emerald-500/30", glow: "shadow-emerald-500/20" },
-  RARE: { bg: "bg-blue-500/10", text: "text-blue-400", border: "border-blue-500/30", glow: "shadow-blue-500/20" },
-  EPIC: { bg: "bg-purple-500/10", text: "text-purple-400", border: "border-purple-500/30", glow: "shadow-purple-500/20" },
-  LEGENDARY: { bg: "bg-amber-500/10", text: "text-amber-400", border: "border-amber-500/30", glow: "shadow-amber-500/20" }
+  COMMON: { bg: "bg-slate-500/10", text: "text-slate-600 dark:text-slate-400", border: "border-slate-500/30", glow: "shadow-slate-500/20" },
+  UNCOMMON: { bg: "bg-emerald-500/10", text: "text-emerald-700 dark:text-emerald-400", border: "border-emerald-500/30", glow: "shadow-emerald-500/20" },
+  RARE: { bg: "bg-blue-500/10", text: "text-blue-700 dark:text-blue-400", border: "border-blue-500/30", glow: "shadow-blue-500/20" },
+  EPIC: { bg: "bg-purple-500/10", text: "text-purple-700 dark:text-purple-400", border: "border-purple-500/30", glow: "shadow-purple-500/20" },
+  LEGENDARY: { bg: "bg-amber-500/10", text: "text-amber-700 dark:text-amber-400", border: "border-amber-500/30", glow: "shadow-amber-500/20" }
 };
 
 export default function RecognitionPage() {
@@ -98,21 +98,21 @@ export default function RecognitionPage() {
 
   return (
     <div className="space-y-6 pb-12">
-      {/* ── Top Header Banner (High Contrast Container) ───────────────── */}
-      <div className="relative overflow-hidden rounded-3xl border border-slate-800 dark:border-white/[0.1] bg-slate-900 text-white p-6 md:p-8 backdrop-blur-xl shadow-2xl">
+      {/* ── Top Header Banner (Theme-Aware) ────────────────────────── */}
+      <div className="relative overflow-hidden rounded-3xl border border-border bg-card p-6 md:p-8 backdrop-blur-xl shadow-xl">
         <div className="absolute top-0 right-0 -mt-12 -mr-12 w-64 h-64 bg-primary/10 rounded-full blur-3xl pointer-events-none" />
         
         <div className="relative flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
           <div className="space-y-2">
             <div className="flex items-center space-x-3">
-              <div className="p-2.5 rounded-2xl bg-primary/20 border border-primary/40 text-primary shadow-[0_0_20px_rgba(var(--primary-rgb),0.3)]">
+              <div className="p-2.5 rounded-2xl bg-primary/15 border border-primary/30 text-primary shadow-sm">
                 <Trophy className="h-6 w-6" />
               </div>
-              <h1 className="text-2xl md:text-3xl font-black tracking-tight text-white">
+              <h1 className="text-2xl md:text-3xl font-black tracking-tight text-foreground">
                 Achievements & Recognition
               </h1>
             </div>
-            <p className="text-xs md:text-sm text-slate-300 font-medium max-w-xl">
+            <p className="text-xs md:text-sm text-muted-foreground font-medium max-w-xl">
               Earn recognition points and badges as you ship quality CRs, complete sprints, and pass zero-rework code reviews.
             </p>
           </div>
@@ -129,11 +129,12 @@ export default function RecognitionPage() {
           )}
         </div>
 
-        {/* Non-evaluative notice banner (Spec §4 compliance) */}
-        <div className="mt-6 flex items-center space-x-3 rounded-2xl bg-amber-500/10 border border-amber-500/30 px-4 py-3 text-xs text-amber-200 font-medium">
-          <AlertCircle className="h-4 w-4 text-amber-400 shrink-0" />
+        {/* Non-evaluative policy notice banner (Theme-aware high contrast compliance) */}
+        <div className="mt-6 flex items-start md:items-center space-x-3 rounded-2xl bg-amber-500/15 dark:bg-amber-500/10 border border-amber-500/40 dark:border-amber-500/30 px-4 py-3 text-xs text-amber-950 dark:text-amber-200 font-semibold shadow-sm">
+          <AlertCircle className="h-4 w-4 text-amber-700 dark:text-amber-400 shrink-0 mt-0.5 md:mt-0" />
           <span>
-            <strong className="text-amber-300 font-bold">Policy Notice:</strong> Recognition points and levels reflect gamified system activity and must NOT be used for formal performance evaluations, promotion, or compensation reviews.
+            <strong className="text-amber-950 dark:text-amber-300 font-extrabold mr-1">Policy Notice:</strong>
+            Recognition points and levels reflect gamified system activity and must NOT be used for formal performance evaluations, promotion, or compensation reviews.
           </span>
         </div>
       </div>
@@ -148,13 +149,13 @@ export default function RecognitionPage() {
         >
           <div className="flex justify-between items-start">
             <span className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Total Score</span>
-            <div className="p-2 rounded-xl bg-amber-500/10 text-amber-400 border border-amber-500/20">
+            <div className="p-2 rounded-xl bg-amber-500/10 text-amber-500 dark:text-amber-400 border border-amber-500/20">
               <Star className="h-4 w-4 fill-current" />
             </div>
           </div>
           <div className="mt-3 flex items-baseline space-x-2">
             <span className="text-3xl font-black text-foreground">{score?.totalScore ?? 0}</span>
-            <span className="text-xs text-amber-400 font-semibold">pts</span>
+            <span className="text-xs text-amber-600 dark:text-amber-400 font-semibold">pts</span>
           </div>
           <p className="mt-1 text-[11px] text-muted-foreground">Server-calculated total</p>
         </motion.div>
@@ -168,7 +169,7 @@ export default function RecognitionPage() {
         >
           <div className="flex justify-between items-start">
             <span className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Current Level</span>
-            <div className="p-2 rounded-xl bg-purple-500/10 text-purple-400 border border-purple-500/20">
+            <div className="p-2 rounded-xl bg-purple-500/10 text-purple-600 dark:text-purple-400 border border-purple-500/20">
               <Shield className="h-4 w-4" />
             </div>
           </div>
@@ -177,7 +178,7 @@ export default function RecognitionPage() {
               {score?.currentLevel?.title || "Level 1 (Novice)"}
             </span>
           </div>
-          <p className="mt-1 text-[11px] text-purple-400 font-semibold">
+          <p className="mt-1 text-[11px] text-purple-600 dark:text-purple-400 font-semibold">
             Tier {score?.currentLevel?.levelNumber || 1} Developer
           </p>
         </motion.div>
@@ -191,7 +192,7 @@ export default function RecognitionPage() {
         >
           <div className="flex justify-between items-start">
             <span className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Composite Quality</span>
-            <div className="p-2 rounded-xl bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+            <div className="p-2 rounded-xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
               <Zap className="h-4 w-4" />
             </div>
           </div>
@@ -199,7 +200,7 @@ export default function RecognitionPage() {
             <span className="text-3xl font-black text-foreground">
               {score?.qualityScore !== undefined ? Number(score.qualityScore).toFixed(1) : "100.0"}
             </span>
-            <span className="text-xs text-emerald-400 font-semibold">%</span>
+            <span className="text-xs text-emerald-600 dark:text-emerald-400 font-semibold">%</span>
           </div>
           <p className="mt-1 text-[11px] text-muted-foreground">Quality gates volume (§12)</p>
         </motion.div>
@@ -213,7 +214,7 @@ export default function RecognitionPage() {
         >
           <div className="flex justify-between items-start">
             <span className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Approval Rate</span>
-            <div className="p-2 rounded-xl bg-blue-500/10 text-blue-400 border border-blue-500/20">
+            <div className="p-2 rounded-xl bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20">
               <CheckCircle2 className="h-4 w-4" />
             </div>
           </div>
@@ -221,7 +222,7 @@ export default function RecognitionPage() {
             <span className="text-3xl font-black text-foreground">
               {score?.approvalRate !== undefined ? Number(score.approvalRate).toFixed(1) : "100.0"}
             </span>
-            <span className="text-xs text-blue-400 font-semibold">%</span>
+            <span className="text-xs text-blue-600 dark:text-blue-400 font-semibold">%</span>
           </div>
           <p className="mt-1 text-[11px] text-muted-foreground">First-pass code approval</p>
         </motion.div>
@@ -297,7 +298,7 @@ export default function RecognitionPage() {
                             </span>
                           </div>
                         </div>
-                        <div className="flex items-center space-x-1 px-2.5 py-1 rounded-lg bg-amber-500/10 border border-amber-500/20 text-amber-500 dark:text-amber-400 text-xs font-bold">
+                        <div className="flex items-center space-x-1 px-2.5 py-1 rounded-lg bg-amber-500/10 border border-amber-500/20 text-amber-600 dark:text-amber-400 text-xs font-bold">
                           <Star className="h-3.5 w-3.5 fill-current" />
                           <span>+{item.pointsAwarded}</span>
                         </div>
@@ -309,7 +310,7 @@ export default function RecognitionPage() {
 
                       <div className="mt-4 pt-3 border-t border-border flex items-center justify-between text-[11px] text-muted-foreground">
                         <span>Unlocked {new Date(item.unlockDate).toLocaleDateString()}</span>
-                        <CheckCircle2 className="h-4 w-4 text-emerald-400" />
+                        <CheckCircle2 className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
                       </div>
                     </motion.div>
                   );
@@ -389,7 +390,7 @@ export default function RecognitionPage() {
                           </span>
                         </div>
                       </div>
-                      <div className="flex items-center space-x-1 px-2.5 py-1 rounded-lg bg-amber-500/10 border border-amber-500/20 text-amber-500 dark:text-amber-400 text-xs font-bold">
+                      <div className="flex items-center space-x-1 px-2.5 py-1 rounded-lg bg-amber-500/10 border border-amber-500/20 text-amber-600 dark:text-amber-400 text-xs font-bold">
                         <Star className="h-3.5 w-3.5 fill-current" />
                         <span>+{item.pointValue}</span>
                       </div>
@@ -401,7 +402,7 @@ export default function RecognitionPage() {
 
                     <div className="mt-4 pt-3 border-t border-border flex items-center justify-between text-[11px]">
                       {isUnlocked ? (
-                        <span className="text-emerald-400 font-semibold flex items-center space-x-1">
+                        <span className="text-emerald-600 dark:text-emerald-400 font-semibold flex items-center space-x-1">
                           <CheckCircle2 className="h-3.5 w-3.5" />
                           <span>Unlocked</span>
                         </span>
@@ -430,7 +431,7 @@ export default function RecognitionPage() {
           >
             <div className="flex items-center justify-between border-b border-border pb-3">
               <h3 className="text-lg font-bold text-foreground flex items-center space-x-2">
-                <Sparkles className="h-5 w-5 text-amber-400" />
+                <Sparkles className="h-5 w-5 text-amber-500 dark:text-amber-400" />
                 <span>Grant Admin Achievement</span>
               </h3>
               <button

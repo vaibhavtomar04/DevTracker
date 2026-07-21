@@ -37,35 +37,35 @@ export default function LeaderboardPage() {
 
   return (
     <div className="space-y-6 pb-12">
-      {/* ── Page Banner Header (High contrast dark theme container) ───── */}
-      <div className="relative overflow-hidden rounded-3xl border border-slate-800 dark:border-white/[0.1] bg-slate-900 text-white p-6 md:p-8 backdrop-blur-xl shadow-2xl">
+      {/* ── Page Banner Header (Fully Theme-Aware) ────────────────────── */}
+      <div className="relative overflow-hidden rounded-3xl border border-border bg-card p-6 md:p-8 backdrop-blur-xl shadow-xl">
         <div className="absolute top-0 right-0 -mt-12 -mr-12 w-64 h-64 bg-amber-500/10 rounded-full blur-3xl pointer-events-none" />
 
         <div className="relative flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
           <div className="space-y-2">
             <div className="flex items-center space-x-3">
-              <div className="p-2.5 rounded-2xl bg-amber-500/20 border border-amber-500/40 text-amber-400 shadow-[0_0_20px_rgba(245,158,11,0.3)]">
+              <div className="p-2.5 rounded-2xl bg-amber-500/15 border border-amber-500/30 text-amber-600 dark:text-amber-400 shadow-sm">
                 <Trophy className="h-6 w-6" />
               </div>
-              <h1 className="text-2xl md:text-3xl font-black tracking-tight text-white">
+              <h1 className="text-2xl md:text-3xl font-black tracking-tight text-foreground">
                 Developer Leaderboard
               </h1>
             </div>
-            <p className="text-xs md:text-sm text-slate-300 max-w-xl font-medium">
+            <p className="text-xs md:text-sm text-muted-foreground max-w-xl font-medium">
               Relative recognition rankings based on total server-verified points and quality-gated metrics.
             </p>
           </div>
 
-          {/* Period filter buttons */}
-          <div className="flex items-center space-x-1.5 p-1.5 rounded-2xl bg-slate-950/80 border border-slate-700/60 shrink-0">
+          {/* Period filter buttons (Theme-aware) */}
+          <div className="flex items-center space-x-1.5 p-1.5 rounded-2xl bg-muted border border-border shrink-0">
             {(["ALL_TIME", "MONTHLY", "QUARTERLY"] as const).map((p) => (
               <button
                 key={p}
                 onClick={() => setPeriod(p)}
                 className={`px-4 py-1.5 rounded-xl text-xs font-black transition-all cursor-pointer ${
                   period === p
-                    ? "bg-gradient-to-r from-amber-500 to-orange-500 text-white shadow-lg shadow-amber-500/20"
-                    : "text-slate-300 hover:text-white hover:bg-white/10"
+                    ? "bg-gradient-to-r from-amber-500 to-orange-500 text-white shadow-md shadow-amber-500/20"
+                    : "text-muted-foreground hover:text-foreground hover:bg-background/60"
                 }`}
               >
                 {p.replace("_", " ")}
@@ -74,11 +74,12 @@ export default function LeaderboardPage() {
           </div>
         </div>
 
-        {/* Non-evaluative notice banner (Spec §4 compliance) */}
-        <div className="mt-6 flex items-center space-x-3 rounded-2xl bg-amber-500/10 border border-amber-500/30 px-4 py-3 text-xs text-amber-200 font-medium">
-          <AlertCircle className="h-4 w-4 text-amber-400 shrink-0" />
+        {/* Non-evaluative policy notice banner (Theme-aware high contrast compliance) */}
+        <div className="mt-6 flex items-start md:items-center space-x-3 rounded-2xl bg-amber-500/15 dark:bg-amber-500/10 border border-amber-500/40 dark:border-amber-500/30 px-4 py-3 text-xs text-amber-950 dark:text-amber-200 font-semibold shadow-sm">
+          <AlertCircle className="h-4 w-4 text-amber-700 dark:text-amber-400 shrink-0 mt-0.5 md:mt-0" />
           <span>
-            <strong className="text-amber-300 font-bold">Policy Notice:</strong> Rankings are strictly non-evaluative gamification metrics. Raw score exports and rankings are prohibited from being used in HR reviews, performance appraisals, or compensation decisions.
+            <strong className="text-amber-950 dark:text-amber-300 font-extrabold mr-1">Policy Notice:</strong>
+            Rankings are strictly non-evaluative gamification metrics. Raw score exports and rankings are prohibited from being used in HR reviews, performance appraisals, or compensation decisions.
           </span>
         </div>
       </div>
@@ -98,9 +99,9 @@ export default function LeaderboardPage() {
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               {topThree.map((item, idx) => {
                 const ranks = [
-                  { title: "1st Place", color: "from-amber-500/20 via-amber-600/10 to-transparent", border: "border-amber-500/40", text: "text-amber-400", badge: "bg-amber-500/20 text-amber-400 border-amber-500/40", icon: Crown },
-                  { title: "2nd Place", color: "from-slate-400/20 via-slate-500/10 to-transparent", border: "border-slate-400/40", text: "text-slate-300", badge: "bg-slate-400/20 text-slate-300 border-slate-400/40", icon: Medal },
-                  { title: "3rd Place", color: "from-amber-700/20 via-orange-950/10 to-transparent", border: "border-amber-700/40", text: "text-amber-500", badge: "bg-amber-700/20 text-amber-400 border-amber-700/40", icon: Award }
+                  { title: "1st Place", color: "from-amber-500/20 via-amber-600/10 to-transparent", border: "border-amber-500/40", text: "text-amber-600 dark:text-amber-400", badge: "bg-amber-500/20 text-amber-700 dark:text-amber-400 border-amber-500/40", icon: Crown },
+                  { title: "2nd Place", color: "from-slate-400/20 via-slate-500/10 to-transparent", border: "border-slate-400/40", text: "text-slate-700 dark:text-slate-300", badge: "bg-slate-400/20 text-slate-700 dark:text-slate-300 border-slate-400/40", icon: Medal },
+                  { title: "3rd Place", color: "from-amber-700/20 via-orange-950/10 to-transparent", border: "border-amber-700/40", text: "text-amber-700 dark:text-amber-500", badge: "bg-amber-700/20 text-amber-700 dark:text-amber-400 border-amber-700/40", icon: Award }
                 ];
                 const rankInfo = ranks[idx] || ranks[2];
                 const RankIcon = rankInfo.icon;
@@ -125,7 +126,7 @@ export default function LeaderboardPage() {
                     <div className="mt-4 space-y-1">
                       <h3 className="text-lg font-black text-foreground truncate">{item.fullName || item.username}</h3>
                       <p className="text-xs text-muted-foreground flex items-center space-x-1 font-medium">
-                        <Shield className="h-3.5 w-3.5 text-purple-400" />
+                        <Shield className="h-3.5 w-3.5 text-purple-500 dark:text-purple-400" />
                         <span>{item.levelTitle || "Level 1 (Novice)"}</span>
                       </p>
                     </div>
@@ -133,7 +134,7 @@ export default function LeaderboardPage() {
                     <div className="mt-6 pt-4 border-t border-border flex items-center justify-between">
                       <div>
                         <span className="text-[10px] text-muted-foreground uppercase font-bold tracking-wider">Quality Score</span>
-                        <div className="text-xs font-bold text-emerald-400 flex items-center space-x-1">
+                        <div className="text-xs font-bold text-emerald-600 dark:text-emerald-400 flex items-center space-x-1">
                           <Zap className="h-3 w-3" />
                           <span>{item.qualityScore !== undefined ? Number(item.qualityScore).toFixed(1) : "100.0"}%</span>
                         </div>
@@ -187,18 +188,18 @@ export default function LeaderboardPage() {
                         <div className="text-[10px] text-muted-foreground font-mono">@{item.username}</div>
                       </td>
                       <td className="px-6 py-4">
-                        <span className="inline-flex items-center space-x-1 px-2.5 py-1 rounded-lg bg-purple-500/10 border border-purple-500/20 text-purple-400 font-semibold text-[11px]">
+                        <span className="inline-flex items-center space-x-1 px-2.5 py-1 rounded-lg bg-purple-500/10 border border-purple-500/20 text-purple-700 dark:text-purple-300 font-semibold text-[11px]">
                           <Shield className="h-3 w-3" />
                           <span>{item.levelTitle || "Level 1"}</span>
                         </span>
                       </td>
-                      <td className="px-6 py-4 text-right font-mono text-blue-400 font-semibold">
+                      <td className="px-6 py-4 text-right font-mono text-blue-600 dark:text-blue-400 font-semibold">
                         {item.approvalRate !== undefined ? Number(item.approvalRate).toFixed(1) : "100.0"}%
                       </td>
-                      <td className="px-6 py-4 text-right font-mono text-emerald-400 font-semibold">
+                      <td className="px-6 py-4 text-right font-mono text-emerald-600 dark:text-emerald-400 font-semibold">
                         {item.qualityScore !== undefined ? Number(item.qualityScore).toFixed(1) : "100.0"}%
                       </td>
-                      <td className="px-6 py-4 text-right font-bold text-amber-500 dark:text-amber-400 font-mono text-sm">
+                      <td className="px-6 py-4 text-right font-bold text-amber-600 dark:text-amber-400 font-mono text-sm">
                         {item.totalScore} pts
                       </td>
                     </tr>
