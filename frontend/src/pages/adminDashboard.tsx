@@ -157,7 +157,9 @@ export default function AdminDashboard() {
   const [colFilterStatus, setColFilterStatus] = useState("")
   const [colFilterDeveloper, setColFilterDeveloper] = useState("")
 
-  const filteredAuditTasks = tasks.filter(cr => {
+  const filteredAuditTasks = [...tasks]
+    .sort((a, b) => b.id - a.id)
+    .filter(cr => {
     if (colFilterCr.trim() && !cr.jtrackId.toLowerCase().includes(colFilterCr.toLowerCase().trim())) return false
     if (colFilterTitle.trim() && !cr.title.toLowerCase().includes(colFilterTitle.toLowerCase().trim())) return false
     if (colFilterPriority && cr.priority !== colFilterPriority) return false
@@ -245,7 +247,7 @@ export default function AdminDashboard() {
       trendIcon: TrendingUp,
       popupSubtitle: "All active CRs and tasks in the pipeline",
       emptyText: "No tasks found.",
-      getItems: () => tasks.map(t => ({
+      getItems: () => [...tasks].sort((a, b) => b.id - a.id).map(t => ({
         id: t.id,
         label: `${t.jtrackId} — ${t.title}`,
         subLabel: `${t.status.replace(/_/g,' ')} · ${t.priority}`,
@@ -264,7 +266,7 @@ export default function AdminDashboard() {
       trendIcon: AlertCircle,
       popupSubtitle: "CRs flagged as quality-at-risk",
       emptyText: "No quality risks identified.",
-      getItems: () => tasks.filter(t => (t as any).isQualityRisk).map(t => ({
+      getItems: () => [...tasks].filter(t => (t as any).isQualityRisk).sort((a, b) => b.id - a.id).map(t => ({
         id: t.id,
         label: `${t.jtrackId} — ${t.title}`,
         subLabel: `Priority: ${t.priority} · Status: ${t.status.replace(/_/g,' ')}`,
@@ -283,7 +285,7 @@ export default function AdminDashboard() {
       trendIcon: BugIcon,
       popupSubtitle: "All bugs raised across all CRs",
       emptyText: "No bugs raised yet.",
-      getItems: () => bugs.map(b => ({
+      getItems: () => [...bugs].sort((a, b) => b.id - a.id).map(b => ({
         id: b.id,
         label: `${b.jtrackId} — ${b.title}`,
         subLabel: `Severity: ${b.severity} · By: ${b.raisedBy?.fullName}`,
@@ -320,7 +322,7 @@ export default function AdminDashboard() {
       trendIcon: CheckCircle2,
       popupSubtitle: "Percentage of bugs accepted by developers",
       emptyText: "No acceptance data available.",
-      getItems: () => bugs.filter(b => b.status !== 'OPEN').map(b => ({
+      getItems: () => [...bugs].filter(b => b.status !== 'OPEN').sort((a, b) => b.id - a.id).map(b => ({
         id: b.id,
         label: `${b.jtrackId} — ${b.title}`,
         subLabel: `Status: ${b.status} · By: ${b.raisedBy?.fullName}`,
@@ -352,7 +354,7 @@ export default function AdminDashboard() {
       trendIcon: Clock,
       popupSubtitle: "CRs that completed testing within 48 hour SLA",
       emptyText: "No SLA data available.",
-      getItems: () => tasks.filter(t => t.testingDuration).map(t => ({
+      getItems: () => [...tasks].filter(t => t.testingDuration).sort((a, b) => b.id - a.id).map(t => ({
         id: t.id,
         label: `${t.jtrackId} — ${t.title}`,
         subLabel: `Testing Duration: ${t.testingDuration?.replace(/-/g, '')}`,
