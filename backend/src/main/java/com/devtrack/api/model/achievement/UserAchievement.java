@@ -1,5 +1,6 @@
 package com.devtrack.api.model.achievement;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.devtrack.api.model.User;
 import jakarta.persistence.*;
 import lombok.Data;
@@ -25,6 +26,7 @@ import java.time.LocalDateTime;
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
+@JsonIgnoreProperties({"hibernateLazyInitializer", "handler"})
 public class UserAchievement {
 
     @Id
