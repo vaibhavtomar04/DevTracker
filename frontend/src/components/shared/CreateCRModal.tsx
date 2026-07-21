@@ -391,7 +391,7 @@ export const CreateCRModal: React.FC<CreateCRModalProps> = ({ isOpen, onClose, o
                   value={expectedSitDeploymentDate}
                   onChange={(e) => setExpectedSitDeploymentDate(e.target.value)}
                   onClick={(e) => e.currentTarget.showPicker?.()}
-                  className="w-full bg-slate-900/90 border border-white/10 rounded-2xl px-4 py-2.5 pr-10 text-xs text-slate-100 outline-none focus:border-violet-500/60 focus:ring-4 focus:ring-violet-500/15 transition-all shadow-inner [color-scheme:dark] cursor-pointer [&::-webkit-calendar-picker-indicator]:opacity-0 [&::-webkit-calendar-picker-indicator]:absolute [&::-webkit-calendar-picker-indicator]:inset-0 [&::-webkit-calendar-picker-indicator]:w-full [&::-webkit-calendar-picker-indicator]:h-full [&::-webkit-calendar-picker-indicator]:cursor-pointer"
+                  className="hide-calendar-picker w-full bg-slate-900/90 border border-white/10 rounded-2xl px-4 py-2.5 pr-10 text-xs text-slate-100 outline-none focus:border-violet-500/60 focus:ring-4 focus:ring-violet-500/15 transition-all shadow-inner [color-scheme:dark] cursor-pointer"
                   required
                 />
                 <Calendar className="h-4 w-4 text-violet-400 absolute right-3.5 top-3 pointer-events-none" />
@@ -407,7 +407,7 @@ export const CreateCRModal: React.FC<CreateCRModalProps> = ({ isOpen, onClose, o
                   value={expectedUatDeploymentDate}
                   onChange={(e) => setExpectedUatDeploymentDate(e.target.value)}
                   onClick={(e) => e.currentTarget.showPicker?.()}
-                  className="w-full bg-slate-900/90 border border-white/10 rounded-2xl px-4 py-2.5 pr-10 text-xs text-slate-100 outline-none focus:border-violet-500/60 focus:ring-4 focus:ring-violet-500/15 transition-all shadow-inner [color-scheme:dark] cursor-pointer [&::-webkit-calendar-picker-indicator]:opacity-0 [&::-webkit-calendar-picker-indicator]:absolute [&::-webkit-calendar-picker-indicator]:inset-0 [&::-webkit-calendar-picker-indicator]:w-full [&::-webkit-calendar-picker-indicator]:h-full [&::-webkit-calendar-picker-indicator]:cursor-pointer"
+                  className="hide-calendar-picker w-full bg-slate-900/90 border border-white/10 rounded-2xl px-4 py-2.5 pr-10 text-xs text-slate-100 outline-none focus:border-violet-500/60 focus:ring-4 focus:ring-violet-500/15 transition-all shadow-inner [color-scheme:dark] cursor-pointer"
                   required
                 />
                 <Calendar className="h-4 w-4 text-violet-400 absolute right-3.5 top-3 pointer-events-none" />

@@ -826,10 +826,26 @@ select:focus {
 /* Calendar picker indicator customization */
 input[type="date"]::-webkit-calendar-picker-indicator {
   cursor: pointer;
-  filter: invert(1);
-  opacity: 0.65;
-  transition: opacity 0.15s ease-in-out;
 }
+
+.dark input[type="date"]::-webkit-calendar-picker-indicator {
+  filter: invert(0.8);
+  opacity: 0.75;
+}
+
+/* Class to completely hide native webkit indicator when custom calendar icons are used */
+input[type="date"].hide-calendar-picker::-webkit-calendar-picker-indicator,
+.hide-calendar-picker::-webkit-calendar-picker-indicator {
+  display: none !important;
+  opacity: 0 !important;
+  width: 0 !important;
+  height: 0 !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  appearance: none !important;
+  -webkit-appearance: none !important;
+}
+
 
 
 /* ─── Premium Dark Mode Surface System ─────────────────────────────── */
