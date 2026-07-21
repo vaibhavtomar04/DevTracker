@@ -30,7 +30,7 @@ export const CreateCRModal: React.FC<CreateCRModalProps> = ({ isOpen, onClose, o
   const branchCreationDate = new Date().toISOString().split("T")[0];
   const [selectedDeveloperIds, setSelectedDeveloperIds] = useState<number[]>([]);
   const [selectedSprintTaskIds, setSelectedSprintTaskIds] = useState<number[]>([]);
-  const [brdFile, setBrdFile] = useState<File | null>(null);
+  const [brdFiles, setBrdFiles] = useState<File[]>([]);
   const [module, setModule] = useState("Core");
   const [expectedSitDeploymentDate, setExpectedSitDeploymentDate] = useState("");
   const [expectedUatDeploymentDate, setExpectedUatDeploymentDate] = useState("");
@@ -95,9 +95,15 @@ export const CreateCRModal: React.FC<CreateCRModalProps> = ({ isOpen, onClose, o
   };
 
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    setBrdFile(file);
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
+    const newFiles = Array.from(files);
+    setBrdFiles(prev => [...prev, ...newFiles]);
+    if (e.target) e.target.value = '';
+  };
+
+  const removeBrdFile = (index: number) => {
+    setBrdFiles(prev => prev.filter((_, i) => i !== index));
   };
 
   const toggleDeveloperSelection = (devId: number) => {
@@ -180,25 +186,24 @@ export const CreateCRModal: React.FC<CreateCRModalProps> = ({ isOpen, onClose, o
         body: JSON.stringify(payload)
       });
 
-      // 2. Upload BRD file using dedicated XHR uploader (handles multipart boundary correctly)
-      if (brdFile && savedTask && savedTask.id) {
-        try {
-          const docRes = await uploadDocument(savedTask.id, "BRD", brdFile);
-
-          // 3. Link document ID to task entity
-          if (docRes && docRes.id) {
-            await apiClient(`/api/tasks/${savedTask.id}`, {
-              method: "PUT",
-              body: JSON.stringify({
-                ...savedTask,
-                brdDocumentId: docRes.id,
-                remarks: "Attaching BRD document"
-              })
-            });
+      // 2. Upload BRD files using dedicated XHR uploader (handles multipart boundary correctly)
+      if (brdFiles.length > 0 && savedTask && savedTask.id) {
+        for (const file of brdFiles) {
+          try {
+            const docRes = await uploadDocument(savedTask.id, "BRD", file);
+            if (docRes && docRes.id) {
+              await apiClient(`/api/tasks/${savedTask.id}`, {
+                method: "PUT",
+                body: JSON.stringify({
+                  ...savedTask,
+                  brdDocumentId: docRes.id,
+                  remarks: `Attaching BRD document: ${file.name}`
+                })
+              });
+            }
+          } catch (uploadErr: any) {
+            console.error("Failed to upload BRD document post-creation:", uploadErr);
           }
-        } catch (uploadErr: any) {
-          console.error("Failed to upload BRD document post-creation:", uploadErr);
-          addToast(uploadErr?.message || "CR created, but failed to upload BRD document.", "error");
         }
       }
 
@@ -507,39 +512,48 @@ export const CreateCRModal: React.FC<CreateCRModalProps> = ({ isOpen, onClose, o
           {/* BRD Attachment Box */}
           <div className="space-y-2.5 pt-2">
             <label className="text-[11px] font-bold tracking-wider text-slate-400 uppercase flex items-center gap-2">
-              <FileText className="h-4 w-4 text-emerald-400" /> Business Requirement Document (BRD)
+              <FileText className="h-4 w-4 text-emerald-400" /> Business Requirement Documents (BRD)
             </label>
             <div>
               <label className="w-full border border-dashed border-white/[0.12] rounded-xl p-4 flex flex-col items-center gap-2 hover:border-violet-500/40 hover:bg-violet-500/[0.03] transition-all text-slate-500 hover:text-slate-300 cursor-pointer">
                 <Upload className="h-5 w-5" />
-                <span className="text-[11px]">Click to attach files</span>
+                <span className="text-[11px]">Click or drag to attach files (Multiple allowed)</span>
                 <input type="file" multiple onChange={handleFileUpload} className="hidden" accept="*" />
               </label>
-              {brdFile ? (
-                <div className="mt-2 flex items-center gap-2.5 p-2.5 rounded-xl border border-white/[0.06] bg-white/[0.02]">
-                  {brdFile.type.startsWith("image/") ? (
-                    <div className="w-12 h-12 rounded-lg overflow-hidden border border-white/10 shrink-0 bg-black/40">
-                      <img src={URL.createObjectURL(brdFile)} alt={brdFile.name} className="w-full h-full object-cover" />
-                    </div>
-                  ) : (
-                    <div className="w-12 h-12 rounded-lg flex items-center justify-center border border-white/10 bg-black/40 text-lg shrink-0">
-                      📄
-                    </div>
-                  )}
-                  <div className="flex-1 min-w-0 text-left">
-                    <span className="block truncate font-mono text-slate-200 text-[11px]">{brdFile.name}</span>
-                    <span className="text-[9px] text-slate-500">{(brdFile.size / 1024).toFixed(1)} KB</span>
+
+              {brdFiles.length > 0 ? (
+                <div className="mt-3 space-y-2 max-h-48 overflow-y-auto pr-1">
+                  <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">
+                    Attached Files ({brdFiles.length}):
                   </div>
-                  <button
-                    type="button"
-                    onClick={() => setBrdFile(null)}
-                    className="p-1.5 rounded-lg hover:bg-rose-500/10 text-slate-500 hover:text-rose-400 transition-colors shrink-0"
-                  >
-                    <Trash2 className="h-3.5 w-3.5" />
-                  </button>
+                  {brdFiles.map((file, idx) => (
+                    <div key={`${file.name}-${idx}`} className="flex items-center gap-2.5 p-2.5 rounded-xl border border-white/[0.06] bg-white/[0.02]">
+                      {file.type.startsWith("image/") ? (
+                        <div className="w-12 h-12 rounded-lg overflow-hidden border border-white/10 shrink-0 bg-black/40">
+                          <img src={URL.createObjectURL(file)} alt={file.name} className="w-full h-full object-cover" />
+                        </div>
+                      ) : (
+                        <div className="w-12 h-12 rounded-lg flex items-center justify-center border border-white/10 bg-black/40 text-lg shrink-0">
+                          📄
+                        </div>
+                      )}
+                      <div className="flex-1 min-w-0 text-left">
+                        <span className="block truncate font-mono text-slate-200 text-[11px]">{file.name}</span>
+                        <span className="text-[9px] text-slate-500">{(file.size / 1024).toFixed(1)} KB</span>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => removeBrdFile(idx)}
+                        className="p-1.5 rounded-lg hover:bg-rose-500/10 text-slate-500 hover:text-rose-400 transition-colors shrink-0"
+                        title="Remove file"
+                      >
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </button>
+                    </div>
+                  ))}
                 </div>
               ) : (
-                <p className="mt-2 text-xs text-slate-500 italic">No file selected (Optional)</p>
+                <p className="mt-2 text-xs text-slate-500 italic">No files selected (Optional)</p>
               )}
             </div>
           </div>

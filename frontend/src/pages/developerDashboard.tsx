@@ -4,7 +4,7 @@ import { useAuthStore } from "@/store/authStore"
 import { useSprintStore } from "@/store/sprintStore"
 import { useThemeStore } from "@/store/themeStore"
 import { Button } from "@/components/ui/button"
-import { listDocuments, downloadDocument } from "@/services/document.service"
+import { listDocuments, downloadDocument, uploadDocument } from "@/services/document.service"
 import BugDetailModal from "@/components/shared/BugDetailModal"
 import DevOpsDeploymentModal from "@/components/shared/DevOpsDeploymentModal"
 import type { DevOpsDeploymentFields } from "@/components/shared/DevOpsDeploymentModal"
@@ -135,7 +135,7 @@ export default function DeveloperDashboard() {
   const [branchName, setBranchName] = useState("")
   const [buildStatus, setBuildStatus] = useState("SUCCESS")
   const [deployNotes, setDeployNotes] = useState("")
-  const [selectedDocFile, setSelectedDocFile] = useState<{ name: string; url: string } | null>(null)
+  const [selectedDocFiles, setSelectedDocFiles] = useState<{ name: string; url: string; fileObject?: File }[]>([])
 
 
 
@@ -587,22 +587,30 @@ export default function DeveloperDashboard() {
       addToast("Remarks are mandatory for promoting to UAT testing pool!", "error")
       return
     }
-    if (!selectedDocFile && !task.unitTestDocUrl) {
-      addToast("Please select a unit testing document first.", "error")
+    const hasDoc = selectedDocFiles.length > 0 || !!task.unitTestDocUrl
+    if (!hasDoc) {
+      addToast("Please select at least one unit testing document first.", "error")
       return
     }
 
     const payload: Partial<Task> = { status: "TESTING_POOL" }
-    if (selectedDocFile) {
-      payload.unitTestDocUrl = selectedDocFile.url
-      payload.unitTestDocName = selectedDocFile.name
+    if (selectedDocFiles.length > 0) {
+      payload.unitTestDocUrl = selectedDocFiles[0].url
+      payload.unitTestDocName = selectedDocFiles.map(f => f.name).join(", ")
+
+      // Async upload documents if fileObject present
+      selectedDocFiles.forEach(async (f) => {
+        if (f.fileObject) {
+          try { await uploadDocument(task.id, "SUPPORT", f.fileObject); } catch (e) { console.error("Upload error:", e); }
+        }
+      })
     }
 
     // Close modal immediately (optimistic) — independent of API/WebSocket notifications.
     const savedRemarks = remarks
     setSelectedTask(null)
     setRemarks("")
-    setSelectedDocFile(null)
+    setSelectedDocFiles([])
 
     updateTask(task.id, payload, savedRemarks, user!)
       .then(() => {
@@ -665,16 +673,24 @@ export default function DeveloperDashboard() {
   }
 
   const handleUnitDocChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0]
-    if (!file) return
+    const files = e.target.files
+    if (!files || files.length === 0) return
 
-    const reader = new FileReader()
-    reader.onloadend = () => {
-      const base64String = reader.result as string
-      setSelectedDocFile({ name: file.name, url: base64String })
-      addToast(`Attached unit testing document: ${file.name}. It will be uploaded when you push to UAT.`, "info")
-    }
-    reader.readAsDataURL(file)
+    const newFiles = Array.from(files)
+    newFiles.forEach((file) => {
+      const reader = new FileReader()
+      reader.onloadend = () => {
+        const base64String = reader.result as string
+        setSelectedDocFiles(prev => [...prev, { name: file.name, url: base64String, fileObject: file }])
+      }
+      reader.readAsDataURL(file)
+    })
+    addToast(`Attached ${newFiles.length} unit testing document(s).`, "info")
+    if (e.target) e.target.value = ''
+  }
+
+  const removeUnitDocFile = (index: number) => {
+    setSelectedDocFiles(prev => prev.filter((_, i) => i !== index))
   }
 
   const handleRejectReviewSubmit = (e: React.FormEvent) => {
@@ -2216,13 +2232,13 @@ export default function DeveloperDashboard() {
                           </Button>
                         )}
                         {selectedTask.status === "MOVE_TO_UAT" && (() => {
-                          const hasDoc = !!selectedDocFile || !!selectedTask.unitTestDocName
+                          const hasDoc = selectedDocFiles.length > 0 || !!selectedTask.unitTestDocName
                           return (
                           <div className={`space-y-3 p-3.5 rounded-xl text-left border ${hasDoc ? "border-emerald-500/30 bg-emerald-500/5" : "border-amber-500/40 bg-amber-500/5"}`}>
                             {/* Header */}
                             <div className="flex items-center justify-between">
                               <span className={`text-[10px] font-bold uppercase tracking-wider ${hasDoc ? "text-emerald-600 dark:text-emerald-400" : "text-amber-600 dark:text-amber-400"}`}>
-                                Unit Test Document
+                                Unit Test Documents
                               </span>
                               <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-rose-500/15 text-rose-500 border border-rose-500/30 uppercase tracking-wide">
                                 Required
@@ -2234,7 +2250,7 @@ export default function DeveloperDashboard() {
                               <div className="flex items-start gap-2 p-2.5 rounded-lg bg-amber-500/10 border border-amber-500/20">
                                 <span className="text-amber-500 text-sm shrink-0">⚠️</span>
                                 <p className="text-[10px] text-amber-600 dark:text-amber-300 leading-relaxed font-medium">
-                                  You must upload a unit testing document before moving this CR to the UAT Testing Pool.
+                                  You must upload unit testing document(s) before moving this CR to the UAT Testing Pool.
                                 </p>
                               </div>
                             )}
@@ -2247,36 +2263,62 @@ export default function DeveloperDashboard() {
                               id="unit-test-input-drawer"
                               className="hidden"
                             />
-                            {selectedDocFile ? (
-                              <div className="flex items-center gap-2.5 p-2.5 rounded-xl border border-emerald-500/30 bg-emerald-500/5">
-                                {selectedDocFile.url.startsWith("data:image/") ? (
-                                  <div className="w-12 h-12 rounded-lg overflow-hidden border border-border shrink-0 bg-muted">
-                                    <img src={selectedDocFile.url} alt={selectedDocFile.name} className="w-full h-full object-cover" />
-                                  </div>
-                                ) : (
-                                  <div className="w-12 h-12 rounded-lg flex items-center justify-center border border-border bg-muted text-lg shrink-0">
-                                    📄
-                                  </div>
-                                )}
-                                <div className="flex-1 min-w-0 text-left">
-                                  <span className="block truncate font-mono text-foreground text-[11px]">{selectedDocFile.name}</span>
-                                  <span className="text-[9px] text-emerald-600 dark:text-emerald-400 font-semibold uppercase tracking-wider block mt-0.5">✓ Unit Testing Document</span>
+
+                            {/* Uploaded files list */}
+                            {selectedDocFiles.length > 0 ? (
+                              <div className="space-y-2 max-h-48 overflow-y-auto pr-1">
+                                <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">
+                                  Attached Unit Test Files ({selectedDocFiles.length}):
                                 </div>
+                                {selectedDocFiles.map((docFile, idx) => (
+                                  <div key={`${docFile.name}-${idx}`} className="flex items-center gap-2.5 p-2.5 rounded-xl border border-emerald-500/30 bg-emerald-500/5">
+                                    {docFile.url.startsWith("data:image/") ? (
+                                      <div className="w-12 h-12 rounded-lg overflow-hidden border border-border shrink-0 bg-muted">
+                                        <img src={docFile.url} alt={docFile.name} className="w-full h-full object-cover" />
+                                      </div>
+                                    ) : (
+                                      <div className="w-12 h-12 rounded-lg flex items-center justify-center border border-border bg-muted text-lg shrink-0">
+                                        📄
+                                      </div>
+                                    )}
+                                    <div className="flex-1 min-w-0 text-left">
+                                      <span className="block truncate font-mono text-foreground text-[11px]">{docFile.name}</span>
+                                      <span className="text-[9px] text-emerald-600 dark:text-emerald-400 font-semibold uppercase tracking-wider block mt-0.5">✓ Unit Testing Document</span>
+                                    </div>
+                                    <button
+                                      type="button"
+                                      onClick={() => removeUnitDocFile(idx)}
+                                      className="p-1.5 rounded-lg hover:bg-rose-500/10 text-muted-foreground hover:text-rose-500 transition-colors shrink-0"
+                                      title="Remove file"
+                                    >
+                                      <Trash2 className="h-3.5 w-3.5" />
+                                    </button>
+                                  </div>
+                                ))}
                                 <button
                                   type="button"
-                                  onClick={() => setSelectedDocFile(null)}
-                                  className="p-1.5 rounded-lg hover:bg-rose-500/10 text-muted-foreground hover:text-rose-500 transition-colors shrink-0"
+                                  onClick={() => document.getElementById("unit-test-input-drawer")?.click()}
+                                  className="w-full text-xs py-2 rounded-xl border border-dashed border-border bg-muted/40 hover:bg-muted text-foreground font-semibold transition-all cursor-pointer flex items-center justify-center gap-1.5 mt-2"
                                 >
-                                  <Trash2 className="h-3.5 w-3.5" />
+                                  📎 Attach More Files
                                 </button>
                               </div>
                             ) : selectedTask.unitTestDocName ? (
-                              <div className="flex items-center gap-2.5 p-2.5 rounded-xl border border-border bg-muted/50">
-                                <div className="w-10 h-10 rounded-lg flex items-center justify-center border border-border bg-muted text-base shrink-0">📄</div>
-                                <div className="flex-1 min-w-0">
-                                  <span className="block truncate font-mono text-foreground text-[11px]">{selectedTask.unitTestDocName}</span>
-                                  <span className="text-[9px] text-muted-foreground font-semibold uppercase tracking-wider block mt-0.5">Previously uploaded — click below to replace</span>
+                              <div className="space-y-2">
+                                <div className="flex items-center gap-2.5 p-2.5 rounded-xl border border-border bg-muted/50">
+                                  <div className="w-10 h-10 rounded-lg flex items-center justify-center border border-border bg-muted text-base shrink-0">📄</div>
+                                  <div className="flex-1 min-w-0">
+                                    <span className="block truncate font-mono text-foreground text-[11px]">{selectedTask.unitTestDocName}</span>
+                                    <span className="text-[9px] text-muted-foreground font-semibold uppercase tracking-wider block mt-0.5">Previously uploaded document</span>
+                                  </div>
                                 </div>
+                                <button
+                                  type="button"
+                                  onClick={() => document.getElementById("unit-test-input-drawer")?.click()}
+                                  className="w-full flex items-center justify-center gap-1.5 text-xs py-2 rounded-xl border border-dashed border-amber-400/50 bg-amber-500/[0.04] text-amber-600 dark:text-amber-400 font-semibold transition-all cursor-pointer"
+                                >
+                                  📎 Attach Additional Files
+                                </button>
                               </div>
                             ) : (
                               <button
@@ -2285,22 +2327,14 @@ export default function DeveloperDashboard() {
                                 className="w-full flex flex-col items-center justify-center gap-1.5 py-4 rounded-xl border-2 border-dashed border-amber-400/50 bg-amber-500/[0.04] hover:bg-amber-500/10 hover:border-amber-400 text-amber-600 dark:text-amber-400 font-semibold transition-all cursor-pointer"
                               >
                                 <span className="text-xl">📎</span>
-                                <span className="text-xs">Click to upload Unit Testing Document</span>
-                                <span className="text-[10px] text-amber-500/70">PDF, DOCX, XLSX, ZIP or any file type</span>
+                                <span className="text-xs">Click or drag to upload Unit Testing Document(s)</span>
+                                <span className="text-[10px] text-amber-500/70">Select single or multiple files</span>
                               </button>
                             )}
-                            {(selectedTask.unitTestDocName && !selectedDocFile) && (
-                              <button
-                                type="button"
-                                onClick={() => document.getElementById("unit-test-input-drawer")?.click()}
-                                className="w-full text-[10px] text-muted-foreground hover:text-foreground underline underline-offset-2 transition-colors text-center"
-                              >
-                                Upload a new document (replaces existing)
-                              </button>
-                            )}
+
                             <Button
-                              className="w-full text-xs h-10 rounded-xl bg-gradient-to-r from-cyan-600 to-teal-600 hover:from-cyan-500 hover:to-teal-500 text-white font-bold disabled:opacity-40 disabled:cursor-not-allowed"
-                              disabled={!selectedDocFile && !selectedTask.unitTestDocName}
+                              className="w-full text-xs h-10 rounded-xl bg-gradient-to-r from-cyan-600 to-teal-600 hover:from-cyan-500 hover:to-teal-500 text-white font-bold disabled:opacity-40 disabled:cursor-not-allowed mt-2"
+                              disabled={selectedDocFiles.length === 0 && !selectedTask.unitTestDocName}
                               onClick={() => handlePushToUATTesting(selectedTask)}
                             >
                               <Send className="mr-1.5 h-4 w-4" />

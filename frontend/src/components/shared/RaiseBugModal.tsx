@@ -90,6 +90,7 @@ export default function RaiseBugModal({ crTaskId, crJtrackId, onClose, onSuccess
       }
       reader.readAsDataURL(file)
     })
+    if (fileInputRef.current) fileInputRef.current.value = ''
   }
 
   const handleSubmit = async (e: React.FormEvent) => {

@@ -285,6 +285,8 @@ export default function TesterDashboard() {
         })
       }
     }
+    // Clear input value so picking more/same files works
+    if (e.target) e.target.value = ''
     // Refresh documents list
     listDocuments(selectedTask.id).then(setTaskDocs).catch(() => {})
   }
