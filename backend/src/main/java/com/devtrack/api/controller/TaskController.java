@@ -609,8 +609,12 @@ public class TaskController {
                             if ("CODE_REVIEW".equalsIgnoreCase(savedFinal.getStatus())) {
                                 try {
                                     emailNotificationService.sendMailOnCodeReview(savedFinal, remarksForNotif != null ? remarksForNotif : "Sent to Code Review");
+                                    String deploymentNoteVal = (deploymentNoteFinal != null) ? deploymentNoteFinal : savedFinal.getDeploymentNote();
+                                    String serverPathVal = (serverPathFinal != null) ? serverPathFinal : savedFinal.getServerPath();
+                                    String itemsToDeployVal = (itemsToDeployFinal != null) ? itemsToDeployFinal : savedFinal.getItemsToDeploy();
+                                    emailNotificationService.sendDevOpsDeploymentMail(savedFinal, deploymentNoteVal, serverPathVal, itemsToDeployVal);
                                 } catch (Exception e) {
-                                    log.error("Failed to send Code Review mail", e);
+                                    log.error("Failed to send Code Review / DevOps mail", e);
                                 }
                             }
 
@@ -1312,16 +1316,16 @@ public class TaskController {
             // Log Audit
             User currentUser = userRepository.findByUsername(username).orElseThrow();
             log.info("current step , next step {} {}",currentStep.getStepName(),nextStage);
-            if( currentStep.getStepName().equalsIgnoreCase("SIT_COMPLETED")) {
+            if (currentStep.getStepName().equalsIgnoreCase("SIT_COMPLETED")) {
             	emailNotificationService.sendMailOnCodeReview(task, taskDetails != null ? taskDetails.getRemarks() : "SIT Completed");
-            }
-            
-            if(currentStep.getStepName().equalsIgnoreCase("CODE_REVIEW")) {
-            	emailNotificationService.sendMailOnCodeReviewUpdate(task, taskDetails != null ? taskDetails.getRemarks() : "Approved", oldStatus, currentUser);
             	String deploymentNoteVal = (taskDetails != null && taskDetails.getDeploymentNote() != null) ? taskDetails.getDeploymentNote() : task.getDeploymentNote();
             	String serverPathVal = (taskDetails != null && taskDetails.getServerPath() != null) ? taskDetails.getServerPath() : task.getServerPath();
             	String itemsToDeployVal = (taskDetails != null && taskDetails.getItemsToDeploy() != null) ? taskDetails.getItemsToDeploy() : task.getItemsToDeploy();
             	emailNotificationService.sendDevOpsDeploymentMail(task, deploymentNoteVal, serverPathVal, itemsToDeployVal);
+            }
+            
+            if (currentStep.getStepName().equalsIgnoreCase("CODE_REVIEW")) {
+            	emailNotificationService.sendMailOnCodeReviewUpdate(task, taskDetails != null ? taskDetails.getRemarks() : "Approved", oldStatus, currentUser);
             }
             
             if(nextStage!=null && nextStage.equalsIgnoreCase("UAT_TESTING") && task.getUnitTestDocUrl() != null) {
