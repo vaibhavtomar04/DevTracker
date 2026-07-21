@@ -42,6 +42,7 @@ public class RecognitionController {
     private final AchievementEvaluationService       evaluationService;
     private final AchievementNotificationService     notifService;
     private final RecognitionScoreService            scoreService;
+    private final RecognitionAuditService            auditService;
     private final UserRepository                     userRepo;
 
     // ─────────────────────────────────────────────────────────────────────
@@ -172,6 +173,7 @@ public class RecognitionController {
 
         evaluationService.grantAdminAchievement(userId, code, reason, actor);
         scoreService.applyDeltaAndRecalculate(userId, actor);
+        auditService.logManualAction("GRANT_ACHIEVEMENT", userId, "Code: " + code + ", Reason: " + reason, actor);
 
         return ResponseEntity.ok(Map.of(
                 "message", "Achievement granted successfully",
@@ -190,9 +192,20 @@ public class RecognitionController {
         String actor = SecurityContextHolder.getContext().getAuthentication().getName();
         scoreService.applyDeltaAndRecalculate(userId, actor);
         evaluationService.evaluateForUser(userId, actor);
+        auditService.logManualAction("RECALCULATE_SCORE", userId, "Full recalculation triggered", actor);
         return ResponseEntity.ok(Map.of(
                 "message", "Recalculation triggered",
                 "userId", userId));
+    }
+
+    /**
+     * GET /api/recognition/admin/equity-audit
+     * Evaluates Gini coefficient and rank concentration to detect privilege skew or bias.
+     */
+    @GetMapping("/admin/equity-audit")
+    @PreAuthorize("hasAnyRole('DEVADMIN', 'TESTADMIN')")
+    public ResponseEntity<Map<String, Object>> getEquityAudit() {
+        return ResponseEntity.ok(auditService.analyzeEquityAndBias());
     }
 
     // ─────────────────────────────────────────────────────────────────────

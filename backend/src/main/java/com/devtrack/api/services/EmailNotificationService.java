@@ -534,7 +534,17 @@ public class EmailNotificationService {
 		}
 
 		return null;
+	}
 
+	public void sendEmail(String to, String subject, String body) {
+		try {
+			EmailRequestVo requestMap = createEmailRequestMap(body, subject, to, null, testingSender, null);
+			if (requestMap != null) {
+				callSendNotificationApi(requestMap);
+			}
+		} catch (Exception e) {
+			log.error("Failed to send email to {}", to, e);
+		}
 	}
 
 }

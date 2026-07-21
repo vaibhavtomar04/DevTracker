@@ -9,8 +9,13 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
+import java.util.List;
+
 @Repository
 public interface AchievementNotificationRepository extends JpaRepository<AchievementNotification, Long> {
+
+    Page<AchievementNotification> findByUserIdAndActiveFlag(
+            Long userId, int activeFlag, Pageable pageable);
 
     Page<AchievementNotification> findByUserIdAndActiveFlagOrderByCreatedDateDesc(
             Long userId, int activeFlag, Pageable pageable);
@@ -18,7 +23,7 @@ public interface AchievementNotificationRepository extends JpaRepository<Achieve
     long countByUserIdAndIsReadAndActiveFlag(Long userId, int isRead, int activeFlag);
 
     /** Email-send queue — all unsent, active notifications. */
-    java.util.List<AchievementNotification> findByIsEmailSentAndActiveFlag(int isEmailSent, int activeFlag);
+    List<AchievementNotification> findByIsEmailSentAndActiveFlag(int isEmailSent, int activeFlag);
 
     @Modifying
     @Query("UPDATE AchievementNotification n SET n.isRead = 1 WHERE n.user.id = :userId AND n.activeFlag = 1")
