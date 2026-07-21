@@ -279,7 +279,7 @@ export const CRDetailSlideOver: React.FC<CRDetailSlideOverProps> = ({
                   transition={{ duration: 0.15 }}
                   className="p-6"
                 >
-                  {activeTab === 'overview' && <OverviewTab task={task} />}
+                  {activeTab === 'overview' && <OverviewTab task={task} currentUser={currentUser} />}
                   {activeTab === 'timeline' && (
                     <TimelineTab task={task} stages={WORKFLOW_STAGES} currentStageIndex={currentStageIndex} />
                   )}
@@ -350,8 +350,36 @@ const InfoRow: React.FC<{ label: string; value?: string | React.ReactNode }> = (
   </div>
 );
 
-function OverviewTab({ task }: { task: Task }) {
-  const { auditLogs } = useTaskStore();
+function OverviewTab({ task, currentUser }: { task: Task; currentUser?: User | null }) {
+  const { auditLogs, updateTask, addToast } = useTaskStore();
+  const isAdmin = (currentUser?.roles?.some(r => r.includes('ADMIN') || r.includes('DEVADMIN') || r.includes('TESTADMIN')) ?? false) || currentUser?.role?.includes('ADMIN');
+
+  const [isEditingExpected, setIsEditingExpected] = useState(false);
+  const [expSitDate, setExpSitDate] = useState(task.expectedSitDeploymentDate || '');
+  const [expUatDate, setExpUatDate] = useState(task.expectedUatDeploymentDate || '');
+  const [isSavingDates, setIsSavingDates] = useState(false);
+
+  const handleSaveExpectedDates = async () => {
+    if (!currentUser) return;
+    setIsSavingDates(true);
+    try {
+      await updateTask(
+        task.id,
+        {
+          expectedSitDeploymentDate: expSitDate || undefined,
+          expectedUatDeploymentDate: expUatDate || undefined,
+        },
+        'Admin updated expected SIT & UAT deployment dates',
+        currentUser
+      );
+      addToast('Expected deployment dates updated successfully!', 'success');
+      setIsEditingExpected(false);
+    } catch (err: any) {
+      addToast(err.message || 'Failed to update expected dates', 'error');
+    } finally {
+      setIsSavingDates(false);
+    }
+  };
 
   const rejectLog = auditLogs
     ?.filter((l: any) => l.entityType === 'TASK' && l.entityId === task.id && l.fieldName === 'workflow_reject')
@@ -403,7 +431,73 @@ function OverviewTab({ task }: { task: Task }) {
 
       {/* Key Details Grid */}
       <div>
-        <h3 className="text-xs font-semibold text-zinc-500 uppercase tracking-wider mb-3">Details</h3>
+        <div className="flex items-center justify-between mb-3">
+          <h3 className="text-xs font-semibold text-zinc-500 uppercase tracking-wider">Details</h3>
+          {isAdmin && !isEditingExpected && (
+            <button
+              onClick={() => {
+                setExpSitDate(task.expectedSitDeploymentDate || '');
+                setExpUatDate(task.expectedUatDeploymentDate || '');
+                setIsEditingExpected(true);
+              }}
+              className="text-[11px] font-bold px-2.5 py-1 rounded-lg bg-violet-500/10 border border-violet-500/20 text-violet-300 hover:bg-violet-500/20 transition-all flex items-center gap-1 cursor-pointer"
+            >
+              ✏️ Edit Expected Dates
+            </button>
+          )}
+        </div>
+
+        {/* Admin Date Editing Card */}
+        {isAdmin && isEditingExpected && (
+          <div className="mb-4 p-4 rounded-xl border border-violet-500/30 bg-violet-500/[0.06] space-y-3">
+            <div className="flex items-center justify-between border-b border-violet-500/20 pb-2">
+              <span className="text-xs font-bold text-violet-300">Admin Controls — Update Expected Deployment Dates</span>
+              <span className="text-[10px] text-zinc-400">Target SIT & UAT deadlines</span>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="text-[10px] font-bold uppercase text-zinc-400 block mb-1">
+                  Expected SIT Deployment Date
+                </label>
+                <input
+                  type="date"
+                  value={expSitDate}
+                  onChange={(e) => setExpSitDate(e.target.value)}
+                  className="w-full h-8 bg-black/40 border border-white/10 rounded-lg px-2 text-xs text-zinc-200 focus:border-violet-500 focus:outline-none hide-calendar-picker"
+                />
+              </div>
+              <div>
+                <label className="text-[10px] font-bold uppercase text-zinc-400 block mb-1">
+                  Expected UAT Deployment Date
+                </label>
+                <input
+                  type="date"
+                  value={expUatDate}
+                  onChange={(e) => setExpUatDate(e.target.value)}
+                  className="w-full h-8 bg-black/40 border border-white/10 rounded-lg px-2 text-xs text-zinc-200 focus:border-violet-500 focus:outline-none hide-calendar-picker"
+                />
+              </div>
+            </div>
+            <div className="flex justify-end gap-2 pt-1">
+              <button
+                type="button"
+                onClick={() => setIsEditingExpected(false)}
+                className="px-3 py-1 text-xs font-medium text-zinc-400 hover:text-zinc-200 rounded-lg hover:bg-white/5 transition-colors cursor-pointer"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                disabled={isSavingDates}
+                onClick={handleSaveExpectedDates}
+                className="px-3 py-1 text-xs font-bold bg-violet-600 hover:bg-violet-500 text-white rounded-lg transition-colors cursor-pointer disabled:opacity-50"
+              >
+                {isSavingDates ? 'Saving...' : 'Save Dates'}
+              </button>
+            </div>
+          </div>
+        )}
+
         <div className="grid grid-cols-2 gap-4 p-4 rounded-xl border border-white/[0.06] bg-white/[0.02]">
           <InfoRow label="CR Type" value={task.type?.name} />
           <InfoRow label="Priority" value={task.priority} />

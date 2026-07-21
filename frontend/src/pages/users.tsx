@@ -15,10 +15,20 @@ import {
   UserX,
   History,
   Loader2,
+  Shield,
+  Check,
 } from "lucide-react"
 import type { User } from "@/services/mockData"
 import { motion, AnimatePresence } from "framer-motion"
 import { apiClient } from "@/utils/apiClient"
+
+const ALL_AVAILABLE_ROLES = [
+  { id: "DEVELOPER", label: "Developer", desc: "Code implementation & SIT deployment" },
+  { id: "TESTER", label: "Tester", desc: "QA testing & defect reporting" },
+  { id: "DEVADMIN", label: "Dev Admin", desc: "Full administrative access & approvals" },
+  { id: "TESTADMIN", label: "Test Admin", desc: "Testing lead & quality oversight" },
+  { id: "CODEREVIEWER", label: "Code Reviewer", desc: "Reviewing & approving code reviews" },
+]
 
 /* ─── design tokens ─── */
 const glass =
@@ -68,7 +78,7 @@ interface StatusAudit {
 }
 
 export default function UsersPage() {
-  const { fetchData, users, createUser, addToast } = useTaskStore()
+  const { fetchData, users, createUser, updateUserRoles, addToast } = useTaskStore()
   const { user: currentUser } = useAuthStore()
 
   const [usersList, setUsersList] = useState<User[]>([])
@@ -86,10 +96,14 @@ export default function UsersPage() {
   const [auditList, setAuditList] = useState<StatusAudit[]>([])
   const [loadingHistory, setLoadingHistory] = useState(false)
 
+  /* edit roles modal state */
+  const [editRolesUser, setEditRolesUser] = useState<User | null>(null)
+  const [editUserSelectedRoles, setEditUserSelectedRoles] = useState<string[]>([])
+
   /* form state */
   const [fullName, setFullName] = useState("")
   const [email, setEmail] = useState("")
-  const [role, setRole] = useState("DEVELOPER")
+  const [selectedRoles, setSelectedRoles] = useState<string[]>(["DEVELOPER"])
 
   /* auto-generate username preview from full name */
   const autoUsername = fullName.trim()
@@ -110,6 +124,10 @@ export default function UsersPage() {
       addToast("Full name and email are mandatory.", "error")
       return
     }
+    if (selectedRoles.length === 0) {
+      addToast("At least one role must be selected.", "error")
+      return
+    }
     if (users.some((u) => u.email.toLowerCase() === email.toLowerCase())) {
       addToast("Email is already registered.", "error")
       return
@@ -118,17 +136,37 @@ export default function UsersPage() {
     createUser({
       fullName: fullName.trim(),
       email: email.toLowerCase().trim(),
-      role: role.toUpperCase(),
+      roles: selectedRoles,
+      role: selectedRoles[0],
     })
       .then(() => {
         setFullName("")
         setEmail("")
-        setRole("DEVELOPER")
+        setSelectedRoles(["DEVELOPER"])
         setIsCreateOpen(false)
         addToast(`User created! Credentials emailed to ${email}.`, "success")
       })
       .catch((err: Error) => {
         addToast(err.message || "Failed to create user.", "error")
+      })
+  }
+
+  const handleUpdateRolesSubmit = (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!editRolesUser) return
+    if (editUserSelectedRoles.length === 0) {
+      addToast("At least one role must be selected.", "error")
+      return
+    }
+
+    updateUserRoles(editRolesUser.id, editUserSelectedRoles)
+      .then(() => {
+        addToast(`Roles successfully updated for @${editRolesUser.username}!`, "success")
+        setEditRolesUser(null)
+        setEditUserSelectedRoles([])
+      })
+      .catch((err: Error) => {
+        addToast(err.message || "Failed to update user roles.", "error")
       })
   }
 
@@ -337,6 +375,19 @@ export default function UsersPage() {
                       <History className="h-4 w-4" />
                     </button>
 
+                    {isAdmin && (
+                      <button
+                        onClick={() => {
+                          setEditRolesUser(u);
+                          setEditUserSelectedRoles(u.roles || []);
+                        }}
+                        title="Edit User Roles"
+                        className="p-1.5 rounded-lg hover:bg-white/[0.06] text-slate-400 hover:text-violet-400 transition-colors cursor-pointer"
+                      >
+                        <Shield className="h-4 w-4" />
+                      </button>
+                    )}
+
                     {isAdmin && String(u.id) !== String(currentUser?.id) && (
                       <>
                         {(u.status || "ACTIVE").toUpperCase() === "BLOCKED" ? (
@@ -471,20 +522,39 @@ export default function UsersPage() {
                 </div>
 
                 <div className="space-y-1.5">
-                  <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">
-                    Role
+                  <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider block">
+                    Assigned Roles (Select One or Multiple)
                   </label>
-                  <select
-                    value={role}
-                    onChange={(e) => setRole(e.target.value)}
-                    className="h-9 w-full bg-[#0b0e1a] border border-white/[0.12] rounded-xl px-3 py-1 text-sm text-slate-100 outline-none focus:ring-2 focus:ring-violet-500/30 focus:border-violet-500/50 transition-all cursor-pointer"
-                  >
-                    <option value="DEVELOPER" className="bg-[#0b0e1a] text-slate-100">Developer (DEVELOPER)</option>
-                    <option value="TESTER" className="bg-[#0b0e1a] text-slate-100">Tester (TESTER)</option>
-                    <option value="DEVADMIN" className="bg-[#0b0e1a] text-slate-100">Admin (DEVADMIN)</option>
-                    <option value="TESTADMIN" className="bg-[#0b0e1a] text-slate-100">QA Lead (TESTADMIN)</option>
-                    <option value="CODEREVIEWER" className="bg-[#0b0e1a] text-slate-100">Code Reviewer (CODEREVIEWER)</option>
-                  </select>
+                  <div className="grid grid-cols-1 gap-2 bg-[#0b0e1a] border border-white/[0.12] rounded-xl p-3 max-h-48 overflow-y-auto">
+                    {ALL_AVAILABLE_ROLES.map((r) => {
+                      const isChecked = selectedRoles.includes(r.id)
+                      return (
+                        <label
+                          key={r.id}
+                          className={`flex items-start gap-2.5 p-2 rounded-lg cursor-pointer transition-all ${
+                            isChecked ? "bg-violet-500/15 border border-violet-500/30 text-violet-200" : "hover:bg-white/5 text-slate-400"
+                          }`}
+                        >
+                          <input
+                            type="checkbox"
+                            checked={isChecked}
+                            onChange={(e) => {
+                              if (e.target.checked) {
+                                setSelectedRoles([...selectedRoles, r.id])
+                              } else {
+                                setSelectedRoles(selectedRoles.filter((id) => id !== r.id))
+                              }
+                            }}
+                            className="mt-0.5 rounded border-white/20 text-violet-600 focus:ring-violet-500"
+                          />
+                          <div>
+                            <span className="text-xs font-bold text-slate-200 block">{r.label} ({r.id})</span>
+                            <span className="text-[10px] text-slate-400 block leading-tight">{r.desc}</span>
+                          </div>
+                        </label>
+                      )
+                    })}
+                  </div>
                 </div>
 
                 {/* Info note */}
@@ -704,6 +774,102 @@ export default function UsersPage() {
                   Close Audit logs
                 </button>
               </div>
+            </motion.div>
+          </motion.div>
+        )}
+      {/* ── Edit User Roles Modal ── */}
+      <AnimatePresence>
+        {editRolesUser && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-55 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm"
+          >
+            <motion.div
+              initial={{ opacity: 0, scale: 0.93, y: 12 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.93 }}
+              transition={{ type: "spring", stiffness: 320, damping: 28 }}
+              className={`${glass} w-full max-w-md shadow-2xl p-6 space-y-4`}
+            >
+              <div className="flex items-center justify-between border-b border-white/[0.06] pb-3">
+                <div className="flex items-center gap-2.5">
+                  <div className="h-8 w-8 rounded-lg bg-violet-500/15 border border-violet-500/30 flex items-center justify-center text-violet-400">
+                    <Shield className="h-4 w-4" />
+                  </div>
+                  <div>
+                    <h3 className="text-sm font-bold text-foreground">Manage User Roles</h3>
+                    <p className="text-[10px] text-muted-foreground">Updating roles for @{editRolesUser.username}</p>
+                  </div>
+                </div>
+                <button
+                  className="p-1.5 rounded-lg hover:bg-white/[0.06] text-muted-foreground transition-colors cursor-pointer"
+                  onClick={() => {
+                    setEditRolesUser(null);
+                    setEditUserSelectedRoles([]);
+                  }}
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              </div>
+
+              <form onSubmit={handleUpdateRolesSubmit} className="space-y-4">
+                <div className="space-y-1.5">
+                  <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider block">
+                    Assign Workspace Roles
+                  </label>
+                  <div className="grid grid-cols-1 gap-2 bg-[#0b0e1a] border border-white/[0.12] rounded-xl p-3 max-h-60 overflow-y-auto">
+                    {ALL_AVAILABLE_ROLES.map((r) => {
+                      const isChecked = editUserSelectedRoles.includes(r.id)
+                      return (
+                        <label
+                          key={r.id}
+                          className={`flex items-start gap-2.5 p-2 rounded-lg cursor-pointer transition-all ${
+                            isChecked ? "bg-violet-500/15 border border-violet-500/30 text-violet-200" : "hover:bg-white/5 text-slate-400"
+                          }`}
+                        >
+                          <input
+                            type="checkbox"
+                            checked={isChecked}
+                            onChange={(e) => {
+                              if (e.target.checked) {
+                                setEditUserSelectedRoles([...editUserSelectedRoles, r.id])
+                              } else {
+                                setEditUserSelectedRoles(editUserSelectedRoles.filter((id) => id !== r.id))
+                              }
+                            }}
+                            className="mt-0.5 rounded border-white/20 text-violet-600 focus:ring-violet-500"
+                          />
+                          <div>
+                            <span className="text-xs font-bold text-slate-200 block">{r.label} ({r.id})</span>
+                            <span className="text-[10px] text-slate-400 block leading-tight">{r.desc}</span>
+                          </div>
+                        </label>
+                      )
+                    })}
+                  </div>
+                </div>
+
+                <div className="flex gap-3 pt-2 border-t border-white/[0.06]">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setEditRolesUser(null);
+                      setEditUserSelectedRoles([]);
+                    }}
+                    className="flex-1 py-2 text-xs font-semibold rounded-xl border border-white/[0.08] text-muted-foreground hover:bg-white/[0.04] transition-colors cursor-pointer"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    className="flex-1 py-2 text-xs font-bold rounded-xl bg-gradient-to-r from-violet-600 to-indigo-600 text-white hover:opacity-90 transition-opacity cursor-pointer shadow-[0_0_14px_rgba(139,92,246,0.3)]"
+                  >
+                    Save Roles
+                  </button>
+                </div>
+              </form>
             </motion.div>
           </motion.div>
         )}

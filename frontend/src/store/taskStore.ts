@@ -133,7 +133,8 @@ interface TaskState {
   setSearchQuery: (query: string) => void
 
   // Users
-  createUser: (userData: { fullName: string; email: string; role: string }) => Promise<void>
+  createUser: (userData: { fullName: string; email: string; role?: string; roles?: string[] }) => Promise<void>
+  updateUserRoles: (userId: number, roles: string[]) => Promise<void>
 
   // Notifications
   addNotification: (userId: number, title: string, desc: string) => Promise<void>
@@ -512,8 +513,25 @@ export const useTaskStore = create<TaskState>((set, get) => ({
       method: "POST",
       body: JSON.stringify(userData)
     })
-    const usersRes = await apiClient("/api/users")
-    set({ users: usersRes })
+    const usersRes = await apiClient("/api/users").catch(err => { console.error(err); return []; })
+    const normalizedUsers = (usersRes || []).map((u: any) => ({
+      ...u,
+      roles: Array.isArray(u.roles) ? u.roles.map((r: string) => r.replace(/^ROLE_/, "")) : []
+    }))
+    set({ users: normalizedUsers })
+  },
+
+  updateUserRoles: async (userId, roles) => {
+    await apiClient(`/api/users/${userId}/roles`, {
+      method: "PUT",
+      body: JSON.stringify({ roles })
+    })
+    const usersRes = await apiClient("/api/users").catch(err => { console.error(err); return []; })
+    const normalizedUsers = (usersRes || []).map((u: any) => ({
+      ...u,
+      roles: Array.isArray(u.roles) ? u.roles.map((r: string) => r.replace(/^ROLE_/, "")) : []
+    }))
+    set({ users: normalizedUsers })
   },
 
   addNotification: async (userId, title, desc) => {

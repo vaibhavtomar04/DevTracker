@@ -157,6 +157,8 @@ function UpdateTaskModal({ task, sprints, users, onClose, onSave }: UpdateTaskMo
   const [efforts, setEfforts]   = useState(String(task.efforts))
   const [sprintId, setSprintId] = useState<string>(task.sprintId ? String(task.sprintId) : "")
   const [assigneeId, setAssigneeId] = useState<string>(task.assignedDeveloper ? String(task.assignedDeveloper.id) : "")
+  const [expectedSitDeploymentDate, setExpectedSitDeploymentDate] = useState(task.expectedSitDeploymentDate || "")
+  const [expectedUatDeploymentDate, setExpectedUatDeploymentDate] = useState(task.expectedUatDeploymentDate || "")
   const [saving, setSaving]     = useState(false)
 
   const developers = users.filter(u => u.roles?.includes("DEVELOPER") || u.roles?.includes("DEVADMIN"))
@@ -179,6 +181,8 @@ function UpdateTaskModal({ task, sprints, users, onClose, onSave }: UpdateTaskMo
       efforts: parseFloat(efforts) || 0,
       sprintId: sprintId ? parseInt(sprintId) : null,
       assignedDeveloper: assignedDev,
+      expectedSitDeploymentDate: expectedSitDeploymentDate || undefined,
+      expectedUatDeploymentDate: expectedUatDeploymentDate || undefined,
     })
     setSaving(false)
     onClose()
@@ -263,6 +267,16 @@ function UpdateTaskModal({ task, sprints, users, onClose, onSave }: UpdateTaskMo
                 <option key={u.id} value={u.id}>{u.fullName}</option>
               ))}
             </select>
+          </div>
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground block mb-1.5">Expected SIT Deployment Date</label>
+              <input type="date" className={`${inputCls} hide-calendar-picker`} value={expectedSitDeploymentDate} onChange={e => setExpectedSitDeploymentDate(e.target.value)} />
+            </div>
+            <div>
+              <label className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground block mb-1.5">Expected UAT Deployment Date</label>
+              <input type="date" className={`${inputCls} hide-calendar-picker`} value={expectedUatDeploymentDate} onChange={e => setExpectedUatDeploymentDate(e.target.value)} />
+            </div>
           </div>
         </div>
 

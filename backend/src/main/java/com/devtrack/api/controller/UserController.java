@@ -16,10 +16,9 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.time.LocalDateTime;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.stream.Collectors;
+import com.devtrack.api.model.Role;
 
 @RestController
 @RequestMapping("/api/users")
@@ -137,6 +136,69 @@ public class UserController {
         auditLogRepository.save(audit);
 
         return ResponseEntity.ok(new MessageResponse("User status successfully updated to " + newStatus));
+    }
+
+    @PutMapping("/{id}/roles")
+    @PreAuthorize("hasAnyRole('DEVADMIN', 'TESTADMIN', 'ADMIN')")
+    public ResponseEntity<?> updateUserRoles(@PathVariable Long id, @RequestBody Map<String, Object> body) {
+        User targetUser = userRepository.findById(id)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found"));
+
+        Object rolesObj = body.get("roles");
+        if (rolesObj == null) {
+            rolesObj = body.get("role");
+        }
+
+        Set<Role> newRoles = new HashSet<>();
+        if (rolesObj instanceof Collection<?>) {
+            for (Object r : (Collection<?>) rolesObj) {
+                if (r != null && !r.toString().isBlank()) {
+                    try {
+                        newRoles.add(Role.valueOf(r.toString().trim().replace("ROLE_", "").toUpperCase()));
+                    } catch (Exception ignored) {}
+                }
+            }
+        } else if (rolesObj instanceof String) {
+            String[] parts = ((String) rolesObj).split(",");
+            for (String p : parts) {
+                if (!p.isBlank()) {
+                    try {
+                        newRoles.add(Role.valueOf(p.trim().replace("ROLE_", "").toUpperCase()));
+                    } catch (Exception ignored) {}
+                }
+            }
+        }
+
+        if (newRoles.isEmpty()) {
+            return ResponseEntity.badRequest().body(new MessageResponse("At least one valid role must be provided"));
+        }
+
+        Set<Role> oldRoles = targetUser.getRoles() != null ? new HashSet<>(targetUser.getRoles()) : new HashSet<>();
+        targetUser.setRoles(newRoles);
+        userRepository.save(targetUser);
+
+        // Audit Log
+        String currentUsername = SecurityContextHolder.getContext().getAuthentication().getName();
+        User adminUser = userRepository.findByUsername(currentUsername)
+                .orElse(targetUser);
+
+        AuditLog audit = new AuditLog();
+        audit.setEntityType("USER");
+        audit.setEntityId(id);
+        audit.setFieldName("roles");
+        audit.setOldValue(oldRoles.toString());
+        audit.setNewValue(newRoles.toString());
+        audit.setRemarks("Admin updated user roles to: " + newRoles);
+        audit.setChangedBy(adminUser);
+        auditLogRepository.save(audit);
+
+        List<String> roleNames = newRoles.stream().map(Enum::name).collect(Collectors.toList());
+
+        return ResponseEntity.ok(Map.of(
+            "message", "User roles updated successfully",
+            "userId", targetUser.getId(),
+            "roles", roleNames
+        ));
     }
 
     @GetMapping("/{id}/status-audit")

@@ -324,10 +324,9 @@ public class AuthController {
     @PostMapping({"/admin/create-user", "/signup"})
     @PreAuthorize("hasAnyRole('DEVADMIN', 'ADMIN')")
     @Operation(summary = "Admin User Provisioning", description = "Creates a user with cryptographically secure temporary password and dispatches email.")
-    public ResponseEntity<?> adminCreateUser(@RequestBody Map<String, String> body) {
-        String fullName = body.get("fullName");
-        String email = body.get("email");
-        String roleStr = body.getOrDefault("role", "DEVELOPER");
+    public ResponseEntity<?> adminCreateUser(@RequestBody Map<String, Object> body) {
+        String fullName = body.get("fullName") != null ? body.get("fullName").toString() : null;
+        String email = body.get("email") != null ? body.get("email").toString() : null;
 
         if (fullName == null || fullName.isBlank() || email == null || email.isBlank()) {
             return ResponseEntity.badRequest().body(new MessageResponse("Full Name and Email are required."));
@@ -341,9 +340,31 @@ public class AuthController {
         String tempPassword = generateCryptoTempPassword();
 
         Set<Role> roles = new HashSet<>();
-        try {
-            roles.add(Role.valueOf(roleStr.toUpperCase()));
-        } catch (Exception e) {
+        Object rolesObj = body.get("roles");
+        if (rolesObj == null) {
+            rolesObj = body.get("role");
+        }
+
+        if (rolesObj instanceof Collection<?>) {
+            for (Object r : (Collection<?>) rolesObj) {
+                if (r != null && !r.toString().isBlank()) {
+                    try {
+                        roles.add(Role.valueOf(r.toString().trim().replace("ROLE_", "").toUpperCase()));
+                    } catch (Exception ignored) {}
+                }
+            }
+        } else if (rolesObj instanceof String) {
+            String[] parts = ((String) rolesObj).split(",");
+            for (String p : parts) {
+                if (!p.isBlank()) {
+                    try {
+                        roles.add(Role.valueOf(p.trim().replace("ROLE_", "").toUpperCase()));
+                    } catch (Exception ignored) {}
+                }
+            }
+        }
+
+        if (roles.isEmpty()) {
             roles.add(Role.DEVELOPER);
         }
 
@@ -377,7 +398,7 @@ public class AuthController {
             auditLog.setEntityType("USER");
             auditLog.setEntityId(saved.getId());
             auditLog.setFieldName("admin_user_create");
-            auditLog.setNewValue(username + " (" + roleStr + ")");
+            auditLog.setNewValue(username + " (" + roles.toString() + ")");
             auditLog.setRemarks("Admin provisioned user with single-use temp password");
             auditLog.setChangedBy(adminUser);
             AuditLogHelper.enrich(auditLog);
