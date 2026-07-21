@@ -559,7 +559,7 @@ export default function DeveloperDashboard() {
       payload.sitDate = todayStr
     } else if (nextStatus === "MOVE_TO_UAT") {
       payload.uatDate = todayStr
-    } else if (nextStatus === "CLOSED") {
+    } else if (nextStatus === "PROD_DEPLOYED" || nextStatus === "CLOSED") {
       payload.productionDate = todayStr
     }
 
@@ -2343,6 +2343,39 @@ export default function DeveloperDashboard() {
                           </div>
                           )
                         })()}
+                        {selectedTask.status === "TESTING_POOL" && (
+                          <div className="p-3.5 bg-amber-500/10 rounded-xl border border-amber-500/20 text-center text-amber-400 font-bold tracking-wide">
+                            In QA Testing Pool (Awaiting Tester Assignment)
+                          </div>
+                        )}
+                        {(selectedTask.status === "TESTING_IN_PROGRESS" || selectedTask.status === "UAT_TESTING" || selectedTask.status === "SIT_TESTING" || selectedTask.status === "BUG_FOUND") && (
+                          <div className="p-3.5 bg-violet-500/10 rounded-xl border border-violet-500/20 text-center text-violet-400 font-bold animate-pulse tracking-wide">
+                            QA Verification / Testing In Progress {selectedTask.tester ? `(Tester: ${selectedTask.tester.fullName})` : ""}
+                          </div>
+                        )}
+                        {(selectedTask.status === "TESTING_COMPLETED" || selectedTask.status === "UAT_COMPLETED" || selectedTask.status === "SIT_COMPLETED" || selectedTask.status === "TESTING_DONE" || selectedTask.status === "UAT_TESTING_COMPLETED") && (
+                          <Button
+                            className="w-full text-xs h-10 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-bold"
+                            onClick={() => handleUpdateStatus(selectedTask, "PROD_DEPLOYED")}
+                          >
+                            <Send className="mr-1.5 h-4 w-4" />
+                            Deploy to Production
+                          </Button>
+                        )}
+                        {selectedTask.status === "PROD_DEPLOYED" && (
+                          <Button
+                            className="w-full text-xs h-10 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-bold"
+                            onClick={() => handleUpdateStatus(selectedTask, "CLOSED")}
+                          >
+                            <CheckCircle className="mr-1.5 h-4 w-4 text-emerald-400" />
+                            Mark as Closed / Completed
+                          </Button>
+                        )}
+                        {selectedTask.status === "CLOSED" && (
+                          <div className="p-3.5 bg-emerald-500/10 rounded-xl border border-emerald-500/20 text-center text-emerald-400 font-bold tracking-wide flex items-center justify-center gap-1.5">
+                            <CheckCircle className="h-4 w-4 text-emerald-400" /> CR Completed & Closed
+                          </div>
+                        )}
                       </div>
                     </motion.div>
                   </div>
