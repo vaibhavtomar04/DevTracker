@@ -165,5 +165,157 @@ public interface TaskRepository extends JpaRepository<Task, Long>, org.springfra
 
     @Query("SELECT t.jtrackId FROM Task t WHERE t.jtrackId LIKE CONCAT(:prefix, '%')")
     List<String> findJtrackIdsByPrefix(@Param("prefix") String prefix);
-}
 
+    // ── Recognition Score metric queries ─────────────────────────────────
+    // All use native SQL for aggregate performance.
+    // Spec §13: escaped-defect penalties apply to PRODUCTION-escaped bugs only.
+
+    /** CRs in terminal success states (PROD_COMPLETED or CLOSED) for a developer. */
+    @Query(value = """
+        SELECT COUNT(*) FROM tasks
+        WHERE assigned_developer_id = :userId
+          AND status IN ('PROD_COMPLETED','CLOSED')
+        """, nativeQuery = true)
+    int countSuccessfulCrsForUser(@Param("userId") Long userId);
+
+    /** All CRs ever assigned to this developer (for rate denominators). */
+    @Query(value = """
+        SELECT COUNT(*) FROM tasks
+        WHERE assigned_developer_id = :userId
+        """, nativeQuery = true)
+    int countCrsAssignedToUser(@Param("userId") Long userId);
+
+    /**
+     * CRs approved first-time: reached SIT_DEPLOYED/UAT_DEPLOYED without ever
+     * having a CHANGES_REQUESTED row in task_workflow_history.
+     */
+    @Query(value = """
+        SELECT COUNT(DISTINCT t.id) FROM tasks t
+        WHERE t.assigned_developer_id = :userId
+          AND t.status IN ('SIT_DEPLOYED','UAT_DEPLOYED','SIT_COMPLETED',
+                           'UAT_COMPLETED','PROD_DEPLOYED','PROD_COMPLETED','CLOSED')
+          AND NOT EXISTS (
+              SELECT 1 FROM task_workflow_history h
+              WHERE h.task_id = t.id
+                AND h.to_status = 'CHANGES_REQUESTED'
+          )
+        """, nativeQuery = true)
+    int countFirstPassApprovedCrsForUser(@Param("userId") Long userId);
+
+    /** Prod deployments: CRs that reached PROD_DEPLOYED or beyond. */
+    @Query(value = """
+        SELECT COUNT(*) FROM tasks
+        WHERE assigned_developer_id = :userId
+          AND status IN ('PROD_DEPLOYED','PROD_COMPLETED','CLOSED')
+        """, nativeQuery = true)
+    int countProdDeploymentsForUser(@Param("userId") Long userId);
+
+    /** Successful prod deployments: reached PROD_DEPLOYED with rollback_count = 0. */
+    @Query(value = """
+        SELECT COUNT(*) FROM tasks
+        WHERE assigned_developer_id = :userId
+          AND status IN ('PROD_DEPLOYED','PROD_COMPLETED','CLOSED')
+          AND (rollback_count IS NULL OR rollback_count = 0)
+        """, nativeQuery = true)
+    int countSuccessfulProdDeploymentsForUser(@Param("userId") Long userId);
+
+    /**
+     * Distinct sprints the developer participated in (had at least one task).
+     */
+    @Query(value = """
+        SELECT COUNT(DISTINCT sprint_id) FROM tasks
+        WHERE assigned_developer_id = :userId
+          AND sprint_id IS NOT NULL
+        """, nativeQuery = true)
+    int countSprintsForUser(@Param("userId") Long userId);
+
+    /**
+     * Sprints where all tasks for this developer were completed before sprint end_date.
+     * A sprint is "on time" when every task's actual production date <= sprint end_date.
+     */
+    @Query(value = """
+        SELECT COUNT(DISTINCT t.sprint_id)
+        FROM tasks t
+        JOIN sprints s ON t.sprint_id = s.id
+        WHERE t.assigned_developer_id = :userId
+          AND t.sprint_id IS NOT NULL
+          AND NOT EXISTS (
+              SELECT 1 FROM tasks t2
+              WHERE t2.assigned_developer_id = :userId
+                AND t2.sprint_id = t.sprint_id
+                AND (t2.production_date IS NULL OR t2.production_date > s.end_date)
+          )
+        """, nativeQuery = true)
+    int countOnTimeSprintsForUser(@Param("userId") Long userId);
+
+    /**
+     * CRs with at least one production-escaped bug.
+     * Escaped = bug environment is 'PRODUCTION' or bug raised after PROD_DEPLOYED status.
+     * Spec §13: NEVER includes bugs caught in SIT/UAT testing.
+     */
+    @Query(value = """
+        SELECT COUNT(DISTINCT t.id) FROM tasks t
+        WHERE t.assigned_developer_id = :userId
+          AND EXISTS (
+              SELECT 1 FROM bugs b
+              WHERE b.task_id = t.id
+                AND b.environment = 'PRODUCTION'
+                AND b.status NOT IN ('REJECTED','INVALID')
+          )
+        """, nativeQuery = true)
+    int countProdEscapedDefectCrsForUser(@Param("userId") Long userId);
+
+    /** All bugs on the user's CRs (for reopen-rate denominator). */
+    @Query(value = """
+        SELECT COUNT(*) FROM bugs b
+        JOIN tasks t ON b.task_id = t.id
+        WHERE t.assigned_developer_id = :userId
+          AND b.status NOT IN ('REJECTED','INVALID')
+        """, nativeQuery = true)
+    int countBugsForUserCrs(@Param("userId") Long userId);
+
+    /** Bugs that were reopened at least once (reopen_count > 0). */
+    @Query(value = """
+        SELECT COUNT(*) FROM bugs b
+        JOIN tasks t ON b.task_id = t.id
+        WHERE t.assigned_developer_id = :userId
+          AND b.status NOT IN ('REJECTED','INVALID')
+          AND b.reopen_count > 0
+        """, nativeQuery = true)
+    int countReopenedBugsForUserCrs(@Param("userId") Long userId);
+
+    /** Valid (non-rejected) bugs raised by a tester. */
+    @Query(value = """
+        SELECT COUNT(*) FROM bugs
+        WHERE raised_by_id = :userId
+          AND status NOT IN ('REJECTED','INVALID')
+        """, nativeQuery = true)
+    int countValidBugsRaisedByUser(@Param("userId") Long userId);
+
+    /**
+     * Consecutive bug-free sprints: sprints where the developer's CRs had
+     * zero valid bugs raised against them (SIT or UAT bugs excluded from penalty).
+     */
+    @Query(value = """
+        SELECT COUNT(DISTINCT t.sprint_id)
+        FROM tasks t
+        WHERE t.assigned_developer_id = :userId
+          AND t.sprint_id IS NOT NULL
+          AND NOT EXISTS (
+              SELECT 1 FROM bugs b
+              WHERE b.task_id = t.id
+                AND b.status NOT IN ('REJECTED','INVALID')
+          )
+        """, nativeQuery = true)
+    int countBugFreeSprintsForUser(@Param("userId") Long userId);
+
+    /** On-time deliveries: CRs where actual SIT deploy <= expected SIT date. */
+    @Query(value = """
+        SELECT COUNT(*) FROM tasks
+        WHERE assigned_developer_id = :userId
+          AND expected_sit_date IS NOT NULL
+          AND sit_date IS NOT NULL
+          AND sit_date <= expected_sit_date
+        """, nativeQuery = true)
+    int countOnTimeDeliveriesForUser(@Param("userId") Long userId);
+}
