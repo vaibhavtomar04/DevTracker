@@ -190,6 +190,7 @@ public class UserController {
         audit.setNewValue(newRoles.toString());
         audit.setRemarks("Admin updated user roles to: " + newRoles);
         audit.setChangedBy(adminUser);
+        com.devtrack.api.services.AuditLogHelper.enrich(audit);
         auditLogRepository.save(audit);
 
         List<String> roleNames = newRoles.stream().map(Enum::name).collect(Collectors.toList());

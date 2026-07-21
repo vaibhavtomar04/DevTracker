@@ -525,14 +525,16 @@ export default function UsersPage() {
                   <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider block">
                     Assigned Roles (Select One or Multiple)
                   </label>
-                  <div className="grid grid-cols-1 gap-2 bg-[#0b0e1a] border border-white/[0.12] rounded-xl p-3 max-h-48 overflow-y-auto">
+                  <div className="flex flex-col gap-2 bg-slate-900/90 border border-slate-700/60 rounded-xl p-3 max-h-56 overflow-y-auto shadow-inner">
                     {ALL_AVAILABLE_ROLES.map((r) => {
                       const isChecked = selectedRoles.includes(r.id)
                       return (
                         <label
                           key={r.id}
-                          className={`flex items-start gap-2.5 p-2 rounded-lg cursor-pointer transition-all ${
-                            isChecked ? "bg-violet-500/15 border border-violet-500/30 text-violet-200" : "hover:bg-white/5 text-slate-400"
+                          className={`flex items-start gap-3 p-2.5 rounded-lg cursor-pointer transition-all border ${
+                            isChecked
+                              ? "bg-violet-950/70 border-violet-500/60 text-violet-100 shadow-[0_0_10px_rgba(139,92,246,0.15)]"
+                              : "bg-slate-800/60 border-slate-700/40 hover:bg-slate-800/90 text-slate-300"
                           }`}
                         >
                           <input
@@ -545,11 +547,14 @@ export default function UsersPage() {
                                 setSelectedRoles(selectedRoles.filter((id) => id !== r.id))
                               }
                             }}
-                            className="mt-0.5 rounded border-white/20 text-violet-600 focus:ring-violet-500"
+                            className="mt-1 rounded border-slate-600 text-violet-500 focus:ring-violet-500 accent-violet-600 h-4 w-4 shrink-0"
                           />
-                          <div>
-                            <span className="text-xs font-bold text-slate-200 block">{r.label} ({r.id})</span>
-                            <span className="text-[10px] text-slate-400 block leading-tight">{r.desc}</span>
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center justify-between gap-2">
+                              <span className="text-xs font-bold text-slate-100 block">{r.label}</span>
+                              <span className="text-[10px] font-mono font-semibold px-1.5 py-0.5 rounded bg-slate-800 text-violet-300 border border-slate-700 shrink-0">{r.id}</span>
+                            </div>
+                            <span className="text-[11px] text-slate-300 block leading-snug mt-0.5">{r.desc}</span>
                           </div>
                         </label>
                       )
@@ -821,14 +826,16 @@ export default function UsersPage() {
                   <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider block">
                     Assign Workspace Roles
                   </label>
-                  <div className="grid grid-cols-1 gap-2 bg-[#0b0e1a] border border-white/[0.12] rounded-xl p-3 max-h-60 overflow-y-auto">
+                  <div className="flex flex-col gap-2 bg-slate-900/90 border border-slate-700/60 rounded-xl p-3 max-h-60 overflow-y-auto shadow-inner">
                     {ALL_AVAILABLE_ROLES.map((r) => {
                       const isChecked = editUserSelectedRoles.includes(r.id)
                       return (
                         <label
                           key={r.id}
-                          className={`flex items-start gap-2.5 p-2 rounded-lg cursor-pointer transition-all ${
-                            isChecked ? "bg-violet-500/15 border border-violet-500/30 text-violet-200" : "hover:bg-white/5 text-slate-400"
+                          className={`flex items-start gap-3 p-2.5 rounded-lg cursor-pointer transition-all border ${
+                            isChecked
+                              ? "bg-violet-950/70 border-violet-500/60 text-violet-100 shadow-[0_0_10px_rgba(139,92,246,0.15)]"
+                              : "bg-slate-800/60 border-slate-700/40 hover:bg-slate-800/90 text-slate-300"
                           }`}
                         >
                           <input
@@ -841,11 +848,14 @@ export default function UsersPage() {
                                 setEditUserSelectedRoles(editUserSelectedRoles.filter((id) => id !== r.id))
                               }
                             }}
-                            className="mt-0.5 rounded border-white/20 text-violet-600 focus:ring-violet-500"
+                            className="mt-1 rounded border-slate-600 text-violet-500 focus:ring-violet-500 accent-violet-600 h-4 w-4 shrink-0"
                           />
-                          <div>
-                            <span className="text-xs font-bold text-slate-200 block">{r.label} ({r.id})</span>
-                            <span className="text-[10px] text-slate-400 block leading-tight">{r.desc}</span>
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center justify-between gap-2">
+                              <span className="text-xs font-bold text-slate-100 block">{r.label}</span>
+                              <span className="text-[10px] font-mono font-semibold px-1.5 py-0.5 rounded bg-slate-800 text-violet-300 border border-slate-700 shrink-0">{r.id}</span>
+                            </div>
+                            <span className="text-[11px] text-slate-300 block leading-snug mt-0.5">{r.desc}</span>
                           </div>
                         </label>
                       )
