@@ -26,6 +26,8 @@ const ApprovalCenter = lazy(() => import("@/pages/approvalCenter"))
 const SprintTasksPage = lazy(() => import("@/pages/sprintTasks"))
 const TestedCrsPage = lazy(() => import("@/pages/testedCrs"))
 const MissedDeadlinesPage = lazy(() => import("@/pages/missedDeadlines"))
+const RecognitionPage = lazy(() => import("@/pages/recognition"))
+const LeaderboardPage = lazy(() => import("@/pages/leaderboard"))
 
 // Dynamic main workspace redirect depending on user roles
 function RoleBasedWorkspace() {
@@ -362,6 +364,24 @@ function App() {
               element={
                 <ProtectedRoute allowedRoles={["DEVADMIN", "TESTADMIN", "DEVELOPER", "TESTER", "CODEREVIEWER"]}>
                   <ApprovalCenter />
+                </ProtectedRoute>
+              }
+            />
+
+            <Route
+              path="/dashboard/recognition"
+              element={
+                <ProtectedRoute allowedRoles={["DEVADMIN", "TESTADMIN", "DEVELOPER", "TESTER", "CODEREVIEWER"]}>
+                  <RecognitionPage />
+                </ProtectedRoute>
+              }
+            />
+
+            <Route
+              path="/dashboard/leaderboard"
+              element={
+                <ProtectedRoute allowedRoles={["DEVADMIN", "TESTADMIN", "DEVELOPER", "TESTER", "CODEREVIEWER"]}>
+                  <LeaderboardPage />
                 </ProtectedRoute>
               }
             />

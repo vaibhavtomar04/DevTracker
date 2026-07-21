@@ -21,6 +21,8 @@ import {
   Cpu,
   ClipboardCheck,
   AlertCircle,
+  Award,
+  Trophy,
 } from "lucide-react"
 
 interface SidebarProps {
@@ -44,6 +46,8 @@ export default function Sidebar({ collapsed, setCollapsed }: SidebarProps) {
     { name: "Testing Queue",  path: "/dashboard/testing",      icon: ListTodo,        roles: ["TESTER", "TESTADMIN", "DEVADMIN"] },
     { name: "Deployments",    path: "/dashboard/deployments",  icon: Rocket,          roles: ["DEVADMIN", "TESTADMIN", "DEVELOPER", "TESTER"] },
     { name: "Missed Deadlines", path: "/dashboard/missed-deadlines", icon: AlertCircle, roles: ["DEVADMIN", "CODEREVIEWER"] },
+    { name: "Achievements",   path: "/dashboard/recognition",  icon: Award,           roles: ["DEVELOPER", "TESTER", "DEVADMIN", "TESTADMIN", "CODEREVIEWER"] },
+    { name: "Leaderboard",    path: "/dashboard/leaderboard",  icon: Trophy,          roles: ["DEVELOPER", "TESTER", "DEVADMIN", "TESTADMIN", "CODEREVIEWER"] },
     { name: "Reports",        path: "/dashboard/reports",      icon: BarChart3,       roles: ["DEVADMIN", "TESTADMIN"] },
     { name: "Users",          path: "/dashboard/users",        icon: Users,           roles: ["DEVADMIN", "TESTADMIN"] },
     { name: "Audit Logs",     path: "/dashboard/audits",       icon: History,         roles: ["DEVADMIN", "TESTADMIN"] },
