@@ -23,6 +23,7 @@ import { QualityRiskBadge } from "@/components/shared/QualityRiskBadge"
 import RaiseBugModal from "@/components/shared/RaiseBugModal"
 import BugDetailModal from "@/components/shared/BugDetailModal"
 import { CreateCRModal } from "@/components/shared/CreateCRModal"
+import { Pagination, paginate } from "@/components/shared/Pagination"
 
 export default function CrManagement() {
   const { 
@@ -82,6 +83,10 @@ export default function CrManagement() {
   // Sorting State
   const [sortColumn, setSortColumn] = useState<string>("jtrackId")
   const [sortDirection, setSortDirection] = useState<"asc" | "desc">("desc")
+
+  // Pagination
+  const [crPage, setCrPage] = useState(0)
+  const [crPageSize, setCrPageSize] = useState(25)
 
   // Column Filters State
   const [colFilterPriority, setColFilterPriority] = useState("all")
@@ -289,6 +294,9 @@ export default function CrManagement() {
       ? String(valA).localeCompare(String(valB))
       : String(valB).localeCompare(String(valA))
   })
+
+  // Paginate sorted tasks
+  const pagedTasks = paginate(sortedTasks, crPage, crPageSize)
 
   const activeLogs = selectedTask ? auditLogs.filter(l => l.entityType === "TASK" && l.entityId === selectedTask.id) : []
   const relatedBugs = selectedTask ? bugs.filter(b => b.crTaskId === selectedTask.id) : []
@@ -654,7 +662,7 @@ export default function CrManagement() {
                     </td>
                   </tr>
                 ) : (
-                  sortedTasks.map((task) => {
+                  pagedTasks.map((task) => {
                     const isSelected = selectedTask?.id === task.id
                     return (
                       <motion.tr
@@ -829,6 +837,17 @@ export default function CrManagement() {
             </table>
           </div>
         </div>
+
+        {/* CR Table Pagination */}
+        <Pagination
+          currentPage={crPage}
+          totalItems={sortedTasks.length}
+          pageSize={crPageSize}
+          onPageChange={(p) => { setCrPage(p); window.scrollTo({ top: 0, behavior: 'smooth' }) }}
+          onPageSizeChange={(s) => { setCrPageSize(s); setCrPage(0) }}
+          pageSizeOptions={[10, 25, 50, 100]}
+          className="border border-white/[0.06] bg-white/[0.02] rounded-2xl backdrop-blur-md -mt-1"
+        />
 
         {/* ─── Challenged Bug Reviews ─────────────────────────────── */}
         {(() => {

@@ -4,6 +4,7 @@ import APP_CONFIG from "@/config/appConfig"
 import { Card, CardContent } from "@/components/ui/card"
 import { Search, Filter, ShieldAlert, History, User, FileText, ArrowRight, ArrowLeft, Download, Folder, FolderOpen, Clock } from "lucide-react"
 import { motion } from "framer-motion"
+import { Pagination, paginate } from "@/components/shared/Pagination"
 
 export default function Audits() {
   const { auditLogs, fetchData, tasks } = useTaskStore()
@@ -19,6 +20,10 @@ export default function Audits() {
   const [expandedGroups, setExpandedGroups] = useState<Record<string, boolean>>({
     Created: true, Bug: true, Retest: true
   });
+
+  // Pagination
+  const [auditPage, setAuditPage] = useState(0)
+  const [auditPageSize, setAuditPageSize] = useState(20)
 
   useEffect(() => {
     fetchData()
@@ -70,6 +75,10 @@ export default function Audits() {
     const matchesEntity = entityFilter === "all" || log.entityType === entityFilter
     return matchesSearch && matchesEntity
   })
+
+  // Paginate filtered results (shown newest-first)
+  const reversedFilteredLogs = [...filteredLogs].reverse()
+  const pagedLogs = paginate(reversedFilteredLogs, auditPage, auditPageSize)
 
   // Framer Motion Variants
   const containerVariants = {
@@ -197,7 +206,7 @@ export default function Audits() {
                         </td>
                       </tr>
                     ) : (
-                      [...filteredLogs].reverse().map((log) => (
+                      pagedLogs.map((log) => (
                         <motion.tr 
                           key={log.id} 
                           variants={rowVariants}
@@ -278,6 +287,16 @@ export default function Audits() {
               </div>
             </CardContent>
           </Card>
+
+          {/* Pagination */}
+          <Pagination
+            currentPage={auditPage}
+            totalItems={filteredLogs.length}
+            pageSize={auditPageSize}
+            onPageChange={(p) => { setAuditPage(p); window.scrollTo({ top: 0, behavior: 'smooth' }) }}
+            onPageSizeChange={(s) => { setAuditPageSize(s); setAuditPage(0) }}
+            className="border border-white/[0.06] bg-white/[0.02] rounded-2xl backdrop-blur-md"
+          />
         </>
       )}
     </div>

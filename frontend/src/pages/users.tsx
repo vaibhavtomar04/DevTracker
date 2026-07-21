@@ -20,6 +20,7 @@ import {
 import type { User } from "@/services/mockData"
 import { motion, AnimatePresence } from "framer-motion"
 import { apiClient } from "@/utils/apiClient"
+import { Pagination, paginate } from "@/components/shared/Pagination"
 
 const ALL_AVAILABLE_ROLES = [
   { id: "DEVELOPER", label: "Developer", desc: "Code implementation & SIT deployment" },
@@ -108,6 +109,10 @@ export default function UsersPage() {
   const autoUsername = fullName.trim()
     ? fullName.trim().toLowerCase().split(/\s+/).join('.')
     : ""
+
+  // Pagination
+  const [usersPage, setUsersPage] = useState(0)
+  const [usersPageSize, setUsersPageSize] = useState(15)
 
   useEffect(() => {
     fetchData()
@@ -216,6 +221,9 @@ export default function UsersPage() {
       u.email.toLowerCase().includes(search.toLowerCase())
   )
 
+  // Paginate user list
+  const pagedUsers = paginate(filtered, usersPage, usersPageSize)
+
   return (
     <div className="space-y-6 max-w-7xl mx-auto pb-12">
       {/* ── Header ── */}
@@ -310,7 +318,7 @@ export default function UsersPage() {
                 <p className="text-sm">No users found</p>
               </motion.div>
             ) : (
-              filtered.map((u, idx) => (
+              pagedUsers.map((u, idx) => (
                 <motion.div
                   key={u.id}
                   initial={{ opacity: 0, y: 8 }}
@@ -447,6 +455,17 @@ export default function UsersPage() {
           </AnimatePresence>
         </div>
       </motion.div>
+
+      {/* Pagination */}
+      <Pagination
+        currentPage={usersPage}
+        totalItems={filtered.length}
+        pageSize={usersPageSize}
+        onPageChange={setUsersPage}
+        onPageSizeChange={(s) => { setUsersPageSize(s); setUsersPage(0) }}
+        pageSizeOptions={[10, 15, 25, 50]}
+        className="border border-white/[0.06] bg-white/[0.03] rounded-2xl backdrop-blur-md"
+      />
 
       {/* ── Create User Modal ── */}
       <AnimatePresence>

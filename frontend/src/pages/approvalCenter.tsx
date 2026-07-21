@@ -10,6 +10,7 @@ import { EmptyState } from '@/components/shared/EmptyState';
 import { CRDetailSlideOver } from '@/components/shared/CRDetailSlideOver';
 import { APP_CONFIG } from '@/config/appConfig';
 import { type Task } from '@/services/mockData';
+import { Pagination, paginate } from '@/components/shared/Pagination';
 
 type ApprovalTab = 'CODE_REVIEW' | 'SIT_TESTING' | 'UAT_TESTING';
 
@@ -21,6 +22,10 @@ export default function ApprovalCenter() {
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
   const [remarksMap, setRemarksMap] = useState<Record<number, string>>({});
   const [submittingId, setSubmittingId] = useState<number | null>(null);
+
+  // Pagination
+  const [approvalPage, setApprovalPage] = useState(0)
+  const PAGE_SIZE = 12
 
   const fetchPending = useCallback(async () => {
     setLoading(true);
@@ -110,6 +115,9 @@ export default function ApprovalCenter() {
   const sitCount = tasks.filter((t) => t.status === 'SIT_TESTING' || t.status === 'SIT_DEPLOYED').length;
   const uatCount = tasks.filter((t) => t.status === 'UAT_TESTING' || t.status === 'MOVE_TO_UAT').length;
 
+  // Paginate filtered tasks
+  const pagedTasks = paginate(filteredTasks, approvalPage, PAGE_SIZE)
+
   return (
     <div className="p-8 max-w-7xl mx-auto space-y-8">
       {/* Header */}
@@ -185,7 +193,7 @@ export default function ApprovalCenter() {
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <AnimatePresence>
-            {filteredTasks.map((task) => (
+            {pagedTasks.map((task) => (
               <motion.div
                 key={task.id}
                 layout
@@ -248,6 +256,15 @@ export default function ApprovalCenter() {
           </AnimatePresence>
         </div>
       )}
+
+      {/* Approval Center Pagination */}
+      <Pagination
+        currentPage={approvalPage}
+        totalItems={filteredTasks.length}
+        pageSize={PAGE_SIZE}
+        onPageChange={setApprovalPage}
+        className="border border-white/[0.08] bg-white/[0.02] rounded-2xl"
+      />
 
       {/* Detail Slide Over */}
       {selectedTask && (

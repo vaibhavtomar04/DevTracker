@@ -12,6 +12,7 @@ import { AnimatePresence } from "framer-motion"
 import { CRDetailSlideOver } from "@/components/shared/CRDetailSlideOver"
 import { CRTimelinePopup } from "@/components/shared/CRTimelinePopup"
 import type { Task } from "@/services/mockData"
+import { Pagination, paginate } from "@/components/shared/Pagination"
 
 const glassCard =
   "rounded-2xl border border-slate-200 dark:border-white/[0.06] bg-white dark:bg-white/[0.03] shadow-sm dark:shadow-[inset_0_0_0_1px_rgba(255,255,255,0.04)]"
@@ -33,6 +34,10 @@ export default function MissedDeadlinesPage() {
   const [sprintId, setSprintId] = useState("")
   const [priority, setPriority] = useState("")
   const [milestoneType, setMilestoneType] = useState<"ALL" | "SIT" | "UAT">("ALL")
+
+  // Pagination
+  const [missedPage, setMissedPage] = useState(0)
+  const MISSED_PAGE_SIZE = 20
 
   // Load deadline analytics for KPIs
   const loadAnalytics = async () => {
@@ -119,6 +124,9 @@ export default function MissedDeadlinesPage() {
         return true
       })
   }, [tasks, search, project, sprintId, priority, milestoneType])
+
+  // Paginate missed tasks
+  const pagedMissedTasks = paginate(missedTasks, missedPage, MISSED_PAGE_SIZE)
 
   // Unique projects lookup
   const projects = React.useMemo(() => {
@@ -289,7 +297,7 @@ export default function MissedDeadlinesPage() {
                   </td>
                 </tr>
               ) : (
-                missedTasks.map(t => {
+                pagedMissedTasks.map(t => {
                   const milestonesToShow: Array<{
                     name: string;
                     expected: string;
@@ -391,6 +399,15 @@ export default function MissedDeadlinesPage() {
           </table>
         </div>
       </div>
+
+      {/* Missed Deadlines Pagination */}
+      <Pagination
+        currentPage={missedPage}
+        totalItems={missedTasks.length}
+        pageSize={MISSED_PAGE_SIZE}
+        onPageChange={setMissedPage}
+        className="border border-white/[0.06] bg-white/[0.02] rounded-2xl mt-2"
+      />
     </div>
   )
 }
