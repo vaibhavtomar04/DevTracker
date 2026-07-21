@@ -463,9 +463,10 @@ export default function UsersPage() {
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.93 }}
               transition={{ type: "spring", stiffness: 320, damping: 28 }}
-              className={`${glass} w-full max-w-md shadow-2xl p-6 space-y-5`}
+              className={`${glass} w-full max-w-md shadow-2xl flex flex-col max-h-[92vh]`}
             >
-              <div className="flex items-center justify-between border-b border-white/[0.06] pb-4">
+              {/* Header - fixed */}
+              <div className="flex items-center justify-between border-b border-white/[0.06] p-6 pb-4 shrink-0">
                 <div className="flex items-center gap-2.5">
                   <div className="h-8 w-8 rounded-lg bg-gradient-to-br from-violet-600 to-indigo-600 flex items-center justify-center shadow-[0_0_14px_rgba(139,92,246,0.4)]">
                     <UserPlus className="h-4 w-4 text-white" />
@@ -483,6 +484,8 @@ export default function UsersPage() {
                 </button>
               </div>
 
+              {/* Scrollable body */}
+              <div className="overflow-y-auto flex-1 px-6 py-4">
               <form onSubmit={handleCreateUser} className="space-y-4">
                 <div className="space-y-1.5">
                   <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">
@@ -525,16 +528,16 @@ export default function UsersPage() {
                   <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider block">
                     Assigned Roles (Select One or Multiple)
                   </label>
-                  <div className="flex flex-col gap-2 bg-slate-900/90 border border-slate-700/60 rounded-xl p-3 max-h-56 overflow-y-auto shadow-inner">
+                  <div className="flex flex-col gap-1.5 border border-border rounded-xl p-2.5 max-h-44 overflow-y-auto bg-muted/30">
                     {ALL_AVAILABLE_ROLES.map((r) => {
                       const isChecked = selectedRoles.includes(r.id)
                       return (
                         <label
                           key={r.id}
-                          className={`flex items-start gap-3 p-2.5 rounded-lg cursor-pointer transition-all border ${
+                          className={`flex items-center gap-3 p-2 rounded-lg cursor-pointer transition-all border ${
                             isChecked
-                              ? "bg-violet-950/70 border-violet-500/60 text-violet-100 shadow-[0_0_10px_rgba(139,92,246,0.15)]"
-                              : "bg-slate-800/60 border-slate-700/40 hover:bg-slate-800/90 text-slate-300"
+                              ? "bg-violet-500/15 border-violet-500/40 text-foreground"
+                              : "bg-transparent border-transparent hover:bg-muted/60 text-muted-foreground"
                           }`}
                         >
                           <input
@@ -547,14 +550,14 @@ export default function UsersPage() {
                                 setSelectedRoles(selectedRoles.filter((id) => id !== r.id))
                               }
                             }}
-                            className="mt-1 rounded border-slate-600 text-violet-500 focus:ring-violet-500 accent-violet-600 h-4 w-4 shrink-0"
+                            className="rounded accent-violet-600 h-4 w-4 shrink-0"
                           />
-                          <div className="flex-1 min-w-0">
-                            <div className="flex items-center justify-between gap-2">
-                              <span className="text-xs font-bold text-slate-100 block">{r.label}</span>
-                              <span className="text-[10px] font-mono font-semibold px-1.5 py-0.5 rounded bg-slate-800 text-violet-300 border border-slate-700 shrink-0">{r.id}</span>
+                          <div className="flex-1 min-w-0 flex items-center justify-between gap-2">
+                            <div>
+                              <span className="text-xs font-bold text-foreground block">{r.label}</span>
+                              <span className="text-[10px] text-muted-foreground block leading-snug">{r.desc}</span>
                             </div>
-                            <span className="text-[11px] text-slate-300 block leading-snug mt-0.5">{r.desc}</span>
+                            <span className="text-[10px] font-mono font-semibold px-1.5 py-0.5 rounded bg-violet-500/10 text-violet-500 border border-violet-500/30 shrink-0">{r.id}</span>
                           </div>
                         </label>
                       )
@@ -586,6 +589,7 @@ export default function UsersPage() {
                   </button>
                 </div>
               </form>
+              </div>
             </motion.div>
           </motion.div>
         )}
@@ -826,16 +830,16 @@ export default function UsersPage() {
                   <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider block">
                     Assign Workspace Roles
                   </label>
-                  <div className="flex flex-col gap-2 bg-slate-900/90 border border-slate-700/60 rounded-xl p-3 max-h-60 overflow-y-auto shadow-inner">
+                  <div className="flex flex-col gap-1.5 border border-border rounded-xl p-2.5 max-h-60 overflow-y-auto bg-muted/30">
                     {ALL_AVAILABLE_ROLES.map((r) => {
                       const isChecked = editUserSelectedRoles.includes(r.id)
                       return (
                         <label
                           key={r.id}
-                          className={`flex items-start gap-3 p-2.5 rounded-lg cursor-pointer transition-all border ${
+                          className={`flex items-center gap-3 p-2 rounded-lg cursor-pointer transition-all border ${
                             isChecked
-                              ? "bg-violet-950/70 border-violet-500/60 text-violet-100 shadow-[0_0_10px_rgba(139,92,246,0.15)]"
-                              : "bg-slate-800/60 border-slate-700/40 hover:bg-slate-800/90 text-slate-300"
+                              ? "bg-violet-500/15 border-violet-500/40 text-foreground"
+                              : "bg-transparent border-transparent hover:bg-muted/60 text-muted-foreground"
                           }`}
                         >
                           <input
@@ -848,14 +852,14 @@ export default function UsersPage() {
                                 setEditUserSelectedRoles(editUserSelectedRoles.filter((id) => id !== r.id))
                               }
                             }}
-                            className="mt-1 rounded border-slate-600 text-violet-500 focus:ring-violet-500 accent-violet-600 h-4 w-4 shrink-0"
+                            className="rounded accent-violet-600 h-4 w-4 shrink-0"
                           />
-                          <div className="flex-1 min-w-0">
-                            <div className="flex items-center justify-between gap-2">
-                              <span className="text-xs font-bold text-slate-100 block">{r.label}</span>
-                              <span className="text-[10px] font-mono font-semibold px-1.5 py-0.5 rounded bg-slate-800 text-violet-300 border border-slate-700 shrink-0">{r.id}</span>
+                          <div className="flex-1 min-w-0 flex items-center justify-between gap-2">
+                            <div>
+                              <span className="text-xs font-bold text-foreground block">{r.label}</span>
+                              <span className="text-[10px] text-muted-foreground block leading-snug">{r.desc}</span>
                             </div>
-                            <span className="text-[11px] text-slate-300 block leading-snug mt-0.5">{r.desc}</span>
+                            <span className="text-[10px] font-mono font-semibold px-1.5 py-0.5 rounded bg-violet-500/10 text-violet-500 border border-violet-500/30 shrink-0">{r.id}</span>
                           </div>
                         </label>
                       )
