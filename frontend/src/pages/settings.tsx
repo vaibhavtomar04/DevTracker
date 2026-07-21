@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react"
 import { useTaskStore } from "@/store/taskStore"
 import { useAuthStore } from "@/store/authStore"
+import APP_CONFIG from "@/config/appConfig"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Shield, Key, Camera, Smile, ShieldCheck, ShieldAlert } from "lucide-react"
@@ -85,8 +86,7 @@ export default function Settings() {
 
     setIsSavingProfile(true)
     try {
-      const API_BASE = import.meta.env.VITE_API_URL || ""
-      const res = await window.fetch(`${API_BASE}/api/users/profile`, {
+      const res = await window.fetch(`${APP_CONFIG.apiUrl}/api/users/profile`, {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",

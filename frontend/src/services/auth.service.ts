@@ -12,7 +12,9 @@ export interface JwtResponse {
   theme?: string
 }
 
-const API_BASE = import.meta.env.VITE_API_URL || "";
+import APP_CONFIG from '../config/appConfig';
+
+const API_BASE = APP_CONFIG.apiUrl;
 
 export const authService = {
   async login(usernameOrEmail: string, password: string, trustedDeviceToken?: string): Promise<JwtResponse> {

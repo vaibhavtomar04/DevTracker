@@ -3,6 +3,9 @@ import { authService } from "@/services/auth.service"
 import type { JwtResponse } from "@/services/auth.service"
 import type { User } from "@/services/mockData"
 import { useThemeStore } from "./themeStore"
+import APP_CONFIG from "@/config/appConfig"
+
+const API_BASE = APP_CONFIG.apiUrl;
 
 interface AuthState {
   user: User | null
@@ -78,7 +81,6 @@ export const useAuthStore = create<AuthState>((set, get) => ({
 
   checkAuth: async () => {
     try {
-      const API_BASE = import.meta.env.VITE_API_URL || "";
 
       // 1. First try to restore from the stored JWT Bearer token (survives page reload)
       const storedToken = localStorage.getItem("token");
@@ -140,7 +142,6 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   changePassword: async (currentPassword, newPassword) => {
     set({ loading: true, error: null })
     try {
-      const API_BASE = import.meta.env.VITE_API_URL || "";
       const res = await window.fetch(`${API_BASE}/api/auth/change-password`, {
         method: "POST",
         headers: { 
@@ -163,7 +164,6 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   forgotPassword: async (email) => {
     set({ loading: true, error: null })
     try {
-      const API_BASE = import.meta.env.VITE_API_URL || "";
       const res = await window.fetch(`${API_BASE}/api/auth/forgot-password`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -182,7 +182,6 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   setNewPassword: async (newPassword, confirmPassword) => {
     set({ loading: true, error: null })
     try {
-      const API_BASE = import.meta.env.VITE_API_URL || "";
       const res = await window.fetch(`${API_BASE}/api/auth/set-new-password`, {
         method: "POST",
         headers: { 
@@ -207,7 +206,6 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   resetPasswordWithToken: async (token, password, confirmPassword) => {
     set({ loading: true, error: null })
     try {
-      const API_BASE = import.meta.env.VITE_API_URL || "";
       const res = await window.fetch(`${API_BASE}/api/auth/reset-password`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },

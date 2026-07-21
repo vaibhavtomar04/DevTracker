@@ -1,5 +1,6 @@
 import { create } from "zustand"
 import { useAuthStore } from "./authStore"
+import APP_CONFIG from "@/config/appConfig"
 
 interface ThemeState {
   theme: "light" | "dark"
@@ -34,8 +35,7 @@ export const useThemeStore = create<ThemeState>((set, get) => ({
     // Send theme update to backend if logged in
     const token = localStorage.getItem("token")
     if (token) {
-      const API_BASE = import.meta.env.VITE_API_URL || ""
-      fetch(`${API_BASE}/api/users/theme`, {
+      fetch(`${APP_CONFIG.apiUrl}/api/users/theme`, {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
