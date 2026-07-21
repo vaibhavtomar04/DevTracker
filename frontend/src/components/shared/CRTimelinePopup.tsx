@@ -6,7 +6,8 @@
 import React from 'react';
 import { motion } from 'framer-motion';
 import { X, CheckCircle2, Clock, AlertCircle } from 'lucide-react';
-import type { Task } from '../../services/mockData';
+import { useAuthStore } from '@/store/authStore';
+import { useTaskStore } from '@/store/taskStore';
 
 /* ─── Workflow stage definitions ───────────────────────────────────── */
 interface StageDef {
@@ -200,8 +201,49 @@ const STAGE_COLORS: Record<string, { ring: string; dot: string; bg: string; text
 };
 
 export const CRTimelinePopup: React.FC<CRTimelinePopupProps> = ({ task, onClose }) => {
-  const reachedStages = getReachedStages(task);
-  const normalized = normalizeStatus(task.status);
+  const currentUser = useAuthStore((s) => s.user);
+  const { updateTask, addToast, fetchData } = useTaskStore();
+
+  const [currentTask, setCurrentTask] = React.useState<Task>(task);
+  const [isEditingExpected, setIsEditingExpected] = React.useState(false);
+  const [expSitDate, setExpSitDate] = React.useState(task.expectedSitDeploymentDate || '');
+  const [expUatDate, setExpUatDate] = React.useState(task.expectedUatDeploymentDate || '');
+  const [savingDates, setSavingDates] = React.useState(false);
+
+  React.useEffect(() => {
+    setCurrentTask(task);
+    setExpSitDate(task.expectedSitDeploymentDate || '');
+    setExpUatDate(task.expectedUatDeploymentDate || '');
+  }, [task]);
+
+  const isAdmin = (currentUser?.roles?.some(r => r.includes('ADMIN') || r.includes('DEVADMIN') || r.includes('TESTADMIN')) ?? false) || currentUser?.role?.includes('ADMIN');
+
+  const handleSaveExpectedDates = async () => {
+    if (!currentUser) return;
+    setSavingDates(true);
+    try {
+      const updated = await updateTask(
+        currentTask.id,
+        {
+          expectedSitDeploymentDate: expSitDate || undefined,
+          expectedUatDeploymentDate: expUatDate || undefined,
+        },
+        `Admin updated Expected SIT/UAT dates to SIT: ${expSitDate || 'N/A'}, UAT: ${expUatDate || 'N/A'}`,
+        currentUser
+      );
+      setCurrentTask(updated);
+      addToast('Expected SIT & UAT dates updated successfully!', 'success');
+      setIsEditingExpected(false);
+      fetchData();
+    } catch (err: any) {
+      addToast(err?.message || 'Failed to update expected dates', 'error');
+    } finally {
+      setSavingDates(false);
+    }
+  };
+
+  const reachedStages = getReachedStages(currentTask);
+  const normalized = normalizeStatus(currentTask.status);
   const currentIdx = STATUS_ORDER.indexOf(normalized);
   const totalStages = currentIdx >= 0 ? currentIdx + 1 : 1;
   const completedCount = reachedStages.filter((s) => s.status === 'completed').length;
@@ -238,23 +280,23 @@ export const CRTimelinePopup: React.FC<CRTimelinePopupProps> = ({ task, onClose 
               <div className="min-w-0">
                 <div className="flex items-center gap-2 flex-wrap">
                   <span className="font-mono text-xs font-bold text-violet-600 dark:text-violet-400 bg-violet-100 dark:bg-violet-500/10 px-2 py-0.5 rounded-lg border border-violet-200 dark:border-violet-500/20">
-                    {task.jtrackId}
+                    {currentTask.jtrackId}
                   </span>
                   <span className={`text-[9px] font-bold px-2 py-0.5 rounded-full border ${
-                    task.priority === 'High'
+                    currentTask.priority === 'High'
                       ? 'bg-rose-100 text-rose-700 border-rose-200 dark:bg-rose-500/10 dark:text-rose-400 dark:border-rose-500/20'
-                      : task.priority === 'Medium'
+                      : currentTask.priority === 'Medium'
                       ? 'bg-amber-100 text-amber-700 border-amber-200 dark:bg-amber-500/10 dark:text-amber-400 dark:border-amber-500/20'
                       : 'bg-slate-100 text-slate-600 border-slate-200 dark:bg-zinc-800 dark:text-zinc-400 dark:border-zinc-600/30'
                   }`}>
-                    {task.priority}
+                    {currentTask.priority}
                   </span>
                 </div>
                 <h2 className="font-black text-sm text-slate-900 dark:text-zinc-100 truncate max-w-[300px] mt-1 leading-tight">
-                  {task.title}
+                  {currentTask.title}
                 </h2>
                 <p className="text-[10px] text-slate-500 dark:text-zinc-500 mt-0.5">
-                  CR Workflow Timeline · {task.type?.name}
+                  CR Workflow Timeline · {currentTask.type?.name}
                 </p>
               </div>
             </div>
@@ -265,6 +307,88 @@ export const CRTimelinePopup: React.FC<CRTimelinePopupProps> = ({ task, onClose 
               <X className="h-4 w-4" />
             </button>
           </div>
+
+          {/* ── Admin Date Control Banner ── */}
+          {isAdmin && (
+            <div className="px-5 py-3 border-b border-slate-200 dark:border-white/[0.07] bg-violet-500/[0.06] flex-shrink-0">
+              {!isEditingExpected ? (
+                <div className="flex items-center justify-between gap-3 flex-wrap">
+                  <div className="flex items-center gap-2 text-xs flex-wrap">
+                    <span className="font-bold text-slate-700 dark:text-zinc-300">📅 Expected Dates:</span>
+                    <span className="text-[10px] font-mono font-semibold bg-violet-100 dark:bg-violet-500/15 text-violet-700 dark:text-violet-300 px-2 py-0.5 rounded-md border border-violet-200 dark:border-violet-500/25">
+                      SIT: {currentTask.expectedSitDeploymentDate ? new Date(currentTask.expectedSitDeploymentDate).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : 'Not set'}
+                    </span>
+                    <span className="text-[10px] font-mono font-semibold bg-violet-100 dark:bg-violet-500/15 text-violet-700 dark:text-violet-300 px-2 py-0.5 rounded-md border border-violet-200 dark:border-violet-500/25">
+                      UAT: {currentTask.expectedUatDeploymentDate ? new Date(currentTask.expectedUatDeploymentDate).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : 'Not set'}
+                    </span>
+                  </div>
+                  <button
+                    onClick={() => {
+                      setExpSitDate(currentTask.expectedSitDeploymentDate || '');
+                      setExpUatDate(currentTask.expectedUatDeploymentDate || '');
+                      setIsEditingExpected(true);
+                    }}
+                    className="text-xs font-bold px-3 py-1 rounded-xl bg-gradient-to-r from-violet-600 to-indigo-600 text-white hover:opacity-90 transition-all shadow-sm flex items-center gap-1 cursor-pointer shrink-0"
+                  >
+                    ✏️ Edit Expected Dates
+                  </button>
+                </div>
+              ) : (
+                <div className="space-y-3 p-3.5 rounded-2xl bg-white dark:bg-[#121624] border border-violet-500/30 shadow-md">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-bold text-violet-700 dark:text-violet-300">Admin Controls — Update Expected SIT & UAT Dates</span>
+                    <button
+                      onClick={() => setIsEditingExpected(false)}
+                      className="text-[10px] text-slate-500 hover:text-slate-700 dark:text-zinc-400 dark:hover:text-zinc-200 cursor-pointer"
+                    >
+                      ✕ Close
+                    </button>
+                  </div>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="text-[10px] font-bold uppercase text-slate-500 dark:text-zinc-400 block mb-1">
+                        Expected SIT Deployment Date
+                      </label>
+                      <input
+                        type="date"
+                        value={expSitDate}
+                        onChange={(e) => setExpSitDate(e.target.value)}
+                        className="w-full h-8 bg-slate-50 dark:bg-black/40 border border-slate-300 dark:border-white/10 rounded-lg px-2.5 text-xs text-slate-800 dark:text-zinc-200 focus:border-violet-500 focus:outline-none"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-[10px] font-bold uppercase text-slate-500 dark:text-zinc-400 block mb-1">
+                        Expected UAT Deployment Date
+                      </label>
+                      <input
+                        type="date"
+                        value={expUatDate}
+                        onChange={(e) => setExpUatDate(e.target.value)}
+                        className="w-full h-8 bg-slate-50 dark:bg-black/40 border border-slate-300 dark:border-white/10 rounded-lg px-2.5 text-xs text-slate-800 dark:text-zinc-200 focus:border-violet-500 focus:outline-none"
+                      />
+                    </div>
+                  </div>
+                  <div className="flex justify-end gap-2 pt-1">
+                    <button
+                      type="button"
+                      onClick={() => setIsEditingExpected(false)}
+                      className="px-3 py-1.5 text-xs font-semibold rounded-xl border border-slate-300 dark:border-white/10 text-slate-600 dark:text-zinc-400 hover:bg-slate-100 dark:hover:bg-white/5 cursor-pointer"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      type="button"
+                      disabled={savingDates}
+                      onClick={handleSaveExpectedDates}
+                      className="px-4 py-1.5 text-xs font-bold rounded-xl bg-gradient-to-r from-violet-600 to-indigo-600 text-white hover:opacity-90 shadow-md disabled:opacity-50 cursor-pointer"
+                    >
+                      {savingDates ? 'Saving...' : 'Save Dates'}
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
 
           {/* ── Progress bar ── */}
           <div className="px-5 pt-3 pb-2 flex-shrink-0">
@@ -380,7 +504,7 @@ export const CRTimelinePopup: React.FC<CRTimelinePopupProps> = ({ task, onClose 
                     </div>
 
                     {(() => {
-                      const expectedDate = getExpectedDateForStage(entry.def.key, task);
+                      const expectedDate = getExpectedDateForStage(entry.def.key, currentTask);
                       if (!expectedDate) return null;
 
                       const actualDate = entry.date;
@@ -396,27 +520,42 @@ export const CRTimelinePopup: React.FC<CRTimelinePopupProps> = ({ task, onClose 
                       }
 
                       return (
-                        <div className="mt-2.5 p-2.5 rounded-xl bg-black/20 border border-white/[0.04] text-[10px] space-y-1">
+                        <div className="mt-2.5 p-2.5 rounded-xl bg-[#0b0e17]/60 dark:bg-black/30 border border-slate-200 dark:border-white/[0.06] text-[10px] space-y-1">
                           <div className="flex justify-between items-center">
-                            <span className="text-zinc-500 font-bold tracking-wide">COMMITMENT</span>
+                            <div className="flex items-center gap-1.5">
+                              <span className="text-slate-500 dark:text-zinc-400 font-bold tracking-wide">COMMITMENT</span>
+                              {isAdmin && !isEditingExpected && (
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    setExpSitDate(currentTask.expectedSitDeploymentDate || '');
+                                    setExpUatDate(currentTask.expectedUatDeploymentDate || '');
+                                    setIsEditingExpected(true);
+                                  }}
+                                  className="text-[9px] font-bold text-violet-600 dark:text-violet-400 hover:underline cursor-pointer ml-1"
+                                >
+                                  ✏️ Edit
+                                </button>
+                              )}
+                            </div>
                             {isDelayed && (
-                              <span className="text-rose-400 font-extrabold flex items-center gap-0.5">🚨 Delayed by {delayDays}d</span>
+                              <span className="text-rose-600 dark:text-rose-400 font-extrabold flex items-center gap-0.5">🚨 Delayed by {delayDays}d</span>
                             )}
                             {isMissed && (
-                              <span className="text-rose-400 font-extrabold flex items-center gap-0.5">🚨 Missed by {delayDays}d</span>
+                              <span className="text-rose-600 dark:text-rose-400 font-extrabold flex items-center gap-0.5">🚨 Missed by {delayDays}d</span>
                             )}
                             {!isDelayed && !isMissed && actualDate && (
-                              <span className="text-emerald-400 font-extrabold">✅ Met SLA</span>
+                              <span className="text-emerald-600 dark:text-emerald-400 font-extrabold">✅ Met SLA</span>
                             )}
                             {!isDelayed && !isMissed && !actualDate && (
-                              <span className="text-sky-400 font-extrabold">🕒 On Track</span>
+                              <span className="text-sky-600 dark:text-sky-400 font-extrabold">🕒 On Track</span>
                             )}
                           </div>
-                          <div className="grid grid-cols-2 gap-1 text-[9px] text-zinc-400">
-                            <div>Expected: <span className="font-semibold text-zinc-300">
+                          <div className="grid grid-cols-2 gap-1 text-[9px] text-slate-600 dark:text-zinc-400">
+                            <div>Expected: <span className="font-semibold text-slate-800 dark:text-zinc-200">
                               {new Date(expectedDate).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}
                             </span></div>
-                            <div>Actual: <span className="font-semibold text-zinc-300">
+                            <div>Actual: <span className="font-semibold text-slate-800 dark:text-zinc-200">
                               {actualDate ? new Date(actualDate).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : '—'}
                             </span></div>
                           </div>
@@ -426,13 +565,13 @@ export const CRTimelinePopup: React.FC<CRTimelinePopupProps> = ({ task, onClose 
 
                     {/* Developer list for dev stages */}
                     {(entry.def.key === 'IN_PROGRESS' || entry.def.key === 'CODE_REVIEW') &&
-                      task.developers && task.developers.length > 1 && (
+                      currentTask.developers && currentTask.developers.length > 1 && (
                       <div className="mt-2 pt-2 border-t border-slate-200 dark:border-white/[0.05]">
                         <p className="text-[9px] font-bold text-slate-400 dark:text-zinc-600 uppercase tracking-wider mb-1.5">
                           All Developers
                         </p>
                         <div className="flex flex-wrap gap-1.5">
-                          {task.developers.map((d, di) => (
+                          {currentTask.developers.map((d, di) => (
                             <div key={di} className="flex items-center gap-1 px-2 py-0.5 rounded-lg bg-slate-100 dark:bg-white/[0.04] border border-slate-200 dark:border-white/[0.06] text-[9px] font-semibold text-slate-700 dark:text-zinc-300">
                               <div className="w-3 h-3 rounded-full bg-gradient-to-br from-violet-500 to-indigo-600 flex items-center justify-center text-[7px] font-bold text-white">
                                 {d.developer.fullName.charAt(0)}
@@ -455,7 +594,7 @@ export const CRTimelinePopup: React.FC<CRTimelinePopupProps> = ({ task, onClose 
             <div className="flex items-center gap-2 mt-3 px-1">
               <div className="flex-1 h-px bg-slate-200 dark:bg-white/[0.06]" />
               <span className="text-[9px] font-bold text-slate-400 dark:text-zinc-600 bg-slate-100 dark:bg-white/[0.03] px-2 py-0.5 rounded-full border border-slate-200 dark:border-white/[0.05]">
-                Current: {task.status.replace(/_/g, ' ')}
+                Current: {currentTask.status.replace(/_/g, ' ')}
               </span>
               <div className="flex-1 h-px bg-slate-200 dark:bg-white/[0.06]" />
             </div>
