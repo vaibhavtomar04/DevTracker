@@ -59,7 +59,7 @@ interface NotificationState {
   _pollInterval: ReturnType<typeof setInterval> | null;
 }
 
-const API_BASE = '/api';
+const API_BASE = `${APP_CONFIG.apiUrl}/api`;
 
 function getAuthHeaders(): Record<string, string> {
   const token = localStorage.getItem('token');

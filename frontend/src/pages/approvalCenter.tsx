@@ -8,6 +8,7 @@ import { useAuthStore } from '@/store/authStore';
 import { SkeletonLoader } from '@/components/shared/SkeletonLoader';
 import { EmptyState } from '@/components/shared/EmptyState';
 import { CRDetailSlideOver } from '@/components/shared/CRDetailSlideOver';
+import { APP_CONFIG } from '@/config/appConfig';
 import { type Task } from '@/services/mockData';
 
 type ApprovalTab = 'CODE_REVIEW' | 'SIT_TESTING' | 'UAT_TESTING';
@@ -25,7 +26,7 @@ export default function ApprovalCenter() {
     setLoading(true);
     try {
       const token = localStorage.getItem('token');
-      const res = await fetch('/api/tasks?page=0&size=100', {
+      const res = await fetch(`${APP_CONFIG.apiUrl}/api/tasks?page=0&size=100`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       if (res.ok) {
@@ -56,9 +57,9 @@ export default function ApprovalCenter() {
     setSubmittingId(task.id);
     try {
       const token = localStorage.getItem('token');
-      let endpoint = `/api/tasks/${task.id}/approve`;
-      if (activeTab === 'SIT_TESTING') endpoint = `/api/tasks/${task.id}/approve-sit`;
-      else if (activeTab === 'UAT_TESTING') endpoint = `/api/tasks/${task.id}/approve-uat`;
+      let endpoint = `${APP_CONFIG.apiUrl}/api/tasks/${task.id}/approve`;
+      if (activeTab === 'SIT_TESTING') endpoint = `${APP_CONFIG.apiUrl}/api/tasks/${task.id}/approve-sit`;
+      else if (activeTab === 'UAT_TESTING') endpoint = `${APP_CONFIG.apiUrl}/api/tasks/${task.id}/approve-uat`;
 
       const res = await fetch(endpoint, {
         method: 'POST',
@@ -85,9 +86,9 @@ export default function ApprovalCenter() {
     setSubmittingId(task.id);
     try {
       const token = localStorage.getItem('token');
-      let endpoint = `/api/tasks/${task.id}/reject`;
-      if (activeTab === 'SIT_TESTING') endpoint = `/api/tasks/${task.id}/reject-sit`;
-      else if (activeTab === 'UAT_TESTING') endpoint = `/api/tasks/${task.id}/reject-uat`;
+      let endpoint = `${APP_CONFIG.apiUrl}/api/tasks/${task.id}/reject`;
+      if (activeTab === 'SIT_TESTING') endpoint = `${APP_CONFIG.apiUrl}/api/tasks/${task.id}/reject-sit`;
+      else if (activeTab === 'UAT_TESTING') endpoint = `${APP_CONFIG.apiUrl}/api/tasks/${task.id}/reject-uat`;
 
       const res = await fetch(endpoint, {
         method: 'POST',

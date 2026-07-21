@@ -14,7 +14,7 @@ export interface JwtResponse {
 
 import APP_CONFIG from '../config/appConfig';
 
-const API_BASE = APP_CONFIG.apiUrl;
+const API_BASE = `${APP_CONFIG.apiUrl}/api`;
 
 export const authService = {
   async login(usernameOrEmail: string, password: string, trustedDeviceToken?: string): Promise<JwtResponse> {
@@ -22,7 +22,7 @@ export const authService = {
     if (trustedDeviceToken) {
       headers["X-Trusted-Device-Token"] = trustedDeviceToken;
     }
-    const res = await fetch(API_BASE + "/api/auth/login", {
+    const res = await fetch(`${API_BASE}/auth/login`, {
       method: "POST",
       headers,
       body: JSON.stringify({ username: usernameOrEmail, password, trustedDeviceToken })
@@ -39,14 +39,14 @@ export const authService = {
   },
 
   async logout(): Promise<void> {
-    await fetch(API_BASE + "/api/auth/logout", {
+    await fetch(`${API_BASE}/auth/logout`, {
       method: "POST",
       headers: { "Content-Type": "application/json" }
     });
   },
 
   async register(username: string, email: string, fullName: string, role: string): Promise<{ message: string }> {
-    const res = await fetch(API_BASE + "/api/auth/signup", {
+    const res = await fetch(`${API_BASE}/auth/signup`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ username, password: "Password123!", fullName, email, role })
@@ -59,7 +59,7 @@ export const authService = {
   },
 
   async resetPassword(username: string): Promise<{ message: string }> {
-    const res = await fetch(API_BASE + "/api/auth/resetPassword", {
+    const res = await fetch(`${API_BASE}/auth/resetPassword`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ username, password: "Password123!" })

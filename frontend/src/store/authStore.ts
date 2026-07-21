@@ -5,7 +5,7 @@ import type { User } from "@/services/mockData"
 import { useThemeStore } from "./themeStore"
 import APP_CONFIG from "@/config/appConfig"
 
-const API_BASE = APP_CONFIG.apiUrl;
+const API_BASE = `${APP_CONFIG.apiUrl}/api`;
 
 interface AuthState {
   user: User | null
@@ -85,7 +85,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       // 1. First try to restore from the stored JWT Bearer token (survives page reload)
       const storedToken = localStorage.getItem("token");
       if (storedToken) {
-        const meRes = await window.fetch(`${API_BASE}/api/auth/me`, {
+        const meRes = await window.fetch(`${API_BASE}/auth/me`, {
           method: "GET",
           headers: {
             "Authorization": `Bearer ${storedToken}`,
@@ -109,7 +109,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       }
 
       // 2. Fall back to refresh cookie if no stored token
-      const res = await window.fetch(`${API_BASE}/api/auth/refresh`, {
+      const res = await window.fetch(`${API_BASE}/auth/refresh`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         credentials: "include"
@@ -142,7 +142,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   changePassword: async (currentPassword, newPassword) => {
     set({ loading: true, error: null })
     try {
-      const res = await window.fetch(`${API_BASE}/api/auth/change-password`, {
+      const res = await window.fetch(`${API_BASE}/auth/change-password`, {
         method: "POST",
         headers: { 
           "Content-Type": "application/json",
@@ -164,7 +164,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   forgotPassword: async (email) => {
     set({ loading: true, error: null })
     try {
-      const res = await window.fetch(`${API_BASE}/api/auth/forgot-password`, {
+      const res = await window.fetch(`${API_BASE}/auth/forgot-password`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email })
@@ -182,7 +182,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   setNewPassword: async (newPassword, confirmPassword) => {
     set({ loading: true, error: null })
     try {
-      const res = await window.fetch(`${API_BASE}/api/auth/set-new-password`, {
+      const res = await window.fetch(`${API_BASE}/auth/set-new-password`, {
         method: "POST",
         headers: { 
           "Content-Type": "application/json",
@@ -206,7 +206,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   resetPasswordWithToken: async (token, password, confirmPassword) => {
     set({ loading: true, error: null })
     try {
-      const res = await window.fetch(`${API_BASE}/api/auth/reset-password`, {
+      const res = await window.fetch(`${API_BASE}/auth/reset-password`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ token, password, confirmPassword })

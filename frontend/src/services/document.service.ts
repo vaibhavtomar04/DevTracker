@@ -33,7 +33,9 @@ export interface UploadProgress {
   dto?: DocumentDto;
 }
 
-const API_BASE = '/api';
+import { APP_CONFIG } from '@/config/appConfig';
+
+const API_BASE = `${APP_CONFIG.apiUrl}/api`;
 
 function getAuthHeaders(): Record<string, string> {
   const token = localStorage.getItem('token');

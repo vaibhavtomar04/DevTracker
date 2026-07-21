@@ -2,7 +2,7 @@ import { useAuthStore } from "@/store/authStore";
 
 import { APP_CONFIG } from "@/config/appConfig";
 
-const API_BASE = APP_CONFIG.apiUrl;
+const API_BASE = `${APP_CONFIG.apiUrl}/api`;
 
 function extractErrorMessage(text: string, status: number): string {
   if (!text || !text.trim()) {
@@ -44,8 +44,9 @@ function onRefreshed(token: string) {
 export async function apiClient(endpoint: string, options: RequestOptions = {}): Promise<any> {
   const { token, logout, setSession } = useAuthStore.getState();
 
-  // Construct URL with query parameters if present
-  let url = `${API_BASE}${endpoint}`;
+  // Construct URL with query parameters if present (handle endpoint with or without /api prefix)
+  const normalizedEndpoint = endpoint.startsWith('/api') ? endpoint.substring(4) : endpoint.startsWith('/') ? endpoint : `/${endpoint}`;
+  let url = `${API_BASE}${normalizedEndpoint}`;
   if (options.params) {
     const searchParams = new URLSearchParams();
     Object.entries(options.params).forEach(([key, val]) => {
@@ -85,7 +86,7 @@ export async function apiClient(endpoint: string, options: RequestOptions = {}):
     if (!isRefreshing) {
       isRefreshing = true;
       try {
-        const refreshResponse = await fetch(`${API_BASE}/api/auth/refresh`, {
+        const refreshResponse = await fetch(`${API_BASE}/auth/refresh`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           credentials: "include"

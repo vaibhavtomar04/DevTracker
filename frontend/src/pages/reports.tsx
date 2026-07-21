@@ -2,6 +2,7 @@ import { useEffect, useState } from "react"
 import { useTaskStore } from "@/store/taskStore"
 import { useAuthStore } from "@/store/authStore"
 import { apiClient } from "@/utils/apiClient"
+import APP_CONFIG from "@/config/appConfig"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import {
@@ -92,7 +93,7 @@ export default function Reports() {
     setExporting(format)
     try {
       if (format === "csv") {
-        const res = await fetch("/api/analytics/dashboard", {
+        const res = await fetch(`${APP_CONFIG.apiUrl}/api/analytics/dashboard`, {
           headers: { Authorization: `Bearer ${localStorage.getItem("token")}` }
         });
         const analytics = res.ok ? await res.json() : null;
@@ -159,7 +160,7 @@ export default function Reports() {
               setExporting(null)
 
               // Fetch the file as blob using raw fetch (needs Bearer token from authStore)
-              const fileRes = await fetch(`/api/reports/download/${job.downloadToken}`, {
+              const fileRes = await fetch(`${APP_CONFIG.apiUrl}/api/reports/download/${job.downloadToken}`, {
                 headers: { Authorization: `Bearer ${useAuthStore.getState().token || localStorage.getItem("token")}` }
               });
               if (!fileRes.ok) throw new Error("Failed to download file");
@@ -201,7 +202,7 @@ export default function Reports() {
               clearInterval(interval)
               setExporting(null)
 
-              const fileRes = await fetch(`/api/reports/download/${job.downloadToken}`, {
+              const fileRes = await fetch(`${APP_CONFIG.apiUrl}/api/reports/download/${job.downloadToken}`, {
                 headers: { Authorization: `Bearer ${useAuthStore.getState().token || localStorage.getItem("token")}` }
               });
               if (!fileRes.ok) throw new Error("Failed to download file");

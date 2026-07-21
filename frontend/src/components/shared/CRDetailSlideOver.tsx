@@ -16,6 +16,7 @@ import { DocumentList } from './DocumentList';
 import { DocumentUpload } from './DocumentUpload';
 import { useTaskStore } from '../../store/taskStore';
 import BugDetailModal from './BugDetailModal';
+import { APP_CONFIG } from '@/config/appConfig';
 
 
 
@@ -135,7 +136,7 @@ export const CRDetailSlideOver: React.FC<CRDetailSlideOverProps> = ({
       if (actorFilter) params.append('actorId', actorFilter);
       if (actionFilter) params.append('actionType', actionFilter);
 
-      fetch(`/api/audit/groups/TASK/${crId}?${params.toString()}`, {
+      fetch(`${APP_CONFIG.apiUrl}/api/audit/groups/TASK/${crId}?${params.toString()}`, {
         headers: { Authorization: `Bearer ${localStorage.getItem('token')}` },
       })
         .then((r) => r.json())
@@ -147,7 +148,7 @@ export const CRDetailSlideOver: React.FC<CRDetailSlideOverProps> = ({
   // Fetch comments
   useEffect(() => {
     if (activeTab === 'comments' && crId) {
-      fetch(`/api/comments/TASK/${crId}`, {
+      fetch(`${APP_CONFIG.apiUrl}/api/comments/TASK/${crId}`, {
         headers: { Authorization: `Bearer ${localStorage.getItem('token')}` },
       })
         .then((r) => r.json())
@@ -174,7 +175,7 @@ export const CRDetailSlideOver: React.FC<CRDetailSlideOverProps> = ({
   const submitComment = useCallback(async () => {
     if (!newComment.trim() || !crId) return;
     try {
-      const res = await fetch('/api/comments', {
+      const res = await fetch(`${APP_CONFIG.apiUrl}/api/comments`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -184,7 +185,7 @@ export const CRDetailSlideOver: React.FC<CRDetailSlideOverProps> = ({
       });
       if (res.ok) {
         setNewComment('');
-        const updated = await fetch(`/api/comments/TASK/${crId}`, {
+        const updated = await fetch(`${APP_CONFIG.apiUrl}/api/comments/TASK/${crId}`, {
           headers: { Authorization: `Bearer ${localStorage.getItem('token')}` },
         });
         setComments(await updated.json());
@@ -827,15 +828,13 @@ function ActivityTab({
   // Extract unique action types / fieldNames
   const uniqueActions = Array.from(new Set(allFlatLogs.map((log: any) => log.fieldName).filter(Boolean)));
 
-  const { setDownloadTarget, addToast } = useTaskStore();
-
   const handleExport = () => {
     const params = new URLSearchParams();
     if (searchQuery) params.append('search', searchQuery);
     if (actorFilter) params.append('actorId', actorFilter);
     if (actionFilter) params.append('actionType', actionFilter);
 
-    fetch(`/api/audit/groups/TASK/${crId}/export?${params.toString()}`, {
+    fetch(`${APP_CONFIG.apiUrl}/api/audit/groups/TASK/${crId}/export?${params.toString()}`, {
       headers: {
         Authorization: `Bearer ${localStorage.getItem("token")}`
       }
@@ -848,7 +847,7 @@ function ActivityTab({
       const reader = new FileReader();
       reader.onloadend = () => {
         const base64Data = reader.result as string;
-        setDownloadTarget({
+        useTaskStore.getState().setDownloadTarget({
           base64Data,
           defaultFileName: `audit_history_TASK_${crId}.xlsx`
         });
@@ -856,7 +855,7 @@ function ActivityTab({
       reader.readAsDataURL(blob);
     })
     .catch(err => {
-      addToast("Export failed: " + err.message, "error");
+      useTaskStore.getState().addToast("Export failed: " + err.message, "error");
     });
   };
 
@@ -1074,7 +1073,7 @@ function BugsTab({ taskId, onSelectBug }: { taskId: number; onSelectBug: (bugId:
 
   useEffect(() => {
     // Fetch bugs associated with this task — filter by bugTaskId
-    fetch(`/api/bugs?page=0&size=50`, {
+    fetch(`${APP_CONFIG.apiUrl}/api/bugs?page=0&size=50`, {
       headers: { Authorization: `Bearer ${localStorage.getItem('token')}` },
     })
       .then((r) => r.json())
@@ -1132,7 +1131,7 @@ function ApprovalTab({
     if (!remarks.trim()) { setMessage('Remarks are required for approval.'); return; }
     setLoading(true);
     try {
-      const res = await fetch(`/api/tasks/${task.id}`, {
+      const res = await fetch(`${APP_CONFIG.apiUrl}/api/tasks/${task.id}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -1158,7 +1157,7 @@ function ApprovalTab({
     if (!remarks.trim()) { setMessage('Remarks are required to send back.'); return; }
     setLoading(true);
     try {
-      const res = await fetch(`/api/tasks/${task.id}`, {
+      const res = await fetch(`${APP_CONFIG.apiUrl}/api/tasks/${task.id}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',

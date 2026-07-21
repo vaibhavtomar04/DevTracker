@@ -1,5 +1,6 @@
 import React, { useState, useRef } from 'react';
 import { ShieldAlert, Loader2 } from 'lucide-react';
+import APP_CONFIG from '@/config/appConfig';
 
 interface QualityRiskBadgeProps {
   taskId: number;
@@ -35,7 +36,7 @@ export const QualityRiskBadge: React.FC<QualityRiskBadgeProps> = ({ taskId, isQu
     if (breakdown || loading) return;
     setLoading(true);
     try {
-      const res = await fetch(`/api/crs/${taskId}/quality-risk`, {
+      const res = await fetch(`${APP_CONFIG.apiUrl}/api/crs/${taskId}/quality-risk`, {
         headers: { Authorization: `Bearer ${localStorage.getItem('token')}` },
       });
       if (res.ok) {

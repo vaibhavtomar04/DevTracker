@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react"
 import { useTaskStore } from "@/store/taskStore"
+import APP_CONFIG from "@/config/appConfig"
 import { Card, CardContent } from "@/components/ui/card"
 import { Search, Filter, ShieldAlert, History, User, FileText, ArrowRight, ArrowLeft, Download, Folder, FolderOpen, Clock } from "lucide-react"
 import { motion } from "framer-motion"
@@ -30,7 +31,7 @@ export default function Audits() {
       if (timelineActor) params.append('actorId', timelineActor);
       if (timelineAction) params.append('actionType', timelineAction);
 
-      fetch(`/api/audit/groups/${selectedEntity.entityType}/${selectedEntity.entityId}?${params.toString()}`, {
+      fetch(`${APP_CONFIG.apiUrl}/api/audit/groups/${selectedEntity.entityType}/${selectedEntity.entityId}?${params.toString()}`, {
         headers: { Authorization: `Bearer ${localStorage.getItem('token')}` },
       })
         .then(r => r.json())
@@ -337,7 +338,7 @@ function GroupedAuditTimeline({
     if (timelineActor) params.append('actorId', timelineActor);
     if (timelineAction) params.append('actionType', timelineAction);
 
-    fetch(`/api/audit/groups/${entity.entityType}/${entity.entityId}/export?${params.toString()}`, {
+    fetch(`${APP_CONFIG.apiUrl}/api/audit/groups/${entity.entityType}/${entity.entityId}/export?${params.toString()}`, {
       headers: {
         Authorization: `Bearer ${localStorage.getItem("token")}`
       }

@@ -6,6 +6,7 @@ import { Bug, X, Download, FileText, Image, Film, File, Clock, CheckCircle2, Cir
 import { motion } from "framer-motion"
 import { Button } from "@/components/ui/button"
 import type { Bug as BugType } from "@/services/mockData"
+import APP_CONFIG from "@/config/appConfig"
 
 interface BugDetailModalProps {
   bugId: number
@@ -81,7 +82,7 @@ export default function BugDetailModal({ bugId, onClose, showDeveloperActions = 
   const handleDownloadArtifact = async (artId: number, fileName: string) => {
     setArtLoading(artId)
     try {
-      const res = await fetch(`/api/bugs/${bugId}/artifacts/${artId}`, {
+      const res = await fetch(`${APP_CONFIG.apiUrl}/api/bugs/${bugId}/artifacts/${artId}`, {
         headers: { Authorization: `Bearer ${localStorage.getItem("token")}` }
       })
       if (!res.ok) throw new Error("Failed to fetch artifact")

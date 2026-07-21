@@ -35,6 +35,7 @@ import {
   Area,
   Legend
 } from "recharts"
+import APP_CONFIG from "@/config/appConfig"
 import type { Task } from "@/services/mockData"
 
 /* ─── tiny helpers ─── */
@@ -173,14 +174,14 @@ export default function AdminDashboard() {
 
   useEffect(() => {
     fetchData()
-    fetch("/api/analytics/dashboard", {
+    fetch(`${APP_CONFIG.apiUrl}/api/analytics/dashboard`, {
       headers: { Authorization: `Bearer ${localStorage.getItem("token")}` }
     })
       .then(r => r.json())
       .then(setAnalytics)
       .catch(() => {});
 
-    fetch("/api/analytics/deadlines", {
+    fetch(`${APP_CONFIG.apiUrl}/api/analytics/deadlines`, {
       headers: { Authorization: `Bearer ${localStorage.getItem("token")}` }
     })
       .then(r => r.json())

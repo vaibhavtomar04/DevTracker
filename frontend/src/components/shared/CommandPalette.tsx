@@ -12,6 +12,7 @@
 
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import APP_CONFIG from '@/config/appConfig';
 
 interface SearchResult {
   id: number;
@@ -81,8 +82,8 @@ async function searchBackend(query: string): Promise<SearchResult[]> {
   const headers: Record<string, string> = token ? { Authorization: `Bearer ${token}` } : {};
 
   const [tasksRes, bugsRes] = await Promise.allSettled([
-    fetch(`/api/tasks?page=0&size=10&search=${encodeURIComponent(query)}`, { headers }),
-    fetch(`/api/bugs?page=0&size=5&search=${encodeURIComponent(query)}`, { headers }),
+    fetch(`${APP_CONFIG.apiUrl}/api/tasks?page=0&size=10&search=${encodeURIComponent(query)}`, { headers }),
+    fetch(`${APP_CONFIG.apiUrl}/api/bugs?page=0&size=5&search=${encodeURIComponent(query)}`, { headers }),
   ]);
 
   const results: SearchResult[] = [];
