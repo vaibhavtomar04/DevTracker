@@ -2215,9 +2215,30 @@ export default function DeveloperDashboard() {
                             Push to UAT Pipeline
                           </Button>
                         )}
-                        {selectedTask.status === "MOVE_TO_UAT" && (
-                          <div className="space-y-3 p-3.5 border border-dashed border-cyan-500/30 bg-cyan-500/5 rounded-xl text-left">
-                            <span className="block text-[10px] font-bold uppercase tracking-wider text-cyan-600 dark:text-cyan-400">Unit Test Document Required</span>
+                        {selectedTask.status === "MOVE_TO_UAT" && (() => {
+                          const hasDoc = !!selectedDocFile || !!selectedTask.unitTestDocName
+                          return (
+                          <div className={`space-y-3 p-3.5 rounded-xl text-left border ${hasDoc ? "border-emerald-500/30 bg-emerald-500/5" : "border-amber-500/40 bg-amber-500/5"}`}>
+                            {/* Header */}
+                            <div className="flex items-center justify-between">
+                              <span className={`text-[10px] font-bold uppercase tracking-wider ${hasDoc ? "text-emerald-600 dark:text-emerald-400" : "text-amber-600 dark:text-amber-400"}`}>
+                                Unit Test Document
+                              </span>
+                              <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-rose-500/15 text-rose-500 border border-rose-500/30 uppercase tracking-wide">
+                                Required
+                              </span>
+                            </div>
+
+                            {/* Warning note when no doc */}
+                            {!hasDoc && (
+                              <div className="flex items-start gap-2 p-2.5 rounded-lg bg-amber-500/10 border border-amber-500/20">
+                                <span className="text-amber-500 text-sm shrink-0">⚠️</span>
+                                <p className="text-[10px] text-amber-600 dark:text-amber-300 leading-relaxed font-medium">
+                                  You must upload a unit testing document before moving this CR to the UAT Testing Pool.
+                                </p>
+                              </div>
+                            )}
+
                             <input
                               type="file"
                               accept="*"
@@ -2227,7 +2248,7 @@ export default function DeveloperDashboard() {
                               className="hidden"
                             />
                             {selectedDocFile ? (
-                              <div className="flex items-center gap-2.5 p-2.5 rounded-xl border border-border bg-muted/50">
+                              <div className="flex items-center gap-2.5 p-2.5 rounded-xl border border-emerald-500/30 bg-emerald-500/5">
                                 {selectedDocFile.url.startsWith("data:image/") ? (
                                   <div className="w-12 h-12 rounded-lg overflow-hidden border border-border shrink-0 bg-muted">
                                     <img src={selectedDocFile.url} alt={selectedDocFile.name} className="w-full h-full object-cover" />
@@ -2239,7 +2260,7 @@ export default function DeveloperDashboard() {
                                 )}
                                 <div className="flex-1 min-w-0 text-left">
                                   <span className="block truncate font-mono text-foreground text-[11px]">{selectedDocFile.name}</span>
-                                  <span className="text-[9px] text-muted-foreground font-semibold uppercase tracking-wider block mt-0.5">Unit Testing Document</span>
+                                  <span className="text-[9px] text-emerald-600 dark:text-emerald-400 font-semibold uppercase tracking-wider block mt-0.5">✓ Unit Testing Document</span>
                                 </div>
                                 <button
                                   type="button"
@@ -2249,25 +2270,45 @@ export default function DeveloperDashboard() {
                                   <Trash2 className="h-3.5 w-3.5" />
                                 </button>
                               </div>
+                            ) : selectedTask.unitTestDocName ? (
+                              <div className="flex items-center gap-2.5 p-2.5 rounded-xl border border-border bg-muted/50">
+                                <div className="w-10 h-10 rounded-lg flex items-center justify-center border border-border bg-muted text-base shrink-0">📄</div>
+                                <div className="flex-1 min-w-0">
+                                  <span className="block truncate font-mono text-foreground text-[11px]">{selectedTask.unitTestDocName}</span>
+                                  <span className="text-[9px] text-muted-foreground font-semibold uppercase tracking-wider block mt-0.5">Previously uploaded — click below to replace</span>
+                                </div>
+                              </div>
                             ) : (
                               <button
                                 type="button"
                                 onClick={() => document.getElementById("unit-test-input-drawer")?.click()}
-                                className="w-full flex items-center justify-center gap-2 text-xs h-9 rounded-lg border border-border bg-muted hover:bg-muted/80 text-foreground font-semibold transition-all cursor-pointer"
+                                className="w-full flex flex-col items-center justify-center gap-1.5 py-4 rounded-xl border-2 border-dashed border-amber-400/50 bg-amber-500/[0.04] hover:bg-amber-500/10 hover:border-amber-400 text-amber-600 dark:text-amber-400 font-semibold transition-all cursor-pointer"
                               >
-                                📎 Select Document
+                                <span className="text-xl">📎</span>
+                                <span className="text-xs">Click to upload Unit Testing Document</span>
+                                <span className="text-[10px] text-amber-500/70">PDF, DOCX, XLSX, ZIP or any file type</span>
+                              </button>
+                            )}
+                            {(selectedTask.unitTestDocName && !selectedDocFile) && (
+                              <button
+                                type="button"
+                                onClick={() => document.getElementById("unit-test-input-drawer")?.click()}
+                                className="w-full text-[10px] text-muted-foreground hover:text-foreground underline underline-offset-2 transition-colors text-center"
+                              >
+                                Upload a new document (replaces existing)
                               </button>
                             )}
                             <Button
-                              className="w-full text-xs h-10 rounded-xl bg-gradient-to-r from-cyan-600 to-teal-600 hover:from-cyan-500 hover:to-teal-500 text-white font-bold"
+                              className="w-full text-xs h-10 rounded-xl bg-gradient-to-r from-cyan-600 to-teal-600 hover:from-cyan-500 hover:to-teal-500 text-white font-bold disabled:opacity-40 disabled:cursor-not-allowed"
                               disabled={!selectedDocFile && !selectedTask.unitTestDocName}
                               onClick={() => handlePushToUATTesting(selectedTask)}
                             >
                               <Send className="mr-1.5 h-4 w-4" />
-                              Move to UAT Testing Pool
+                              {hasDoc ? "Move to UAT Testing Pool" : "Upload Document to Continue"}
                             </Button>
                           </div>
-                        )}
+                          )
+                        })()}
                       </div>
                     </motion.div>
                   </div>
