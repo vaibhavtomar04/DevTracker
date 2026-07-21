@@ -19,17 +19,21 @@ export default function LeaderboardPage() {
 
   useEffect(() => {
     fetchLeaderboard();
+    const timer = setInterval(() => {
+      fetchLeaderboard(true);
+    }, 5000);
+    return () => clearInterval(timer);
   }, [period]);
 
-  const fetchLeaderboard = async () => {
-    setLoading(true);
+  const fetchLeaderboard = async (silent = false) => {
+    if (!silent) setLoading(true);
     try {
       const res = await recognitionService.getLeaderboard(0, 50, period);
       setEntries(res.content || []);
     } catch (e) {
       console.error("Failed to load leaderboard", e);
     } finally {
-      setLoading(false);
+      if (!silent) setLoading(false);
     }
   };
 

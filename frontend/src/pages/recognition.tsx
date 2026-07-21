@@ -48,10 +48,14 @@ export default function RecognitionPage() {
 
   useEffect(() => {
     loadData();
+    const timer = setInterval(() => {
+      loadData(true);
+    }, 5000);
+    return () => clearInterval(timer);
   }, []);
 
-  const loadData = async () => {
-    setLoading(true);
+  const loadData = async (silent = false) => {
+    if (!silent) setLoading(true);
     try {
       const [scoreRes, unlockedRes, progressRes, catalogueRes] = await Promise.all([
         recognitionService.getMyScore(),
@@ -66,7 +70,7 @@ export default function RecognitionPage() {
     } catch (e) {
       console.error("Failed to load recognition data", e);
     } finally {
-      setLoading(false);
+      if (!silent) setLoading(false);
     }
   };
 
