@@ -16,7 +16,6 @@ import {
   History,
   Loader2,
   Shield,
-  Check,
 } from "lucide-react"
 import type { User } from "@/services/mockData"
 import { motion, AnimatePresence } from "framer-motion"

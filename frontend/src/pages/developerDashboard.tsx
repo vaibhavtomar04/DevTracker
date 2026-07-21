@@ -288,7 +288,7 @@ export default function DeveloperDashboard() {
 
   // Sync selected task details
   useEffect(() => {
-    setSelectedDocFile(null)
+    setSelectedDocFiles([])
   }, [selectedTask])
 
   // Auto-sync selectedTask from live store so WebSocket-driven task refreshes

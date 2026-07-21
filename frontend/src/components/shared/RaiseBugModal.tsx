@@ -20,8 +20,6 @@ interface RaiseBugModalProps {
   onSuccess?: () => void
 }
 
-const ACCEPTED_TYPES: string[] = [] // empty = accept all
-const ACCEPTED_EXT = "*"
 const MAX_FILE_SIZE_MB = 5
 
 function formatBytes(bytes: number): string {

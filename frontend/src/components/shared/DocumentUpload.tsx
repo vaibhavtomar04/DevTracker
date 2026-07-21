@@ -19,7 +19,6 @@ import {
   type DocumentDto,
   DOC_TYPE_LABELS,
   DOC_TYPE_COLORS,
-  ALLOWED_EXTENSIONS,
   formatFileSize,
 } from '../../services/document.service';
 import { useDocumentUpload, type FileUploadState } from '../../hooks/useDocumentUpload';

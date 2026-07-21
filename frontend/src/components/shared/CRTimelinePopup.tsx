@@ -8,6 +8,7 @@ import { motion } from 'framer-motion';
 import { X, CheckCircle2, Clock, AlertCircle } from 'lucide-react';
 import { useAuthStore } from '@/store/authStore';
 import { useTaskStore } from '@/store/taskStore';
+import type { Task } from '@/services/mockData';
 
 /* ─── Workflow stage definitions ───────────────────────────────────── */
 interface StageDef {
@@ -216,7 +217,7 @@ export const CRTimelinePopup: React.FC<CRTimelinePopupProps> = ({ task, onClose 
     setExpUatDate(task.expectedUatDeploymentDate || '');
   }, [task]);
 
-  const isAdmin = (currentUser?.roles?.some(r => r.includes('ADMIN') || r.includes('DEVADMIN') || r.includes('TESTADMIN')) ?? false) || currentUser?.role?.includes('ADMIN');
+  const isAdmin = (currentUser?.roles?.some(r => r.includes('ADMIN') || r.includes('DEVADMIN') || r.includes('TESTADMIN')) ?? false) || (currentUser as any)?.role?.includes('ADMIN');
 
   const handleSaveExpectedDates = async () => {
     if (!currentUser) return;
@@ -571,7 +572,7 @@ export const CRTimelinePopup: React.FC<CRTimelinePopupProps> = ({ task, onClose 
                           All Developers
                         </p>
                         <div className="flex flex-wrap gap-1.5">
-                          {currentTask.developers.map((d, di) => (
+                          {currentTask.developers.map((d: any, di: number) => (
                             <div key={di} className="flex items-center gap-1 px-2 py-0.5 rounded-lg bg-slate-100 dark:bg-white/[0.04] border border-slate-200 dark:border-white/[0.06] text-[9px] font-semibold text-slate-700 dark:text-zinc-300">
                               <div className="w-3 h-3 rounded-full bg-gradient-to-br from-violet-500 to-indigo-600 flex items-center justify-center text-[7px] font-bold text-white">
                                 {d.developer.fullName.charAt(0)}

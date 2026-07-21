@@ -352,7 +352,7 @@ const InfoRow: React.FC<{ label: string; value?: string | React.ReactNode }> = (
 
 function OverviewTab({ task, currentUser }: { task: Task; currentUser?: User | null }) {
   const { auditLogs, updateTask, addToast } = useTaskStore();
-  const isAdmin = (currentUser?.roles?.some(r => r.includes('ADMIN') || r.includes('DEVADMIN') || r.includes('TESTADMIN')) ?? false) || currentUser?.role?.includes('ADMIN');
+  const isAdmin = (currentUser?.roles?.some(r => r.includes('ADMIN') || r.includes('DEVADMIN') || r.includes('TESTADMIN')) ?? false) || (currentUser as any)?.role?.includes('ADMIN');
 
   const [isEditingExpected, setIsEditingExpected] = useState(false);
   const [expSitDate, setExpSitDate] = useState(task.expectedSitDeploymentDate || '');
