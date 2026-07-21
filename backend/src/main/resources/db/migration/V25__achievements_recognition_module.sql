@@ -350,9 +350,9 @@ INSERT INTO achievement_category (code, name, description, icon_key, display_ord
 
 -- ── Development Excellence ──
 INSERT INTO achievement (category_id, code, name, description, rarity, point_value, icon_key, progress_metric, progress_target, is_milestone, display_order, created_by)
-SELECT c.id, code, name, description, rarity, point_value, icon_key, progress_metric, progress_target, is_milestone, display_order, 'SYSTEM'
+SELECT c.id, d.code, d.name, d.description, d.rarity, d.point_value, d.icon_key, d.progress_metric, d.progress_target, d.is_milestone, d.display_order, 'SYSTEM'
 FROM achievement_category c,
-(SELECT 'DEV_EXCELLENCE' cat, 'FIRST_CR_COMPLETED'     code, 'First CR Completed'       name, 'Completed your first Change Request successfully.',           'COMMON',    50,  'git-merge',    'successful_cr_count',     1,  1, 10 UNION ALL
+(SELECT 'DEV_EXCELLENCE' cat, 'FIRST_CR_COMPLETED' code, 'First CR Completed' name, 'Completed your first Change Request successfully.' description, 'COMMON' rarity, 50 point_value, 'git-merge' icon_key, 'successful_cr_count' progress_metric, 1 progress_target, 1 is_milestone, 10 display_order UNION ALL
  SELECT 'DEV_EXCELLENCE','CR_10',                'CR Veteran',              'Completed 10 successful Change Requests.',                         'RARE',     150, 'layers',       'successful_cr_count',     10, 0, 20 UNION ALL
  SELECT 'DEV_EXCELLENCE','CR_50',                'CR Champion',             'Completed 50 successful Change Requests with quality gates passed.', 'EPIC',    400, 'trophy',       'successful_cr_count',     50, 0, 30 UNION ALL
  SELECT 'DEV_EXCELLENCE','CR_100',               '100 Successful CRs',      'Completed 100 successful CRs — a true engineering benchmark.',       'LEGENDARY',1000,'flame',      'successful_cr_count',     100,0, 40 UNION ALL
@@ -364,9 +364,9 @@ FROM achievement_category c,
 
 -- ── Code Quality ──
 INSERT INTO achievement (category_id, code, name, description, rarity, point_value, icon_key, progress_metric, progress_target, is_milestone, display_order, created_by)
-SELECT c.id, code, name, description, rarity, point_value, icon_key, progress_metric, progress_target, is_milestone, display_order, 'SYSTEM'
+SELECT c.id, d.code, d.name, d.description, d.rarity, d.point_value, d.icon_key, d.progress_metric, d.progress_target, d.is_milestone, d.display_order, 'SYSTEM'
 FROM achievement_category c,
-(SELECT 'CODE_QUALITY','CLEAN_CODE',             'Clean Code Contributor',   'Maintained ≥ 90% first-pass code approval rate over 10 CRs.',       'RARE',    200, 'sparkles',     'first_pass_approval_rate', 90, 0, 10 UNION ALL
+(SELECT 'CODE_QUALITY' cat, 'CLEAN_CODE' code, 'Clean Code Contributor' name, 'Maintained ≥ 90% first-pass code approval rate over 10 CRs.' description, 'RARE' rarity, 200 point_value, 'sparkles' icon_key, 'first_pass_approval_rate' progress_metric, 90 progress_target, 0 is_milestone, 10 display_order UNION ALL
  SELECT 'CODE_QUALITY','FIRST_TIME_APPROVAL',    'First-Time Approval',      'Your first CR approved without changes requested.',                  'COMMON',   75, 'thumbs-up',    'first_pass_cr_count',      1,  1, 20 UNION ALL
  SELECT 'CODE_QUALITY','NO_REWORK_10',           'No Rework Required',        'Completed 10 CRs in a row without CHANGES_REQUESTED.',              'EPIC',    400, 'repeat',       'no_rework_streak',         10, 0, 30 UNION ALL
  SELECT 'CODE_QUALITY','SECURE_CODING',          'Secure Coding Champion',    'Zero security-related bugs raised against your CRs for 3 sprints.', 'EPIC',    450, 'lock',         'security_clean_sprint_streak',3,0,40 UNION ALL
@@ -375,9 +375,9 @@ FROM achievement_category c,
 
 -- ── Delivery Excellence ──
 INSERT INTO achievement (category_id, code, name, description, rarity, point_value, icon_key, progress_metric, progress_target, is_milestone, display_order, created_by)
-SELECT c.id, code, name, description, rarity, point_value, icon_key, progress_metric, progress_target, is_milestone, display_order, 'SYSTEM'
+SELECT c.id, d.code, d.name, d.description, d.rarity, d.point_value, d.icon_key, d.progress_metric, d.progress_target, d.is_milestone, d.display_order, 'SYSTEM'
 FROM achievement_category c,
-(SELECT 'DELIVERY','SPRINT_FINISHER',      'Sprint Finisher',         'Completed all assigned sprint items on time.',                       'COMMON',  100, 'flag',         'sprint_on_time_count',     1,  0, 10 UNION ALL
+(SELECT 'DELIVERY' cat, 'SPRINT_FINISHER' code, 'Sprint Finisher' name, 'Completed all assigned sprint items on time.' description, 'COMMON' rarity, 100 point_value, 'flag' icon_key, 'sprint_on_time_count' progress_metric, 1 progress_target, 0 is_milestone, 10 display_order UNION ALL
  SELECT 'DELIVERY','ON_TIME_10',           'On-Time Delivery ×10',    'Delivered to SIT or UAT on time across 10 separate sprints.',        'RARE',    300, 'clock',        'on_time_delivery_count',  10,  0, 20 UNION ALL
  SELECT 'DELIVERY','NEVER_MISSED_DEADLINE','Never Missed Deadline',    'Zero missed SIT or UAT deadlines across 20 consecutive deployments.','EPIC',    600, 'calendar-check','zero_deadline_miss_streak',20, 0, 30 UNION ALL
  SELECT 'DELIVERY','CONSISTENT_PERFORMER', 'Consistent Performer',     'Maintained > 80% sprint success rate over 6 consecutive sprints.',   'RARE',    350, 'trending-up',  'sprint_success_streak',    6,  0, 40 UNION ALL
@@ -386,9 +386,9 @@ FROM achievement_category c,
 
 -- ── Testing Excellence ──
 INSERT INTO achievement (category_id, code, name, description, rarity, point_value, icon_key, progress_metric, progress_target, is_milestone, display_order, created_by)
-SELECT c.id, code, name, description, rarity, point_value, icon_key, progress_metric, progress_target, is_milestone, display_order, 'SYSTEM'
+SELECT c.id, d.code, d.name, d.description, d.rarity, d.point_value, d.icon_key, d.progress_metric, d.progress_target, d.is_milestone, d.display_order, 'SYSTEM'
 FROM achievement_category c,
-(SELECT 'TESTING','BUG_HUNTER',            'Bug Hunter',              'Raised and confirmed 50 valid bugs (non-rejected) in testing.',      'RARE',    200, 'crosshair',    'valid_bug_count',         50,  0, 10 UNION ALL
+(SELECT 'TESTING' cat, 'BUG_HUNTER' code, 'Bug Hunter' name, 'Raised and confirmed 50 valid bugs (non-rejected) in testing.' description, 'RARE' rarity, 200 point_value, 'crosshair' icon_key, 'valid_bug_count' progress_metric, 50 progress_target, 0 is_milestone, 10 display_order UNION ALL
  SELECT 'TESTING','REGRESSION_MASTER',     'Regression Master',       'Completed regression testing for 25 CRs with zero escaped defects.', 'EPIC',    400, 'refresh-cw',   'regression_cr_count',     25,  0, 20 UNION ALL
  SELECT 'TESTING','ZERO_ESCAPED_BUGS',     'Zero Escaped Bugs',       'Zero production defects traced to your test sign-offs over a quarter.','LEGENDARY',750,'shield-off', 'zero_escaped_quarter',     1,  0, 30 UNION ALL
  SELECT 'TESTING','EDGE_CASE_DETECTIVE',   'Edge Case Detective',     'Identified 20 edge-case bugs that developers considered non-obvious.', 'EPIC',   350, 'search',       'edge_case_bug_count',     20,  0, 40 UNION ALL
@@ -397,9 +397,9 @@ FROM achievement_category c,
 
 -- ── Collaboration ──
 INSERT INTO achievement (category_id, code, name, description, rarity, point_value, icon_key, progress_metric, progress_target, is_milestone, display_order, created_by)
-SELECT c.id, code, name, description, rarity, point_value, icon_key, progress_metric, progress_target, is_milestone, display_order, 'SYSTEM'
+SELECT c.id, d.code, d.name, d.description, d.rarity, d.point_value, d.icon_key, d.progress_metric, d.progress_target, d.is_milestone, d.display_order, 'SYSTEM'
 FROM achievement_category c,
-(SELECT 'COLLABORATION','TEAM_PLAYER',          'Team Player',             'Nominated by ≥ 3 peers for meaningful collaboration support.',      'RARE',    250, 'heart-handshake','peer_nomination_count',  3,  0, 10 UNION ALL
+(SELECT 'COLLABORATION' cat, 'TEAM_PLAYER' code, 'Team Player' name, 'Nominated by ≥ 3 peers for meaningful collaboration support.' description, 'RARE' rarity, 250 point_value, 'heart-handshake' icon_key, 'peer_nomination_count' progress_metric, 3 progress_target, 0 is_milestone, 10 display_order UNION ALL
  SELECT 'COLLABORATION','KNOWLEDGE_SHARER',     'Knowledge Sharer',        'Conducted or published 5 knowledge-sharing sessions or articles.',  'RARE',    300, 'share-2',      'knowledge_share_count',   5,  0, 20 UNION ALL
  SELECT 'COLLABORATION','DOC_CONTRIBUTOR',      'Documentation Contributor','Authored or substantially updated docs for 15 CRs.',               'COMMON',  150, 'file-text',    'doc_contribution_count',  15, 0, 30 UNION ALL
  SELECT 'COLLABORATION','CROSS_TEAM',           'Cross-Team Collaborator', 'Collaborated on CRs across 3 different projects.',                  'EPIC',    400, 'users',        'cross_project_cr_count',   3, 0, 40
@@ -407,9 +407,9 @@ FROM achievement_category c,
 
 -- ── Leadership ──
 INSERT INTO achievement (category_id, code, name, description, rarity, point_value, icon_key, progress_metric, progress_target, is_milestone, display_order, created_by)
-SELECT c.id, code, name, description, rarity, point_value, icon_key, progress_metric, progress_target, is_milestone, display_order, 'SYSTEM'
+SELECT c.id, d.code, d.name, d.description, d.rarity, d.point_value, d.icon_key, d.progress_metric, d.progress_target, d.is_milestone, d.display_order, 'SYSTEM'
 FROM achievement_category c,
-(SELECT 'LEADERSHIP','MENTOR',              'Mentor',                  'Admin-verified mentoring of 2 or more junior team members.',         'EPIC',    500, 'graduation-cap','admin_verified_mentor',   2,  0, 10 UNION ALL
+(SELECT 'LEADERSHIP' cat, 'MENTOR' code, 'Mentor' name, 'Admin-verified mentoring of 2 or more junior team members.' description, 'EPIC' rarity, 500 point_value, 'graduation-cap' icon_key, 'admin_verified_mentor' progress_metric, 2 progress_target, 0 is_milestone, 10 display_order UNION ALL
  SELECT 'LEADERSHIP','TECH_REVIEWER',       'Technical Reviewer',      'Provided peer-rated useful code reviews for 30 CRs.',               'RARE',    300, 'git-pull-request','peer_rated_review_count', 30,0, 20 UNION ALL
  SELECT 'LEADERSHIP','RELEASE_CAPTAIN',     'Release Captain',         'Led deployment and coordination for 5 successful production releases.','EPIC',  450, 'anchor',       'release_captain_count',    5,  0, 30 UNION ALL
  SELECT 'LEADERSHIP','INCIDENT_COMMANDER',  'Incident Commander',      'Admin-verified leadership during a production incident resolution.',  'LEGENDARY',600,'alert-triangle','admin_verified_incident', 1, 0, 40
@@ -417,9 +417,9 @@ FROM achievement_category c,
 
 -- ── Innovation ──
 INSERT INTO achievement (category_id, code, name, description, rarity, point_value, icon_key, progress_metric, progress_target, is_milestone, display_order, created_by)
-SELECT c.id, code, name, description, rarity, point_value, icon_key, progress_metric, progress_target, is_milestone, display_order, 'SYSTEM'
+SELECT c.id, d.code, d.name, d.description, d.rarity, d.point_value, d.icon_key, d.progress_metric, d.progress_target, d.is_milestone, d.display_order, 'SYSTEM'
 FROM achievement_category c,
-(SELECT 'INNOVATION','AUTOMATION_CREATOR',  'Automation Creator',      'Admin-reviewed automation contribution reducing manual effort ≥ 20%.', 'EPIC',  500, 'cpu',          'admin_verified_automation', 1, 0, 10 UNION ALL
+(SELECT 'INNOVATION' cat, 'AUTOMATION_CREATOR' code, 'Automation Creator' name, 'Admin-reviewed automation contribution reducing manual effort ≥ 20%.' description, 'EPIC' rarity, 500 point_value, 'cpu' icon_key, 'admin_verified_automation' progress_metric, 1 progress_target, 0 is_milestone, 10 display_order UNION ALL
  SELECT 'INNOVATION','PERFORMANCE_OPT',     'Performance Optimizer',   'Admin-accepted performance improvement with measurable impact.',       'EPIC',  450, 'zap',          'admin_verified_perf_opt',   1, 0, 20 UNION ALL
  SELECT 'INNOVATION','SECURITY_IMPROVEMENT','Security Improvement',     'Identified and resolved a security vulnerability accepted by admin.', 'LEGENDARY',700,'shield-plus', 'admin_verified_security',   1, 0, 30 UNION ALL
  SELECT 'INNOVATION','BEST_TECH_IDEA',      'Best Technical Idea',      'Innovation Award granted by admin for an outstanding technical idea.','LEGENDARY',800,'lightbulb',  'admin_granted_innovation',  1, 0, 40
@@ -427,9 +427,9 @@ FROM achievement_category c,
 
 -- ── Learning ──
 INSERT INTO achievement (category_id, code, name, description, rarity, point_value, icon_key, progress_metric, progress_target, is_milestone, display_order, created_by)
-SELECT c.id, code, name, description, rarity, point_value, icon_key, progress_metric, progress_target, is_milestone, display_order, 'SYSTEM'
+SELECT c.id, d.code, d.name, d.description, d.rarity, d.point_value, d.icon_key, d.progress_metric, d.progress_target, d.is_milestone, d.display_order, 'SYSTEM'
 FROM achievement_category c,
-(SELECT 'LEARNING','FIRST_CERTIFICATION',   'First Certification',     'Admin-verified first professional certification earned.',            'RARE',    300, 'badge',        'admin_verified_cert',       1, 1, 10 UNION ALL
+(SELECT 'LEARNING' cat, 'FIRST_CERTIFICATION' code, 'First Certification' name, 'Admin-verified first professional certification earned.' description, 'RARE' rarity, 300 point_value, 'badge' icon_key, 'admin_verified_cert' progress_metric, 1 progress_target, 1 is_milestone, 10 display_order UNION ALL
  SELECT 'LEARNING','SPRING_BOOT_EXPERT',    'Spring Boot Expert',       'Admin-verified Spring Boot certification or equivalent mastery.',    'EPIC',    500, 'coffee',       'admin_verified_sb_cert',    1, 0, 20 UNION ALL
  SELECT 'LEARNING','REACT_SPECIALIST',      'React Specialist',         'Admin-verified React certification or equivalent mastery.',          'EPIC',    500, 'code',         'admin_verified_react_cert', 1, 0, 30 UNION ALL
  SELECT 'LEARNING','SECURITY_TRAINING',     'Security Training Completed','Admin-verified completion of an accredited security training.',    'RARE',    250, 'lock',         'admin_verified_sec_training',1,0, 40 UNION ALL
