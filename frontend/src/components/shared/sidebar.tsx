@@ -1,6 +1,8 @@
+import { useEffect } from "react"
 import { useLocation, useNavigate } from "react-router-dom"
 import { motion, AnimatePresence } from "framer-motion"
 import { useAuthStore } from "@/store/authStore"
+import { useSprintStore } from "@/store/sprintStore"
 import { cn } from "@/utils/cn"
 import {
   Terminal,
@@ -34,6 +36,11 @@ export default function Sidebar({ collapsed, setCollapsed }: SidebarProps) {
   const location = useLocation()
   const navigate = useNavigate()
   const { user, logout } = useAuthStore()
+  const { sprints, fetchSprints } = useSprintStore()
+
+  useEffect(() => {
+    fetchSprints()
+  }, [fetchSprints])
 
   const navItems = [
     { name: "Dashboard",      path: "/dashboard",              icon: LayoutDashboard, roles: ["DEVELOPER", "TESTER", "DEVADMIN", "TESTADMIN", "CODEREVIEWER"] },
@@ -57,10 +64,24 @@ export default function Sidebar({ collapsed, setCollapsed }: SidebarProps) {
   // Normalize user roles by stripping 'ROLE_' prefix if present from backend
   const normalizedUserRoles = (user?.roles || []).map((role) => role.replace(/^ROLE_/, ""))
 
-  // Filter items by normalized user role
-  const filteredItems = navItems.filter((item) =>
-    item.roles.some((role) => normalizedUserRoles.includes(role))
+  const isAdmin = normalizedUserRoles.some((r) =>
+    ["DEVADMIN", "TESTADMIN", "CODEREVIEWER"].includes(r)
   )
+  const hasSprintCreated = Boolean(sprints && sprints.length > 0)
+
+  // Filter items by user role and sprint creation state
+  const filteredItems = navItems.filter((item) => {
+    const roleAllowed = item.roles.some((role) => normalizedUserRoles.includes(role))
+    if (!roleAllowed) return false
+
+    // Sprint Board & Sprint Tasks are visible to DEVELOPER and TESTER ONLY IF an admin has created at least one sprint
+    const isSprintItem = item.name === "Sprint Board" || item.name === "Sprint Tasks"
+    if (isSprintItem && !isAdmin && !hasSprintCreated) {
+      return false
+    }
+
+    return true
+  })
 
   const activePath = location.pathname
 

@@ -6,6 +6,7 @@ import ToastContainer from "@/components/shared/ToastContainer"
 import { NotificationPopupToast } from "@/components/shared/NotificationPopupToast"
 import { useNotificationStore } from "@/store/notificationStore"
 import { useTaskStore } from "@/store/taskStore"
+import { useSprintStore } from "@/store/sprintStore"
 import { useAuthStore } from "@/store/authStore"
 import { motion, AnimatePresence } from "framer-motion"
 import { ShieldOff } from "lucide-react"
@@ -178,16 +179,19 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
   const { loggingOut, user } = useAuthStore()
   const { fetchData } = useTaskStore()
+  const { fetchSprints } = useSprintStore()
   const { popupQueue, dismissPopup } = useNotificationStore()
   const location = useLocation()
 
   useEffect(() => {
     fetchData() // Initial fetch
+    fetchSprints()
     const timer = setInterval(() => {
       fetchData()
-    }, 3000) // Poll every 3 seconds silently
+      fetchSprints()
+    }, 5000) // Poll every 5 seconds silently
     return () => clearInterval(timer)
-  }, [fetchData])
+  }, [fetchData, fetchSprints])
 
   return (
     <div className="relative flex h-screen w-screen overflow-hidden bg-background text-foreground transition-colors duration-300">
