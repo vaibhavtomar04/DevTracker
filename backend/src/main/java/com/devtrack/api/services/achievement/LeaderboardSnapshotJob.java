@@ -51,7 +51,7 @@ public class LeaderboardSnapshotJob {
             snapshot.setRankPosition(rank);
             snapshot.setTotalScore(s.getTotalScore());
             snapshot.setQualityScore(s.getQualityScore());
-            snapshot.setLevelNumber(s.getCurrentLevel() != null ? s.getCurrentLevel().getLevelNumber() : 1);
+            snapshot.setLevel(s.getCurrentLevel());
             snapshot.setCreatedBy("SYSTEM");
             snapshot.setCreatedDate(LocalDateTime.now());
 

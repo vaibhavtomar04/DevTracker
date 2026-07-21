@@ -9,6 +9,10 @@ import java.util.Optional;
 @Repository
 public interface AchievementProgressRepository extends JpaRepository<AchievementProgress, Long> {
 
+    List<AchievementProgress> findByUserId(Long userId);
+
+    List<AchievementProgress> findByUserIdAndActiveFlag(Long userId, int activeFlag);
+
     Optional<AchievementProgress> findByUserIdAndAchievementId(Long userId, Long achievementId);
 
     /** All progress rows for a user, used by My Achievements page. */

@@ -571,9 +571,9 @@ public class BugController {
                                 savedBug.getId(),
                                 SecurityContextHolder.getContext().getAuthentication().getName(),
                                 java.util.Map.of(
-                                    "jtrackId", savedBug.getJtrackId(),
+                                    "jtrackId", savedBug.getJtrackId() != null ? savedBug.getJtrackId() : "",
                                     "severity",  savedBug.getSeverity() != null ? savedBug.getSeverity() : "",
-                                    "environment", savedBug.getEnvironment() != null ? savedBug.getEnvironment() : ""
+                                    "status",    savedBug.getStatus() != null ? savedBug.getStatus() : ""
                                 )
                             ));
                         }

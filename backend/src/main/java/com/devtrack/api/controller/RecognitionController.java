@@ -53,19 +53,23 @@ public class RecognitionController {
     @GetMapping("/my/score")
     public ResponseEntity<?> myScore() {
         Long uid = currentUserId();
-        return scoreRepo.findByUserId(uid)
-                .map(ResponseEntity::ok)
-                .orElse(ResponseEntity.ok(Map.of(
-                        "message", "No recognition data yet — start completing CRs!",
-                        "totalScore", 0)));
+        java.util.Optional<com.devtrack.api.model.achievement.RecognitionScore> scoreOpt = scoreRepo.findByUserId(uid);
+        if (scoreOpt.isPresent()) {
+            return ResponseEntity.ok(scoreOpt.get());
+        }
+        return ResponseEntity.ok(java.util.Map.of(
+                "message", "No recognition data yet — start completing CRs!",
+                "totalScore", 0));
     }
 
     /** GET /api/recognition/users/{id}/score — any user's score (view only) */
     @GetMapping("/users/{id}/score")
     public ResponseEntity<?> userScore(@PathVariable Long id) {
-        return scoreRepo.findByUserId(id)
-                .map(ResponseEntity::ok)
-                .orElse(ResponseEntity.ok(Map.of("totalScore", 0)));
+        java.util.Optional<com.devtrack.api.model.achievement.RecognitionScore> scoreOpt = scoreRepo.findByUserId(id);
+        if (scoreOpt.isPresent()) {
+            return ResponseEntity.ok(scoreOpt.get());
+        }
+        return ResponseEntity.ok(java.util.Map.of("totalScore", 0));
     }
 
     // ─────────────────────────────────────────────────────────────────────
@@ -123,7 +127,7 @@ public class RecognitionController {
     /** GET /api/recognition/categories — achievement categories */
     @GetMapping("/categories")
     public ResponseEntity<List<AchievementCategory>> categories() {
-        return ResponseEntity.ok(categoryRepo.findByActiveFlagOrderBySortOrder(1));
+        return ResponseEntity.ok(categoryRepo.findByActiveFlagOrderByDisplayOrderAsc(1));
     }
 
     // ─────────────────────────────────────────────────────────────────────
