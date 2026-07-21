@@ -67,16 +67,18 @@ export default function Sidebar({ collapsed, setCollapsed }: SidebarProps) {
   const isAdmin = normalizedUserRoles.some((r) =>
     ["DEVADMIN", "TESTADMIN", "CODEREVIEWER"].includes(r)
   )
-  const hasSprintCreated = Boolean(sprints && sprints.length > 0)
+  const hasActiveSprint = Boolean(
+    sprints && sprints.some((s) => s.status === "ACTIVE")
+  )
 
-  // Filter items by user role and sprint creation state
+  // Filter items by user role and active sprint state
   const filteredItems = navItems.filter((item) => {
     const roleAllowed = item.roles.some((role) => normalizedUserRoles.includes(role))
     if (!roleAllowed) return false
 
-    // Sprint Board & Sprint Tasks are visible to DEVELOPER and TESTER ONLY IF an admin has created at least one sprint
+    // Sprint Board & Sprint Tasks are visible to DEVELOPER and TESTER ONLY IF an ACTIVE sprint exists
     const isSprintItem = item.name === "Sprint Board" || item.name === "Sprint Tasks"
-    if (isSprintItem && !isAdmin && !hasSprintCreated) {
+    if (isSprintItem && !isAdmin && !hasActiveSprint) {
       return false
     }
 
