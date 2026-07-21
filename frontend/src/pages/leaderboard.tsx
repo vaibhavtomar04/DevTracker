@@ -8,12 +8,9 @@ import {
   Star,
   Shield,
   Zap,
-  TrendingUp,
-  AlertCircle,
-  Filter,
-  CheckCircle2
+  AlertCircle
 } from "lucide-react";
-import { recognitionService, LeaderboardEntry } from "@/services/recognition.service";
+import { recognitionService, type LeaderboardEntry } from "@/services/recognition.service";
 
 export default function LeaderboardPage() {
   const [entries, setEntries] = useState<LeaderboardEntry[]>([]);
@@ -37,7 +34,6 @@ export default function LeaderboardPage() {
   };
 
   const topThree = entries.slice(0, 3);
-  const restEntries = entries.slice(3);
 
   return (
     <div className="space-y-6 pb-12">

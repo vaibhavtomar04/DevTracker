@@ -8,20 +8,17 @@ import {
   Zap,
   CheckCircle2,
   TrendingUp,
-  Flame,
   Lock,
   Sparkles,
-  RefreshCw,
   PlusCircle,
-  AlertCircle,
-  HelpCircle
+  AlertCircle
 } from "lucide-react";
 import {
   recognitionService,
-  RecognitionScore,
-  UserAchievement,
-  AchievementProgress,
-  AchievementCatalogueItem
+  type RecognitionScore,
+  type UserAchievement,
+  type AchievementProgress,
+  type AchievementCatalogueItem
 } from "@/services/recognition.service";
 import { useAuthStore } from "@/store/authStore";
 
@@ -48,7 +45,6 @@ export default function RecognitionPage() {
   const [grantCode, setGrantCode] = useState<string>("");
   const [grantReason, setGrantReason] = useState<string>("");
   const [granting, setGranting] = useState(false);
-  const [grantSuccess, setGrantSuccess] = useState<string | null>(null);
 
   useEffect(() => {
     loadData();
@@ -85,7 +81,6 @@ export default function RecognitionPage() {
         grantReason
       );
       if (ok) {
-        setGrantSuccess("Achievement granted successfully!");
         setGrantModalOpen(false);
         setGrantUserId("");
         setGrantCode("");
