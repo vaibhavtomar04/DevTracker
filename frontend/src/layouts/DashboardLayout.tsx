@@ -1,9 +1,11 @@
-import React, { useState, useEffect } from "react"
+import React, { useState, useEffect, useCallback } from "react"
 import { useLocation } from "react-router-dom"
 import Sidebar from "@/components/shared/sidebar"
 import Navbar from "@/components/shared/navbar"
 import ToastContainer from "@/components/shared/ToastContainer"
 import { NotificationPopupToast } from "@/components/shared/NotificationPopupToast"
+import { AchievementUnlockModal } from "@/components/shared/AchievementUnlockModal"
+import { recognitionService, type AchievementNotification } from "@/services/recognition.service"
 import { useNotificationStore } from "@/store/notificationStore"
 import { useTaskStore } from "@/store/taskStore"
 import { useSprintStore } from "@/store/sprintStore"
@@ -182,16 +184,41 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
   const { fetchSprints } = useSprintStore()
   const { popupQueue, dismissPopup } = useNotificationStore()
   const location = useLocation()
+  const [activeAchievementUnlock, setActiveAchievementUnlock] = useState<AchievementNotification | null>(null)
+
+  const checkAchievementUnlocks = useCallback(async () => {
+    try {
+      const res = await recognitionService.getMyNotifications()
+      const unread = (res.content || []).filter((n) => n.isRead === 0)
+      if (unread.length > 0 && !activeAchievementUnlock) {
+        setActiveAchievementUnlock(unread[0])
+      }
+    } catch (e) {
+      console.error("Failed to fetch achievement notifications", e)
+    }
+  }, [activeAchievementUnlock])
 
   useEffect(() => {
     fetchData() // Initial fetch
     fetchSprints()
+    checkAchievementUnlocks()
+
     const timer = setInterval(() => {
       fetchData()
       fetchSprints()
+      checkAchievementUnlocks()
     }, 5000) // Poll every 5 seconds silently
     return () => clearInterval(timer)
-  }, [fetchData, fetchSprints])
+  }, [fetchData, fetchSprints, checkAchievementUnlocks])
+
+  const handleDismissAchievementModal = async () => {
+    setActiveAchievementUnlock(null)
+    try {
+      await recognitionService.markNotificationsRead()
+    } catch (e) {
+      console.error("Failed to mark notifications as read", e)
+    }
+  }
 
   return (
     <div className="relative flex h-screen w-screen overflow-hidden bg-background text-foreground transition-colors duration-300">
@@ -245,6 +272,12 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
       <NotificationPopupToast
         notifications={popupQueue}
         onDismiss={dismissPopup}
+      />
+
+      {/* Achievement Unlock Celebratory Modal */}
+      <AchievementUnlockModal
+        notification={activeAchievementUnlock}
+        onClose={handleDismissAchievementModal}
       />
 
       {/* Cinematic Logout Overlay */}
