@@ -119,7 +119,7 @@ public class PersistanceDevtrackConfiguration {
 	LocalContainerEntityManagerFactoryBean devtrackEntityManager() {
 		LocalContainerEntityManagerFactoryBean em = new LocalContainerEntityManagerFactoryBean();
 		em.setDataSource(devtrackDataSource());
-		em.setPackagesToScan("com.devtrack.api.model", "com.devtrack.api.notification.model");
+		em.setPackagesToScan("com.devtrack.api.model", "com.devtrack.api.notification.model", "com.devtrack.api.model.achievement");
 		HibernateJpaVendorAdapter vendorAdapter = new HibernateJpaVendorAdapter();
 		HashMap<String, Object> properties = new HashMap<>();
 		properties.put("hibernate.show-sql", showsql);
