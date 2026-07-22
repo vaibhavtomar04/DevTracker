@@ -176,7 +176,7 @@ public class EmailNotificationService {
 
 				String renderedHtml = templateEngine.process("email/bug-update", context);
 
-				EmailRequestVo requestMap = createEmailRequestMap(renderedHtml, mailThread.getSubject(), testingSender, mailThread.getMessageId(), developersMail, testingCc);
+				EmailRequestVo requestMap = createEmailRequestMap(renderedHtml, mailThread.getSubject(), user.getEmail(), mailThread.getMessageId(), testingSender, testingCc);
 
 				if(requestMap!=null)
 					callSendNotificationApi(requestMap);
