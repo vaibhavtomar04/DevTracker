@@ -128,6 +128,9 @@ public class Task {
     @Column(name = "changes_requested")
     private boolean changesRequested;
 
+    @Column(name = "rollback_count")
+    private Integer rollbackCount = 0;
+
     @Column(name = "unit_test_doc_url", columnDefinition = "LONGTEXT")
     private String unitTestDocUrl;
 

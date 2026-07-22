@@ -1,6 +1,7 @@
 package com.devtrack.api.repository;
 
 import com.devtrack.api.model.Task;
+import com.devtrack.api.model.User;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -9,8 +10,6 @@ import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
-
-import com.devtrack.api.model.User;
 
 @Repository
 public interface TaskRepository extends JpaRepository<Task, Long>, org.springframework.data.jpa.repository.JpaSpecificationExecutor<Task> {
@@ -210,12 +209,17 @@ public interface TaskRepository extends JpaRepository<Task, Long>, org.springfra
         """, nativeQuery = true)
     int countProdDeploymentsForUser(@Param("userId") Long userId);
 
-    /** Successful prod deployments: reached PROD_DEPLOYED with rollback_count = 0. */
+    /** Successful prod deployments: reached PROD_DEPLOYED with rollback_count = 0 and no rollback history. */
     @Query(value = """
-        SELECT COUNT(*) FROM tasks
-        WHERE assigned_developer_id = :userId
-          AND status IN ('PROD_DEPLOYED','PROD_COMPLETED','CLOSED')
-          AND (rollback_count IS NULL OR rollback_count = 0)
+        SELECT COUNT(*) FROM tasks t
+        WHERE t.assigned_developer_id = :userId
+          AND t.status IN ('PROD_DEPLOYED','PROD_COMPLETED','CLOSED')
+          AND (t.rollback_count IS NULL OR t.rollback_count = 0)
+          AND NOT EXISTS (
+              SELECT 1 FROM task_workflow_history h
+              WHERE h.task_id = t.id
+                AND (h.remarks LIKE '%ROLLBACK%' OR h.remarks LIKE '%Rollback%')
+          )
         """, nativeQuery = true)
     int countSuccessfulProdDeploymentsForUser(@Param("userId") Long userId);
 
