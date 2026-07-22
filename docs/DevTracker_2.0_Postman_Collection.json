@@ -1,0 +1,5611 @@
+{
+  "info": {
+    "_postman_id": "b8b42844-79ff-4d90-ad76-5b6c4e4756d8",
+    "name": "DevTracker 2.0 API Collection",
+    "description": "Comprehensive Postman API collection for DevTracker 2.0 enterprise application. Includes 196+ endpoints spanning Authentication, Task Management, Bug Tracking, Sprints, Test Cases, Analytics, Recognition, MFA, Notifications, and Configuration.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:8080",
+      "type": "string"
+    },
+    {
+      "key": "authToken",
+      "value": "YOUR_JWT_BEARER_TOKEN_HERE",
+      "type": "string"
+    }
+  ],
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{authToken}}",
+        "type": "string"
+      }
+    ]
+  },
+  "item": [
+    {
+      "name": "17. Analytics & Performance Metrics",
+      "description": "Productivity analytics, velocity charts, bug resolution rates, and team metrics.",
+      "item": [
+        {
+          "name": "GET /api/analytics/api/analytics - Endpoint",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/analytics/api/analytics",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "analytics",
+                "api",
+                "analytics"
+              ]
+            },
+            "description": "Executes endpoint operation on /api/analytics/api/analytics."
+          },
+          "response": []
+        },
+        {
+          "name": "GET /api/analytics/dashboard - Get dashboard data",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/analytics/dashboard",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "analytics",
+                "dashboard"
+              ]
+            },
+            "description": "Executes getDashboardData operation on /api/analytics/dashboard."
+          },
+          "response": []
+        },
+        {
+          "name": "GET /api/analytics/deadlines - Get deadline analytics",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/analytics/deadlines",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "analytics",
+                "deadlines"
+              ]
+            },
+            "description": "Executes getDeadlineAnalytics operation on /api/analytics/deadlines."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "13. File Attachments",
+      "description": "Uploading, downloading, viewing, and deleting file attachments associated with tasks or bugs.",
+      "item": [
+        {
+          "name": "GET /api/attachments/api/attachments - Endpoint",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/attachments/api/attachments",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "attachments",
+                "api",
+                "attachments"
+              ]
+            },
+            "description": "Executes endpoint operation on /api/attachments/api/attachments."
+          },
+          "response": []
+        },
+        {
+          "name": "POST /api/attachments/upload - Upload attachment",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/attachments/upload?file=sample_val&entityType=sample_val&entityId=sample_val",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "attachments",
+                "upload"
+              ],
+              "query": [
+                {
+                  "key": "file",
+                  "value": "sample_val",
+                  "description": "Type: MultipartFile, Required: True"
+                },
+                {
+                  "key": "entityType",
+                  "value": "sample_val",
+                  "description": "Type: String, Required: True"
+                },
+                {
+                  "key": "entityId",
+                  "value": "sample_val",
+                  "description": "Type: Long, Required: True"
+                }
+              ]
+            },
+            "description": "Executes uploadAttachment operation on /api/attachments/upload."
+          },
+          "response": []
+        },
+        {
+          "name": "GET /api/attachments/{entityType}/{entityId} - Endpoint",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/attachments/:entityType/:entityId",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "attachments",
+                ":entityType",
+                ":entityId"
+              ],
+              "variable": [
+                {
+                  "key": "entityType",
+                  "value": "1",
+                  "description": "Target entityType"
+                },
+                {
+                  "key": "entityId",
+                  "value": "1",
+                  "description": "Target entityId"
+                }
+              ]
+            },
+            "description": "Executes endpoint operation on /api/attachments/{entityType}/{entityId}."
+          },
+          "response": []
+        },
+        {
+          "name": "GET /api/attachments/download/{id} - Endpoint",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/attachments/download/:id",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "attachments",
+                "download",
+                ":id"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "1",
+                  "description": "Target id"
+                }
+              ]
+            },
+            "description": "Executes endpoint operation on /api/attachments/download/{id}."
+          },
+          "response": []
+        },
+        {
+          "name": "DELETE /api/attachments/{id} - Endpoint",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/attachments/:id",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "attachments",
+                ":id"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "1",
+                  "description": "Target id"
+                }
+              ]
+            },
+            "description": "Executes endpoint operation on /api/attachments/{id}."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "22. Audit Groups",
+      "description": "Audit groups, team assignments, and target compliance groups.",
+      "item": [
+        {
+          "name": "GET /api/audit/groups/api/audit/groups - Endpoint",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/audit/groups/api/audit/groups",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "audit",
+                "groups",
+                "api",
+                "audit",
+                "groups"
+              ]
+            },
+            "description": "Executes endpoint operation on /api/audit/groups/api/audit/groups."
+          },
+          "response": []
+        },
+        {
+          "name": "GET /api/audit/groups/{entityType}/{entityId} - Endpoint",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/audit/groups/:entityType/:entityId",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "audit",
+                "groups",
+                ":entityType",
+                ":entityId"
+              ],
+              "variable": [
+                {
+                  "key": "entityType",
+                  "value": "1",
+                  "description": "Target entityType"
+                },
+                {
+                  "key": "entityId",
+                  "value": "1",
+                  "description": "Target entityId"
+                }
+              ]
+            },
+            "description": "Executes endpoint operation on /api/audit/groups/{entityType}/{entityId}."
+          },
+          "response": []
+        },
+        {
+          "name": "GET /api/audit/groups/{entityType}/{entityId}/export - Endpoint",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/audit/groups/:entityType/:entityId/export",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "audit",
+                "groups",
+                ":entityType",
+                ":entityId",
+                "export"
+              ],
+              "variable": [
+                {
+                  "key": "entityType",
+                  "value": "1",
+                  "description": "Target entityType"
+                },
+                {
+                  "key": "entityId",
+                  "value": "1",
+                  "description": "Target entityId"
+                }
+              ]
+            },
+            "description": "Executes endpoint operation on /api/audit/groups/{entityType}/{entityId}/export."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "21. System Audit Logs",
+      "description": "System-wide security and operational audit trail logs.",
+      "item": [
+        {
+          "name": "GET /api/audit/api/audit - Endpoint",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/audit/api/audit",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "audit",
+                "api",
+                "audit"
+              ]
+            },
+            "description": "Executes endpoint operation on /api/audit/api/audit."
+          },
+          "response": []
+        },
+        {
+          "name": "GET /api/audit - Get all audit logs",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/audit",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "audit"
+              ]
+            },
+            "description": "Executes getAllAuditLogs operation on /api/audit."
+          },
+          "response": []
+        },
+        {
+          "name": "GET /api/audit/{entityType}/{entityId} - Endpoint",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/audit/:entityType/:entityId",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "audit",
+                ":entityType",
+                ":entityId"
+              ],
+              "variable": [
+                {
+                  "key": "entityType",
+                  "value": "1",
+                  "description": "Target entityType"
+                },
+                {
+                  "key": "entityId",
+                  "value": "1",
+                  "description": "Target entityId"
+                }
+              ]
+            },
+            "description": "Executes endpoint operation on /api/audit/{entityType}/{entityId}."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "1. Authentication & Session Management",
+      "description": "Endpoints for User Login, Registration, JWT Token Refresh, Logout, Profile Management, and Password operations.",
+      "item": [
+        {
+          "name": "GET /api/auth/api/auth - Endpoint",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/api/auth",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "api",
+                "auth"
+              ]
+            },
+            "description": "Executes endpoint operation on /api/auth/api/auth."
+          },
+          "response": []
+        },
+        {
+          "name": "POST /api/auth/login - Authenticate user",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/login",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "login"
+              ]
+            },
+            "description": "Executes authenticateUser operation on /api/auth/login.\n\n**Request Body Type:** `LoginRequest`",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"admin\",\n  \"password\": \"password123\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "auth": {
+              "type": "noauth"
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "POST /api/auth/admin/create-user - Endpoint",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/admin/create-user",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "admin",
+                "create-user"
+              ]
+            },
+            "description": "Executes endpoint operation on /api/auth/admin/create-user."
+          },
+          "response": []
+        },
+        {
+          "name": "GET /api/auth/me - Get current user",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/me",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "me"
+              ]
+            },
+            "description": "Executes getCurrentUser operation on /api/auth/me."
+          },
+          "response": []
+        },
+        {
+          "name": "POST /api/auth/refreshtoken - Endpoint",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/refreshtoken",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "refreshtoken"
+              ]
+            },
+            "description": "Executes endpoint operation on /api/auth/refreshtoken.",
+            "auth": {
+              "type": "noauth"
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "POST /api/auth/logout - Logout user",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/logout",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "logout"
+              ]
+            },
+            "description": "Executes logoutUser operation on /api/auth/logout."
+          },
+          "response": []
+        },
+        {
+          "name": "POST /api/auth/set-new-password - Set new password",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/set-new-password",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "set-new-password"
+              ]
+            },
+            "description": "Executes setNewPassword operation on /api/auth/set-new-password.\n\n**Request Body Type:** `Map<String,`",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"key\": \"value\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "GET /api/auth/microsoft/config - Get microsoft config",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/microsoft/config",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "microsoft",
+                "config"
+              ]
+            },
+            "description": "Executes getMicrosoftConfig operation on /api/auth/microsoft/config."
+          },
+          "response": []
+        },
+        {
+          "name": "POST /api/auth/microsoft/login - Microsoft login",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/microsoft/login",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "microsoft",
+                "login"
+              ]
+            },
+            "description": "Executes microsoftLogin operation on /api/auth/microsoft/login.\n\n**Request Body Type:** `Map<String,`",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"key\": \"value\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "POST /api/auth/forgot-password - Forgot password",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/forgot-password",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "forgot-password"
+              ]
+            },
+            "description": "Executes forgotPassword operation on /api/auth/forgot-password.\n\n**Request Body Type:** `Map<String,`",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"key\": \"value\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "POST /api/auth/reset-password - Reset password",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/reset-password",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "reset-password"
+              ]
+            },
+            "description": "Executes resetPassword operation on /api/auth/reset-password.\n\n**Request Body Type:** `Map<String,`",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"key\": \"value\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "5. Bug & Issue Tracking",
+      "description": "Bug reporting, severity triage, developer fix assignments, tester verification, workflow steps, and mail threads.",
+      "item": [
+        {
+          "name": "GET /api/bugs/api/bugs - Endpoint",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/bugs/api/bugs",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "bugs",
+                "api",
+                "bugs"
+              ]
+            },
+            "description": "Executes endpoint operation on /api/bugs/api/bugs."
+          },
+          "response": []
+        },
+        {
+          "name": "GET /api/bugs - Get all bugs",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/bugs?page=0&size=0&status=sample_val&severity=sample_val",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "bugs"
+              ],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "0",
+                  "description": "Type: Integer, Required: False"
+                },
+                {
+                  "key": "size",
+                  "value": "0",
+                  "description": "Type: Integer, Required: False"
+                },
+                {
+                  "key": "status",
+                  "value": "sample_val",
+                  "description": "Type: String, Required: False"
+                },
+                {
+                  "key": "severity",
+                  "value": "sample_val",
+                  "description": "Type: String, Required: False"
+                }
+              ]
+            },
+            "description": "Executes getAllBugs operation on /api/bugs."
+          },
+          "response": []
+        },
+        {
+          "name": "GET /api/bugs/download-bugs - Download bugs",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/bugs/download-bugs?status=sample_val&severity=sample_val",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "bugs",
+                "download-bugs"
+              ],
+              "query": [
+                {
+                  "key": "status",
+                  "value": "sample_val",
+                  "description": "Type: String, Required: False"
+                },
+                {
+                  "key": "severity",
+                  "value": "sample_val",
+                  "description": "Type: String, Required: False"
+                }
+              ]
+            },
+            "description": "Executes downloadBugs operation on /api/bugs/download-bugs."
+          },
+          "response": []
+        },
+        {
+          "name": "GET /api/bugs/my - Get my bugs",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/bugs/my?page=0&size=10&status=sample_val&severity=sample_val",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "bugs",
+                "my"
+              ],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "0",
+                  "description": "Type: int, Required: True"
+                },
+                {
+                  "key": "size",
+                  "value": "10",
+                  "description": "Type: int, Required: True"
+                },
+                {
+                  "key": "status",
+                  "value": "sample_val",
+                  "description": "Type: String, Required: False"
+                },
+                {
+                  "key": "severity",
+                  "value": "sample_val",
+                  "description": "Type: String, Required: False"
+                }
+              ]
+            },
+            "description": "Executes getMyBugs operation on /api/bugs/my."
+          },
+          "response": []
+        },
+        {
+          "name": "GET /api/bugs/{id} - Endpoint",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/bugs/:id",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "bugs",
+                ":id"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "1",
+                  "description": "Target id"
+                }
+              ]
+            },
+            "description": "Executes endpoint operation on /api/bugs/{id}."
+          },
+          "response": []
+        },
+        {
+          "name": "GET /api/bugs/{bugId}/artifacts/{artId} - Endpoint",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/bugs/:bugId/artifacts/:artId",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "bugs",
+                ":bugId",
+                "artifacts",
+                ":artId"
+              ],
+              "variable": [
+                {
+                  "key": "bugId",
+                  "value": "1",
+                  "description": "Target bugId"
+                },
+                {
+                  "key": "artId",
+                  "value": "1",
+                  "description": "Target artId"
+                }
+              ]
+            },
+            "description": "Executes endpoint operation on /api/bugs/{bugId}/artifacts/{artId}."
+          },
+          "response": []
+        },
+        {
+          "name": "POST /api/bugs - Create bug",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/bugs",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "bugs"
+              ]
+            },
+            "description": "Executes createBug operation on /api/bugs.\n\n**Request Body Type:** `Bug`",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"NullPointerException on Login attempt\",\n  \"description\": \"User login fails when email has uppercase letters\",\n  \"severity\": \"CRITICAL\",\n  \"status\": \"OPEN\",\n  \"taskId\": 1,\n  \"assignedDeveloperId\": 2,\n  \"assignedTesterId\": 3,\n  \"environment\": \"STAGING\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "PUT /api/bugs/{id} - Endpoint",
+          "request": {
+            "method": "PUT",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/bugs/:id",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "bugs",
+                ":id"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "1",
+                  "description": "Target id"
+                }
+              ]
+            },
+            "description": "Executes endpoint operation on /api/bugs/{id}."
+          },
+          "response": []
+        },
+        {
+          "name": "DELETE /api/bugs/{id} - Endpoint",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/bugs/:id",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "bugs",
+                ":id"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "1",
+                  "description": "Target id"
+                }
+              ]
+            },
+            "description": "Executes endpoint operation on /api/bugs/{id}."
+          },
+          "response": []
+        },
+        {
+          "name": "GET /api/bugs/{id}/current-step - Endpoint",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/bugs/:id/current-step",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "bugs",
+                ":id",
+                "current-step"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "1",
+                  "description": "Target id"
+                }
+              ]
+            },
+            "description": "Executes endpoint operation on /api/bugs/{id}/current-step."
+          },
+          "response": []
+        },
+        {
+          "name": "GET /api/bugs/{id}/steps - Endpoint",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/bugs/:id/steps",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "bugs",
+                ":id",
+                "steps"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "1",
+                  "description": "Target id"
+                }
+              ]
+            },
+            "description": "Executes endpoint operation on /api/bugs/{id}/steps."
+          },
+          "response": []
+        },
+        {
+          "name": "POST /api/bugs/{id}/push-to-pool - Endpoint",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/bugs/:id/push-to-pool",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "bugs",
+                ":id",
+                "push-to-pool"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "1",
+                  "description": "Target id"
+                }
+              ]
+            },
+            "description": "UAT and Pool Endpoints"
+          },
+          "response": []
+        },
+        {
+          "name": "POST /api/bugs/{id}/pick-from-pool - Endpoint",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/bugs/:id/pick-from-pool",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "bugs",
+                ":id",
+                "pick-from-pool"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "1",
+                  "description": "Target id"
+                }
+              ]
+            },
+            "description": "Executes endpoint operation on /api/bugs/{id}/pick-from-pool."
+          },
+          "response": []
+        },
+        {
+          "name": "POST /api/bugs/{id}/pick-for-sit - Endpoint",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/bugs/:id/pick-for-sit",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "bugs",
+                ":id",
+                "pick-for-sit"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "1",
+                  "description": "Target id"
+                }
+              ]
+            },
+            "description": "Executes endpoint operation on /api/bugs/{id}/pick-for-sit."
+          },
+          "response": []
+        },
+        {
+          "name": "POST /api/bugs/{id}/approve-sit - Endpoint",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/bugs/:id/approve-sit",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "bugs",
+                ":id",
+                "approve-sit"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "1",
+                  "description": "Target id"
+                }
+              ]
+            },
+            "description": "Executes endpoint operation on /api/bugs/{id}/approve-sit."
+          },
+          "response": []
+        },
+        {
+          "name": "POST /api/bugs/{id}/reject-sit - Endpoint",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/bugs/:id/reject-sit",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "bugs",
+                ":id",
+                "reject-sit"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "1",
+                  "description": "Target id"
+                }
+              ]
+            },
+            "description": "Executes endpoint operation on /api/bugs/{id}/reject-sit."
+          },
+          "response": []
+        },
+        {
+          "name": "POST /api/bugs/{id}/pick-for-uat - Endpoint",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/bugs/:id/pick-for-uat",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "bugs",
+                ":id",
+                "pick-for-uat"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "1",
+                  "description": "Target id"
+                }
+              ]
+            },
+            "description": "Executes endpoint operation on /api/bugs/{id}/pick-for-uat."
+          },
+          "response": []
+        },
+        {
+          "name": "POST /api/bugs/{id}/approve-uat - Endpoint",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/bugs/:id/approve-uat",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "bugs",
+                ":id",
+                "approve-uat"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "1",
+                  "description": "Target id"
+                }
+              ]
+            },
+            "description": "Executes endpoint operation on /api/bugs/{id}/approve-uat."
+          },
+          "response": []
+        },
+        {
+          "name": "POST /api/bugs/{id}/reject-uat - Endpoint",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/bugs/:id/reject-uat",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "bugs",
+                ":id",
+                "reject-uat"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "1",
+                  "description": "Target id"
+                }
+              ]
+            },
+            "description": "Executes endpoint operation on /api/bugs/{id}/reject-uat."
+          },
+          "response": []
+        },
+        {
+          "name": "POST /api/bugs/{id}/approve-invalid - Endpoint",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/bugs/:id/approve-invalid",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "bugs",
+                ":id",
+                "approve-invalid"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "1",
+                  "description": "Target id"
+                }
+              ]
+            },
+            "description": "Executes endpoint operation on /api/bugs/{id}/approve-invalid."
+          },
+          "response": []
+        },
+        {
+          "name": "POST /api/bugs/{id}/reject-invalid - Endpoint",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/bugs/:id/reject-invalid",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "bugs",
+                ":id",
+                "reject-invalid"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "1",
+                  "description": "Target id"
+                }
+              ]
+            },
+            "description": "Executes endpoint operation on /api/bugs/{id}/reject-invalid."
+          },
+          "response": []
+        },
+        {
+          "name": "POST /api/bugs/{id}/fix-summary - Endpoint",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/bugs/:id/fix-summary",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "bugs",
+                ":id",
+                "fix-summary"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "1",
+                  "description": "Target id"
+                }
+              ]
+            },
+            "description": "Executes endpoint operation on /api/bugs/{id}/fix-summary."
+          },
+          "response": []
+        },
+        {
+          "name": "GET /api/bugs/{id}/fix-summary - Endpoint",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/bugs/:id/fix-summary",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "bugs",
+                ":id",
+                "fix-summary"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "1",
+                  "description": "Target id"
+                }
+              ]
+            },
+            "description": "Executes endpoint operation on /api/bugs/{id}/fix-summary."
+          },
+          "response": []
+        },
+        {
+          "name": "GET /api/bugs/cr/{crId}/fix-summaries - Endpoint",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/bugs/cr/:crId/fix-summaries",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "bugs",
+                "cr",
+                ":crId",
+                "fix-summaries"
+              ],
+              "variable": [
+                {
+                  "key": "crId",
+                  "value": "1",
+                  "description": "Target crId"
+                }
+              ]
+            },
+            "description": "Executes endpoint operation on /api/bugs/cr/{crId}/fix-summaries."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "6. Bug Review & QA Approvals",
+      "description": "Bug fix review submissions, peer reviews, approval/rejection workflows, and developer summaries.",
+      "item": [
+        {
+          "name": "GET /api/bug-reviews/api/bug-reviews - Endpoint",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/bug-reviews/api/bug-reviews",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "bug-reviews",
+                "api",
+                "bug-reviews"
+              ]
+            },
+            "description": "Executes endpoint operation on /api/bug-reviews/api/bug-reviews."
+          },
+          "response": []
+        },
+        {
+          "name": "POST /api/bug-reviews - Propose bug review",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/bug-reviews",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "bug-reviews"
+              ]
+            },
+            "description": "Executes proposeBugReview operation on /api/bug-reviews.\n\n**Request Body Type:** `BugReviewProposedDto`",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"bugId\": 1,\n  \"proposedStatus\": \"RESOLVED\",\n  \"reviewNotes\": \"Fixed case-sensitivity issue in AuthService\",\n  \"developerSummary\": \"Updated String.toLowerCase() before comparison\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "POST /api/bug-reviews/{id}/accept - Endpoint",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/bug-reviews/:id/accept",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "bug-reviews",
+                ":id",
+                "accept"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "1",
+                  "description": "Target id"
+                }
+              ]
+            },
+            "description": "Executes endpoint operation on /api/bug-reviews/{id}/accept."
+          },
+          "response": []
+        },
+        {
+          "name": "POST /api/bug-reviews/{id}/reject - Endpoint",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/bug-reviews/:id/reject",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "bug-reviews",
+                ":id",
+                "reject"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "1",
+                  "description": "Target id"
+                }
+              ]
+            },
+            "description": "Executes endpoint operation on /api/bug-reviews/{id}/reject."
+          },
+          "response": []
+        },
+        {
+          "name": "POST /api/bug-reviews/{id}/tester-accept - Endpoint",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/bug-reviews/:id/tester-accept",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "bug-reviews",
+                ":id",
+                "tester-accept"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "1",
+                  "description": "Target id"
+                }
+              ]
+            },
+            "description": "Executes endpoint operation on /api/bug-reviews/{id}/tester-accept."
+          },
+          "response": []
+        },
+        {
+          "name": "POST /api/bug-reviews/{id}/raise-again - Endpoint",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/bug-reviews/:id/raise-again",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "bug-reviews",
+                ":id",
+                "raise-again"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "1",
+                  "description": "Target id"
+                }
+              ]
+            },
+            "description": "Executes endpoint operation on /api/bug-reviews/{id}/raise-again."
+          },
+          "response": []
+        },
+        {
+          "name": "POST /api/bug-reviews/{id}/challenge - Endpoint",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/bug-reviews/:id/challenge",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "bug-reviews",
+                ":id",
+                "challenge"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "1",
+                  "description": "Target id"
+                }
+              ]
+            },
+            "description": "Executes endpoint operation on /api/bug-reviews/{id}/challenge."
+          },
+          "response": []
+        },
+        {
+          "name": "POST /api/bug-reviews/{id}/admin-accept - Endpoint",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/bug-reviews/:id/admin-accept",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "bug-reviews",
+                ":id",
+                "admin-accept"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "1",
+                  "description": "Target id"
+                }
+              ]
+            },
+            "description": "Executes endpoint operation on /api/bug-reviews/{id}/admin-accept."
+          },
+          "response": []
+        },
+        {
+          "name": "POST /api/bug-reviews/{id}/admin-force - Endpoint",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/bug-reviews/:id/admin-force",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "bug-reviews",
+                ":id",
+                "admin-force"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "1",
+                  "description": "Target id"
+                }
+              ]
+            },
+            "description": "Executes endpoint operation on /api/bug-reviews/{id}/admin-force."
+          },
+          "response": []
+        },
+        {
+          "name": "GET /api/bug-reviews/{id} - Endpoint",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/bug-reviews/:id",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "bug-reviews",
+                ":id"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "1",
+                  "description": "Target id"
+                }
+              ]
+            },
+            "description": "Executes endpoint operation on /api/bug-reviews/{id}."
+          },
+          "response": []
+        },
+        {
+          "name": "GET /api/bug-reviews/cr/{crId} - Endpoint",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/bug-reviews/cr/:crId",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "bug-reviews",
+                "cr",
+                ":crId"
+              ],
+              "variable": [
+                {
+                  "key": "crId",
+                  "value": "1",
+                  "description": "Target crId"
+                }
+              ]
+            },
+            "description": "Executes endpoint operation on /api/bug-reviews/cr/{crId}."
+          },
+          "response": []
+        },
+        {
+          "name": "GET /api/bug-reviews - Get all bug reviews",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/bug-reviews",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "bug-reviews"
+              ]
+            },
+            "description": "Executes getAllBugReviews operation on /api/bug-reviews."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "7. Bug Sub-Tasks",
+      "description": "Granular sub-tasks associated with resolving complex bugs.",
+      "item": [
+        {
+          "name": "GET /api/bugtasks/api/bugtasks - Endpoint",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/bugtasks/api/bugtasks",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "bugtasks",
+                "api",
+                "bugtasks"
+              ]
+            },
+            "description": "Executes endpoint operation on /api/bugtasks/api/bugtasks."
+          },
+          "response": []
+        },
+        {
+          "name": "GET /api/bugtasks - Get all bug tasks",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/bugtasks",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "bugtasks"
+              ]
+            },
+            "description": "Executes getAllBugTasks operation on /api/bugtasks."
+          },
+          "response": []
+        },
+        {
+          "name": "GET /api/bugtasks/{id} - Endpoint",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/bugtasks/:id",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "bugtasks",
+                ":id"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "1",
+                  "description": "Target id"
+                }
+              ]
+            },
+            "description": "Executes endpoint operation on /api/bugtasks/{id}."
+          },
+          "response": []
+        },
+        {
+          "name": "POST /api/bugtasks - Create bug task",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/bugtasks",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "bugtasks"
+              ]
+            },
+            "description": "Executes createBugTask operation on /api/bugtasks.\n\n**Request Body Type:** `BugTask`",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Fix NullPointerException in login\",\n  \"description\": \"Ensure email is normalized before query\",\n  \"bugId\": 1,\n  \"assignedUserId\": 2,\n  \"estimatedHours\": 4.0\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "PUT /api/bugtasks/{id} - Endpoint",
+          "request": {
+            "method": "PUT",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/bugtasks/:id",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "bugtasks",
+                ":id"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "1",
+                  "description": "Target id"
+                }
+              ]
+            },
+            "description": "Executes endpoint operation on /api/bugtasks/{id}."
+          },
+          "response": []
+        },
+        {
+          "name": "DELETE /api/bugtasks/{id} - Endpoint",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/bugtasks/:id",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "bugtasks",
+                ":id"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "1",
+                  "description": "Target id"
+                }
+              ]
+            },
+            "description": "Executes endpoint operation on /api/bugtasks/{id}."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "14. Comments & Collaboration",
+      "description": "Collaborative comments on tasks and bugs for developer-tester communication.",
+      "item": [
+        {
+          "name": "GET /api/comments/api/comments - Endpoint",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/comments/api/comments",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "comments",
+                "api",
+                "comments"
+              ]
+            },
+            "description": "Executes endpoint operation on /api/comments/api/comments."
+          },
+          "response": []
+        },
+        {
+          "name": "GET /api/comments/{entityType}/{entityId} - Endpoint",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/comments/:entityType/:entityId",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "comments",
+                ":entityType",
+                ":entityId"
+              ],
+              "variable": [
+                {
+                  "key": "entityType",
+                  "value": "1",
+                  "description": "Target entityType"
+                },
+                {
+                  "key": "entityId",
+                  "value": "1",
+                  "description": "Target entityId"
+                }
+              ]
+            },
+            "description": "Executes endpoint operation on /api/comments/{entityType}/{entityId}."
+          },
+          "response": []
+        },
+        {
+          "name": "POST /api/comments - Add comment",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/comments",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "comments"
+              ]
+            },
+            "description": "Executes addComment operation on /api/comments.\n\n**Request Body Type:** `Comment`",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"content\": \"Code review completed. Looks good to merge!\",\n  \"taskId\": 1\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "26. Application Configuration",
+      "description": "Global system configurations, settings, feature flags, and app parameters.",
+      "item": [
+        {
+          "name": "GET /api/configs/api/configs - Endpoint",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/configs/api/configs",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "configs",
+                "api",
+                "configs"
+              ]
+            },
+            "description": "Executes endpoint operation on /api/configs/api/configs."
+          },
+          "response": []
+        },
+        {
+          "name": "GET /api/configs - Get all configs",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/configs",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "configs"
+              ]
+            },
+            "description": "Executes getAllConfigs operation on /api/configs."
+          },
+          "response": []
+        },
+        {
+          "name": "GET /api/configs/{key} - Endpoint",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/configs/:key",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "configs",
+                ":key"
+              ],
+              "variable": [
+                {
+                  "key": "key",
+                  "value": "1",
+                  "description": "Target key"
+                }
+              ]
+            },
+            "description": "Executes endpoint operation on /api/configs/{key}."
+          },
+          "response": []
+        },
+        {
+          "name": "POST /api/configs - Create or update config",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/configs",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "configs"
+              ]
+            },
+            "description": "Executes createOrUpdateConfig operation on /api/configs.\n\n**Request Body Type:** `AppConfig`",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"data\": \"sample_payload\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "12. Document Management",
+      "description": "Technical documentation, architecture docs, versioning, and document attachments tied to tasks.",
+      "item": [
+        {
+          "name": "POST /api/crs/{crId}/documents - Endpoint",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/crs/:crId/documents",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "crs",
+                ":crId",
+                "documents"
+              ],
+              "variable": [
+                {
+                  "key": "crId",
+                  "value": "1",
+                  "description": "Target crId"
+                }
+              ]
+            },
+            "description": "\u2500\u2500 UPLOAD \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500 Uploads a document for a CR. Accepts: multipart/form-data with fields: file     \u2014 the raw file docType  \u2014 BRD | API_DOC | DESIGN | SUPPORT Returns DocumentDto (metadata only \u2014 no bytes). Errors: 400 validation, 404 CR not found, 413 too large, 415 bad MIME."
+          },
+          "response": []
+        },
+        {
+          "name": "GET /api/crs/{crId}/documents - Endpoint",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/crs/:crId/documents",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "crs",
+                ":crId",
+                "documents"
+              ],
+              "variable": [
+                {
+                  "key": "crId",
+                  "value": "1",
+                  "description": "Target crId"
+                }
+              ]
+            },
+            "description": "\u2500\u2500 LIST \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500 Returns metadata list for all non-deleted documents attached to a CR."
+          },
+          "response": []
+        },
+        {
+          "name": "GET /api/documents/{id} - Endpoint",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/documents/:id",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "documents",
+                ":id"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "1",
+                  "description": "Target id"
+                }
+              ]
+            },
+            "description": "\u2500\u2500 SINGLE METADATA \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500"
+          },
+          "response": []
+        },
+        {
+          "name": "GET /api/documents/{id}/download - Endpoint",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/documents/:id/download",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "documents",
+                ":id",
+                "download"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "1",
+                  "description": "Target id"
+                }
+              ]
+            },
+            "description": "\u2500\u2500 DOWNLOAD (STREAM) \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500 Streams raw bytes with correct Content-Type and Content-Disposition headers. Bytes are never buffered in controller memory \u2014 DocumentService writes directly to HttpServletResponse's OutputStream."
+          },
+          "response": []
+        },
+        {
+          "name": "GET /api/auth/documents/{id}/download - Endpoint",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/documents/:id/download",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "documents",
+                ":id",
+                "download"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "1",
+                  "description": "Target id"
+                }
+              ]
+            },
+            "description": "Public download endpoint for email clients \u2014 permitted via WebSecurityConfig /api/auth/**"
+          },
+          "response": []
+        },
+        {
+          "name": "DELETE /api/documents/{id} - Endpoint",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/documents/:id",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "documents",
+                ":id"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "1",
+                  "description": "Target id"
+                }
+              ]
+            },
+            "description": "\u2500\u2500 SOFT DELETE \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500"
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "16. Leaderboards & Rankings",
+      "description": "Developer and tester velocity leaderboards, point rankings, and historical snapshots.",
+      "item": [
+        {
+          "name": "GET /api/recognition/leaderboard/api/recognition/leaderboard - Endpoint",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/recognition/leaderboard/api/recognition/leaderboard",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "recognition",
+                "leaderboard",
+                "api",
+                "recognition",
+                "leaderboard"
+              ]
+            },
+            "description": "Executes endpoint operation on /api/recognition/leaderboard/api/recognition/leaderboard."
+          },
+          "response": []
+        },
+        {
+          "name": "GET /api/recognition/leaderboard - Leaderboard",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/recognition/leaderboard?page=0&size=10&period=ALL_TIME",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "recognition",
+                "leaderboard"
+              ],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "0",
+                  "description": "Type: int, Required: True"
+                },
+                {
+                  "key": "size",
+                  "value": "10",
+                  "description": "Type: int, Required: True"
+                },
+                {
+                  "key": "period",
+                  "value": "ALL_TIME",
+                  "description": "Type: String, Required: True"
+                }
+              ]
+            },
+            "description": "GET /api/recognition/leaderboard?period=ALL_TIME|MONTHLY|QUARTERLY&size=10 Returns ranked users by total_score descending. Period filtering is handled on the score aggregate \u2014 the score row is always \"all-time\" by spec; period rows are future extension points."
+          },
+          "response": []
+        },
+        {
+          "name": "GET /api/recognition/leaderboard/top - Top n",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/recognition/leaderboard/top?limit=5",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "recognition",
+                "leaderboard",
+                "top"
+              ],
+              "query": [
+                {
+                  "key": "limit",
+                  "value": "5",
+                  "description": "Type: int, Required: True"
+                }
+              ]
+            },
+            "description": "GET /api/recognition/leaderboard/top?limit=5 Quick-access top-N for dashboard widgets (no auth required beyond login)."
+          },
+          "response": []
+        },
+        {
+          "name": "GET /api/recognition/leaderboard/achievements - Achievement ranking",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/recognition/leaderboard/achievements?limit=10",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "recognition",
+                "leaderboard",
+                "achievements"
+              ],
+              "query": [
+                {
+                  "key": "limit",
+                  "value": "10",
+                  "description": "Type: int, Required: True"
+                }
+              ]
+            },
+            "description": "GET /api/recognition/leaderboard/achievements?limit=10 Users ranked by achievement count (rarity-weighted)."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "2. Multi-Factor Authentication (MFA)",
+      "description": "Endpoints for configuring, enabling, verifying 2FA/MFA via TOTP, managing backup codes and trusted devices.",
+      "item": [
+        {
+          "name": "GET /api/mfa/api/mfa - Endpoint",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/mfa/api/mfa",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "mfa",
+                "api",
+                "mfa"
+              ]
+            },
+            "description": "Executes endpoint operation on /api/mfa/api/mfa."
+          },
+          "response": []
+        },
+        {
+          "name": "POST /api/mfa/enable - Enable mfa",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/mfa/enable",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "mfa",
+                "enable"
+              ]
+            },
+            "description": "Executes enableMfa operation on /api/mfa/enable."
+          },
+          "response": []
+        },
+        {
+          "name": "GET /api/mfa/qr - Get qr payload",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/mfa/qr",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "mfa",
+                "qr"
+              ]
+            },
+            "description": "Executes getQrPayload operation on /api/mfa/qr."
+          },
+          "response": []
+        },
+        {
+          "name": "POST /api/mfa/verify - Verify mfa",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/mfa/verify",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "mfa",
+                "verify"
+              ]
+            },
+            "description": "Executes verifyMfa operation on /api/mfa/verify.\n\n**Request Body Type:** `Map<String,`",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"code\": \"123456\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "POST /api/mfa/disable - Disable mfa",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/mfa/disable",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "mfa",
+                "disable"
+              ]
+            },
+            "description": "Executes disableMfa operation on /api/mfa/disable.\n\n**Request Body Type:** `Map<String,`",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"code\": \"123456\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "POST /api/mfa/backup-codes - Generate backup codes",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/mfa/backup-codes",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "mfa",
+                "backup-codes"
+              ]
+            },
+            "description": "Executes generateBackupCodes operation on /api/mfa/backup-codes."
+          },
+          "response": []
+        },
+        {
+          "name": "POST /api/mfa/backup-codes/verify - Verify backup code",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/mfa/backup-codes/verify",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "mfa",
+                "backup-codes",
+                "verify"
+              ]
+            },
+            "description": "Executes verifyBackupCode operation on /api/mfa/backup-codes/verify.\n\n**Request Body Type:** `Map<String,`",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"code\": \"123456\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "GET /api/mfa/trusted-devices - Get trusted devices",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/mfa/trusted-devices",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "mfa",
+                "trusted-devices"
+              ]
+            },
+            "description": "Executes getTrustedDevices operation on /api/mfa/trusted-devices."
+          },
+          "response": []
+        },
+        {
+          "name": "DELETE /api/mfa/trusted-devices/{id} - Endpoint",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/mfa/trusted-devices/:id",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "mfa",
+                "trusted-devices",
+                ":id"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "1",
+                  "description": "Target id"
+                }
+              ]
+            },
+            "description": "Executes endpoint operation on /api/mfa/trusted-devices/{id}."
+          },
+          "response": []
+        },
+        {
+          "name": "POST /api/mfa/admin/reset/{userId} - Endpoint",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/mfa/admin/reset/:userId",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "mfa",
+                "admin",
+                "reset",
+                ":userId"
+              ],
+              "variable": [
+                {
+                  "key": "userId",
+                  "value": "1",
+                  "description": "Target userId"
+                }
+              ]
+            },
+            "description": "Executes endpoint operation on /api/mfa/admin/reset/{userId}."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "23. Notifications",
+      "description": "Real-time user notifications, unread counts, marking as read, and notification preferences.",
+      "item": [
+        {
+          "name": "GET /api/notifications/api/notifications - Endpoint",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/notifications/api/notifications",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "notifications",
+                "api",
+                "notifications"
+              ]
+            },
+            "description": "Executes endpoint operation on /api/notifications/api/notifications."
+          },
+          "response": []
+        },
+        {
+          "name": "GET /api/notifications - Get all notifications",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/notifications",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "notifications"
+              ]
+            },
+            "description": "Executes getAllNotifications operation on /api/notifications."
+          },
+          "response": []
+        },
+        {
+          "name": "GET /api/notifications/for-user/{userId} - Endpoint",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/notifications/for-user/:userId",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "notifications",
+                "for-user",
+                ":userId"
+              ],
+              "variable": [
+                {
+                  "key": "userId",
+                  "value": "1",
+                  "description": "Target userId"
+                }
+              ]
+            },
+            "description": "User-scoped notifications \u2014 active and sorted."
+          },
+          "response": []
+        },
+        {
+          "name": "PUT /api/notifications/pin/{id} - Endpoint",
+          "request": {
+            "method": "PUT",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/notifications/pin/:id",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "notifications",
+                "pin",
+                ":id"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "1",
+                  "description": "Target id"
+                }
+              ]
+            },
+            "description": "Executes endpoint operation on /api/notifications/pin/{id}."
+          },
+          "response": []
+        },
+        {
+          "name": "PUT /api/notifications/snooze/{id} - Endpoint",
+          "request": {
+            "method": "PUT",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/notifications/snooze/:id",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "notifications",
+                "snooze",
+                ":id"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "1",
+                  "description": "Target id"
+                }
+              ]
+            },
+            "description": "Executes endpoint operation on /api/notifications/snooze/{id}."
+          },
+          "response": []
+        },
+        {
+          "name": "POST /api/notifications - Create notification",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/notifications",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "notifications"
+              ]
+            },
+            "description": "Creates a notification and immediately pushes it via WebSocket to the target user's active browser sessions.\n\n**Request Body Type:** `Notification`",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"data\": \"sample_payload\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "PUT /api/notifications/read/{id} - Endpoint",
+          "request": {
+            "method": "PUT",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/notifications/read/:id",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "notifications",
+                "read",
+                ":id"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "1",
+                  "description": "Target id"
+                }
+              ]
+            },
+            "description": "Executes endpoint operation on /api/notifications/read/{id}."
+          },
+          "response": []
+        },
+        {
+          "name": "PUT /api/notifications/read-all/{userId} - Endpoint",
+          "request": {
+            "method": "PUT",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/notifications/read-all/:userId",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "notifications",
+                "read-all",
+                ":userId"
+              ],
+              "variable": [
+                {
+                  "key": "userId",
+                  "value": "1",
+                  "description": "Target userId"
+                }
+              ]
+            },
+            "description": "Mark all notifications for a user as read in one call."
+          },
+          "response": []
+        },
+        {
+          "name": "DELETE /api/notifications/clear/{userId} - Endpoint",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/notifications/clear/:userId",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "notifications",
+                "clear",
+                ":userId"
+              ],
+              "variable": [
+                {
+                  "key": "userId",
+                  "value": "1",
+                  "description": "Target userId"
+                }
+              ]
+            },
+            "description": "Executes endpoint operation on /api/notifications/clear/{userId}."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "18. Quality & Risk Assessment",
+      "description": "Quality risk calculations, risk indicators for software releases, and historical risk trends.",
+      "item": [
+        {
+          "name": "GET /api/api - Endpoint",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/api",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "api"
+              ]
+            },
+            "description": "Executes endpoint operation on /api/api."
+          },
+          "response": []
+        },
+        {
+          "name": "GET /api/crs/{id}/quality-risk - Endpoint",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/crs/:id/quality-risk",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "crs",
+                ":id",
+                "quality-risk"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "1",
+                  "description": "Target id"
+                }
+              ]
+            },
+            "description": "Executes endpoint operation on /api/crs/{id}/quality-risk."
+          },
+          "response": []
+        },
+        {
+          "name": "GET /api/quality-risk/at-risk - Get at risk crs",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/quality-risk/at-risk?page=0&size=10",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "quality-risk",
+                "at-risk"
+              ],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "0",
+                  "description": "Type: int, Required: True"
+                },
+                {
+                  "key": "size",
+                  "value": "10",
+                  "description": "Type: int, Required: True"
+                }
+              ]
+            },
+            "description": "Executes getAtRiskCrs operation on /api/quality-risk/at-risk."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "15. Developer Gamification & Recognition",
+      "description": "Kudos, developer badges, peer endorsements, achievements, and gamified recognition rewards.",
+      "item": [
+        {
+          "name": "GET /api/recognition/api/recognition - Endpoint",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/recognition/api/recognition",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "recognition",
+                "api",
+                "recognition"
+              ]
+            },
+            "description": "Executes endpoint operation on /api/recognition/api/recognition."
+          },
+          "response": []
+        },
+        {
+          "name": "GET /api/recognition/my/score - My score",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/recognition/my/score",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "recognition",
+                "my",
+                "score"
+              ]
+            },
+            "description": "GET /api/recognition/my/score \u2014 caller's recognition score + level"
+          },
+          "response": []
+        },
+        {
+          "name": "GET /api/recognition/users/{id}/score - Endpoint",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/recognition/users/:id/score",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "recognition",
+                "users",
+                ":id",
+                "score"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "1",
+                  "description": "Target id"
+                }
+              ]
+            },
+            "description": "GET /api/recognition/users/{id}/score \u2014 any user's score (view only)"
+          },
+          "response": []
+        },
+        {
+          "name": "GET /api/recognition/my/achievements - My achievements",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/recognition/my/achievements?page=0&size=20",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "recognition",
+                "my",
+                "achievements"
+              ],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "0",
+                  "description": "Type: int, Required: True"
+                },
+                {
+                  "key": "size",
+                  "value": "20",
+                  "description": "Type: int, Required: True"
+                }
+              ]
+            },
+            "description": "GET /api/recognition/my/achievements \u2014 caller's unlocked achievements"
+          },
+          "response": []
+        },
+        {
+          "name": "GET /api/recognition/my/achievements/progress - My progress",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/recognition/my/achievements/progress",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "recognition",
+                "my",
+                "achievements",
+                "progress"
+              ]
+            },
+            "description": "GET /api/recognition/my/achievements/progress \u2014 achievement progress list"
+          },
+          "response": []
+        },
+        {
+          "name": "GET /api/recognition/users/{id}/achievements - Endpoint",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/recognition/users/:id/achievements",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "recognition",
+                "users",
+                ":id",
+                "achievements"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "1",
+                  "description": "Target id"
+                }
+              ]
+            },
+            "description": "GET /api/recognition/users/{id}/achievements \u2014 any user's achievements"
+          },
+          "response": []
+        },
+        {
+          "name": "GET /api/recognition/achievements - Catalogue",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/recognition/achievements?page=0&size=50&category=sample_val&rarity=sample_val",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "recognition",
+                "achievements"
+              ],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "0",
+                  "description": "Type: int, Required: True"
+                },
+                {
+                  "key": "size",
+                  "value": "50",
+                  "description": "Type: int, Required: True"
+                },
+                {
+                  "key": "category",
+                  "value": "sample_val",
+                  "description": "Type: String, Required: False"
+                },
+                {
+                  "key": "rarity",
+                  "value": "sample_val",
+                  "description": "Type: String, Required: False"
+                }
+              ]
+            },
+            "description": "GET /api/recognition/achievements \u2014 catalogue of all achievements"
+          },
+          "response": []
+        },
+        {
+          "name": "GET /api/recognition/categories - Categories",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/recognition/categories",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "recognition",
+                "categories"
+              ]
+            },
+            "description": "GET /api/recognition/categories \u2014 achievement categories"
+          },
+          "response": []
+        },
+        {
+          "name": "GET /api/recognition/my/notifications - My notifications",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/recognition/my/notifications?page=0&size=20",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "recognition",
+                "my",
+                "notifications"
+              ],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "0",
+                  "description": "Type: int, Required: True"
+                },
+                {
+                  "key": "size",
+                  "value": "20",
+                  "description": "Type: int, Required: True"
+                }
+              ]
+            },
+            "description": "GET /api/recognition/my/notifications"
+          },
+          "response": []
+        },
+        {
+          "name": "GET /api/recognition/my/notifications/unread-count - Unread count",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/recognition/my/notifications/unread-count",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "recognition",
+                "my",
+                "notifications",
+                "unread-count"
+              ]
+            },
+            "description": "GET /api/recognition/my/notifications/unread-count"
+          },
+          "response": []
+        },
+        {
+          "name": "POST /api/recognition/my/notifications/mark-read - Mark all read",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/recognition/my/notifications/mark-read",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "recognition",
+                "my",
+                "notifications",
+                "mark-read"
+              ]
+            },
+            "description": "POST /api/recognition/my/notifications/mark-read"
+          },
+          "response": []
+        },
+        {
+          "name": "POST /api/recognition/admin/grant-achievement - Admin grant",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/recognition/admin/grant-achievement",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "recognition",
+                "admin",
+                "grant-achievement"
+              ]
+            },
+            "description": "POST /api/recognition/admin/grant-achievement Body: { userId, achievementCode, reason } Used for admin-verified achievements (mentoring, certifications, etc.)\n\n**Request Body Type:** `Map<String,`",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"key\": \"value\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "POST /api/recognition/admin/recalculate/{userId} - Endpoint",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/recognition/admin/recalculate/:userId",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "recognition",
+                "admin",
+                "recalculate",
+                ":userId"
+              ],
+              "variable": [
+                {
+                  "key": "userId",
+                  "value": "1",
+                  "description": "Target userId"
+                }
+              ]
+            },
+            "description": "POST /api/recognition/admin/recalculate/{userId} Forces a full score recalculation for a user (admin only). Use after data migrations or manual corrections."
+          },
+          "response": []
+        },
+        {
+          "name": "GET /api/recognition/admin/equity-audit - Get equity audit",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/recognition/admin/equity-audit",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "recognition",
+                "admin",
+                "equity-audit"
+              ]
+            },
+            "description": "GET /api/recognition/admin/equity-audit Evaluates Gini coefficient and rank concentration to detect privilege skew or bias."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "19. Reports & Exports",
+      "description": "Generates PDF, Excel, and CSV summary reports for executive dashboard and sprint summaries.",
+      "item": [
+        {
+          "name": "GET /api/reports/api/reports - Endpoint",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/reports/api/reports",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "reports",
+                "api",
+                "reports"
+              ]
+            },
+            "description": "Executes endpoint operation on /api/reports/api/reports."
+          },
+          "response": []
+        },
+        {
+          "name": "GET /api/reports/metrics - Get metrics",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/reports/metrics?startDate=sample_val&endDate=sample_val",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "reports",
+                "metrics"
+              ],
+              "query": [
+                {
+                  "key": "startDate",
+                  "value": "sample_val",
+                  "description": "Type: String, Required: False"
+                },
+                {
+                  "key": "endDate",
+                  "value": "sample_val",
+                  "description": "Type: String, Required: False"
+                }
+              ]
+            },
+            "description": "Executes getMetrics operation on /api/reports/metrics."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "20. Asynchronous Report Jobs",
+      "description": "Asynchronous report generation job scheduling, status polling, and report download links.",
+      "item": [
+        {
+          "name": "GET /api/reports/api/reports - Endpoint",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/reports/api/reports",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "reports",
+                "api",
+                "reports"
+              ]
+            },
+            "description": "Executes endpoint operation on /api/reports/api/reports."
+          },
+          "response": []
+        },
+        {
+          "name": "POST /api/reports/export - Request report",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/reports/export?type=TASKS&format=xlsx",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "reports",
+                "export"
+              ],
+              "query": [
+                {
+                  "key": "type",
+                  "value": "TASKS",
+                  "description": "Type: String, Required: True"
+                },
+                {
+                  "key": "format",
+                  "value": "xlsx",
+                  "description": "Type: String, Required: True"
+                }
+              ]
+            },
+            "description": "Executes requestReport operation on /api/reports/export."
+          },
+          "response": []
+        },
+        {
+          "name": "GET /api/reports/jobs/{jobId} - Endpoint",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/reports/jobs/:jobId",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "reports",
+                "jobs",
+                ":jobId"
+              ],
+              "variable": [
+                {
+                  "key": "jobId",
+                  "value": "1",
+                  "description": "Target jobId"
+                }
+              ]
+            },
+            "description": "Executes endpoint operation on /api/reports/jobs/{jobId}."
+          },
+          "response": []
+        },
+        {
+          "name": "GET /api/reports/download/{token} - Endpoint",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/reports/download/:token",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "reports",
+                "download",
+                ":token"
+              ],
+              "variable": [
+                {
+                  "key": "token",
+                  "value": "1",
+                  "description": "Target token"
+                }
+              ]
+            },
+            "description": "Executes endpoint operation on /api/reports/download/{token}."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "8. Sprint Management",
+      "description": "Agile sprint creation, backlog planning, sprint tracking, and milestone completion.",
+      "item": [
+        {
+          "name": "GET /api/sprints/api/sprints - Endpoint",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/sprints/api/sprints",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "sprints",
+                "api",
+                "sprints"
+              ]
+            },
+            "description": "Executes endpoint operation on /api/sprints/api/sprints."
+          },
+          "response": []
+        },
+        {
+          "name": "GET /api/sprints - Get all sprints",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/sprints",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "sprints"
+              ]
+            },
+            "description": "Executes getAllSprints operation on /api/sprints."
+          },
+          "response": []
+        },
+        {
+          "name": "POST /api/sprints - Create sprint",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/sprints",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "sprints"
+              ]
+            },
+            "description": "Executes createSprint operation on /api/sprints.\n\n**Request Body Type:** `Sprint`",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Sprint 2026-Q3-S1\",\n  \"startDate\": \"2026-08-01\",\n  \"endDate\": \"2026-08-15\",\n  \"goal\": \"Deliver MVP Auth and Task Workflows\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "PUT /api/sprints/{id} - Endpoint",
+          "request": {
+            "method": "PUT",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/sprints/:id",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "sprints",
+                ":id"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "1",
+                  "description": "Target id"
+                }
+              ]
+            },
+            "description": "Executes endpoint operation on /api/sprints/{id}."
+          },
+          "response": []
+        },
+        {
+          "name": "DELETE /api/sprints/{id} - Endpoint",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/sprints/:id",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "sprints",
+                ":id"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "1",
+                  "description": "Target id"
+                }
+              ]
+            },
+            "description": "Executes endpoint operation on /api/sprints/{id}."
+          },
+          "response": []
+        },
+        {
+          "name": "POST /api/sprints/{id}/start - Endpoint",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/sprints/:id/start",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "sprints",
+                ":id",
+                "start"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "1",
+                  "description": "Target id"
+                }
+              ]
+            },
+            "description": "Executes endpoint operation on /api/sprints/{id}/start."
+          },
+          "response": []
+        },
+        {
+          "name": "POST /api/sprints/{id}/complete - Endpoint",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/sprints/:id/complete",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "sprints",
+                ":id",
+                "complete"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "1",
+                  "description": "Target id"
+                }
+              ]
+            },
+            "description": "Executes endpoint operation on /api/sprints/{id}/complete."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "9. Sprint Tasks & Dependencies",
+      "description": "Tasks tied to specific sprints, task dependency graphs, prerequisite linking, and linking Change Requests (CRs).",
+      "item": [
+        {
+          "name": "GET /api/api - Endpoint",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/api",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "api"
+              ]
+            },
+            "description": "Executes endpoint operation on /api/api."
+          },
+          "response": []
+        },
+        {
+          "name": "GET /api/sprint-tasks - Get all sprint tasks",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/sprint-tasks?sprintId=sample_val&status=sample_val&priority=sample_val",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "sprint-tasks"
+              ],
+              "query": [
+                {
+                  "key": "sprintId",
+                  "value": "sample_val",
+                  "description": "Type: Long, Required: False"
+                },
+                {
+                  "key": "status",
+                  "value": "sample_val",
+                  "description": "Type: String, Required: False"
+                },
+                {
+                  "key": "priority",
+                  "value": "sample_val",
+                  "description": "Type: String, Required: False"
+                }
+              ]
+            },
+            "description": "Executes getAllSprintTasks operation on /api/sprint-tasks."
+          },
+          "response": []
+        },
+        {
+          "name": "GET /api/sprint-tasks/{id} - Endpoint",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/sprint-tasks/:id",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "sprint-tasks",
+                ":id"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "1",
+                  "description": "Target id"
+                }
+              ]
+            },
+            "description": "Executes endpoint operation on /api/sprint-tasks/{id}."
+          },
+          "response": []
+        },
+        {
+          "name": "POST /api/sprint-tasks - Create sprint task",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/sprint-tasks",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "sprint-tasks"
+              ]
+            },
+            "description": "Executes createSprintTask operation on /api/sprint-tasks.\n\n**Request Body Type:** `SprintTaskDto`",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Build Auth Module\",\n  \"description\": \"Implement JWT and Spring Security integration\",\n  \"assignedUserId\": 1,\n  \"estimatedHours\": 16.0,\n  \"sprintId\": 1,\n  \"priority\": \"HIGH\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "PUT /api/sprint-tasks/{id} - Endpoint",
+          "request": {
+            "method": "PUT",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/sprint-tasks/:id",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "sprint-tasks",
+                ":id"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "1",
+                  "description": "Target id"
+                }
+              ]
+            },
+            "description": "Executes endpoint operation on /api/sprint-tasks/{id}."
+          },
+          "response": []
+        },
+        {
+          "name": "POST /api/sprint-tasks/{id}/complete - Endpoint",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/sprint-tasks/:id/complete",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "sprint-tasks",
+                ":id",
+                "complete"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "1",
+                  "description": "Target id"
+                }
+              ]
+            },
+            "description": "Executes endpoint operation on /api/sprint-tasks/{id}/complete."
+          },
+          "response": []
+        },
+        {
+          "name": "GET /api/sprint-tasks/{id}/dependencies - Endpoint",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/sprint-tasks/:id/dependencies",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "sprint-tasks",
+                ":id",
+                "dependencies"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "1",
+                  "description": "Target id"
+                }
+              ]
+            },
+            "description": "Dependencies"
+          },
+          "response": []
+        },
+        {
+          "name": "POST /api/sprint-tasks/{id}/dependencies - Endpoint",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/sprint-tasks/:id/dependencies",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "sprint-tasks",
+                ":id",
+                "dependencies"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "1",
+                  "description": "Target id"
+                }
+              ]
+            },
+            "description": "Executes endpoint operation on /api/sprint-tasks/{id}/dependencies."
+          },
+          "response": []
+        },
+        {
+          "name": "DELETE /api/sprint-tasks/{id}/dependencies - Endpoint",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/sprint-tasks/:id/dependencies",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "sprint-tasks",
+                ":id",
+                "dependencies"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "1",
+                  "description": "Target id"
+                }
+              ]
+            },
+            "description": "Executes endpoint operation on /api/sprint-tasks/{id}/dependencies."
+          },
+          "response": []
+        },
+        {
+          "name": "GET /api/sprints/{id}/task-dependency-graph - Endpoint",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/sprints/:id/task-dependency-graph",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "sprints",
+                ":id",
+                "task-dependency-graph"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "1",
+                  "description": "Target id"
+                }
+              ]
+            },
+            "description": "Graph"
+          },
+          "response": []
+        },
+        {
+          "name": "POST /api/crs/{id}/link-sprint-tasks - Endpoint",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/crs/:id/link-sprint-tasks",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "crs",
+                ":id",
+                "link-sprint-tasks"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "1",
+                  "description": "Target id"
+                }
+              ]
+            },
+            "description": "CR task links"
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "4. Task Management & Workflows",
+      "description": "Core task lifecycle management: creation, status updates, assigning developers/testers, workflow approvals, and exporting unit test docs.",
+      "item": [
+        {
+          "name": "GET /api/tasks/api/tasks - Endpoint",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/tasks/api/tasks",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "tasks",
+                "api",
+                "tasks"
+              ]
+            },
+            "description": "Executes endpoint operation on /api/tasks/api/tasks."
+          },
+          "response": []
+        },
+        {
+          "name": "GET /api/tasks - Get all tasks",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/tasks?page=0&size=0&status=sample_val&priority=sample_val&search=sample_val",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "tasks"
+              ],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "0",
+                  "description": "Type: Integer, Required: False"
+                },
+                {
+                  "key": "size",
+                  "value": "0",
+                  "description": "Type: Integer, Required: False"
+                },
+                {
+                  "key": "status",
+                  "value": "sample_val",
+                  "description": "Type: String, Required: False"
+                },
+                {
+                  "key": "priority",
+                  "value": "sample_val",
+                  "description": "Type: String, Required: False"
+                },
+                {
+                  "key": "search",
+                  "value": "sample_val",
+                  "description": "Type: String, Required: False"
+                }
+              ]
+            },
+            "description": "Executes getAllTasks operation on /api/tasks."
+          },
+          "response": []
+        },
+        {
+          "name": "GET /api/tasks/download-tasks - Download tasks",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/tasks/download-tasks?status=sample_val&priority=sample_val",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "tasks",
+                "download-tasks"
+              ],
+              "query": [
+                {
+                  "key": "status",
+                  "value": "sample_val",
+                  "description": "Type: String, Required: False"
+                },
+                {
+                  "key": "priority",
+                  "value": "sample_val",
+                  "description": "Type: String, Required: False"
+                }
+              ]
+            },
+            "description": "Executes downloadTasks operation on /api/tasks/download-tasks."
+          },
+          "response": []
+        },
+        {
+          "name": "GET /api/tasks/my - Get my tasks",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/tasks/my?page=0&size=10&status=sample_val&priority=sample_val",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "tasks",
+                "my"
+              ],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "0",
+                  "description": "Type: int, Required: True"
+                },
+                {
+                  "key": "size",
+                  "value": "10",
+                  "description": "Type: int, Required: True"
+                },
+                {
+                  "key": "status",
+                  "value": "sample_val",
+                  "description": "Type: String, Required: False"
+                },
+                {
+                  "key": "priority",
+                  "value": "sample_val",
+                  "description": "Type: String, Required: False"
+                }
+              ]
+            },
+            "description": "Executes getMyTasks operation on /api/tasks/my."
+          },
+          "response": []
+        },
+        {
+          "name": "GET /api/tasks/{id} - Endpoint",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/tasks/:id",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "tasks",
+                ":id"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "1",
+                  "description": "Target id"
+                }
+              ]
+            },
+            "description": "Executes endpoint operation on /api/tasks/{id}."
+          },
+          "response": []
+        },
+        {
+          "name": "POST /api/tasks - Create task",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/tasks",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "tasks"
+              ]
+            },
+            "description": "Executes createTask operation on /api/tasks.\n\n**Request Body Type:** `Task`",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Implement User Management API\",\n  \"description\": \"Create CRUD endpoints for user accounts and roles\",\n  \"status\": \"OPEN\",\n  \"priority\": \"HIGH\",\n  \"type\": \"FEATURE\",\n  \"assignedUserId\": 2,\n  \"sprintId\": 1,\n  \"estimatedHours\": 8.0\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "PUT /api/tasks/{id} - Endpoint",
+          "request": {
+            "method": "PUT",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/tasks/:id",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "tasks",
+                ":id"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "1",
+                  "description": "Target id"
+                }
+              ]
+            },
+            "description": "Executes endpoint operation on /api/tasks/{id}."
+          },
+          "response": []
+        },
+        {
+          "name": "PUT /api/tasks/{id}/sprint - Endpoint",
+          "request": {
+            "method": "PUT",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/tasks/:id/sprint",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "tasks",
+                ":id",
+                "sprint"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "1",
+                  "description": "Target id"
+                }
+              ]
+            },
+            "description": "Executes endpoint operation on /api/tasks/{id}/sprint."
+          },
+          "response": []
+        },
+        {
+          "name": "POST /api/tasks/{id}/assign-tester - Endpoint",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/tasks/:id/assign-tester",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "tasks",
+                ":id",
+                "assign-tester"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "1",
+                  "description": "Target id"
+                }
+              ]
+            },
+            "description": "Executes endpoint operation on /api/tasks/{id}/assign-tester."
+          },
+          "response": []
+        },
+        {
+          "name": "POST /api/tasks/{id}/reassign-tester - Endpoint",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/tasks/:id/reassign-tester",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "tasks",
+                ":id",
+                "reassign-tester"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "1",
+                  "description": "Target id"
+                }
+              ]
+            },
+            "description": "Executes endpoint operation on /api/tasks/{id}/reassign-tester."
+          },
+          "response": []
+        },
+        {
+          "name": "POST /api/tasks/{id}/complete-testing - Endpoint",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/tasks/:id/complete-testing",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "tasks",
+                ":id",
+                "complete-testing"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "1",
+                  "description": "Target id"
+                }
+              ]
+            },
+            "description": "Executes endpoint operation on /api/tasks/{id}/complete-testing."
+          },
+          "response": []
+        },
+        {
+          "name": "GET /api/tasks/export - Export tasks to excel",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/tasks/export",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "tasks",
+                "export"
+              ]
+            },
+            "description": "Executes exportTasksToExcel operation on /api/tasks/export."
+          },
+          "response": []
+        },
+        {
+          "name": "DELETE /api/tasks/{id} - Endpoint",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/tasks/:id",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "tasks",
+                ":id"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "1",
+                  "description": "Target id"
+                }
+              ]
+            },
+            "description": "Executes endpoint operation on /api/tasks/{id}."
+          },
+          "response": []
+        },
+        {
+          "name": "GET /api/tasks/{id}/download-unit-test-doc - Endpoint",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/tasks/:id/download-unit-test-doc",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "tasks",
+                ":id",
+                "download-unit-test-doc"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "1",
+                  "description": "Target id"
+                }
+              ]
+            },
+            "description": "Executes endpoint operation on /api/tasks/{id}/download-unit-test-doc."
+          },
+          "response": []
+        },
+        {
+          "name": "POST /api/tasks/{id}/push-to-pool - Endpoint",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/tasks/:id/push-to-pool",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "tasks",
+                ":id",
+                "push-to-pool"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "1",
+                  "description": "Target id"
+                }
+              ]
+            },
+            "description": "UAT and Pool Endpoints"
+          },
+          "response": []
+        },
+        {
+          "name": "POST /api/tasks/{id}/pick-from-pool - Endpoint",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/tasks/:id/pick-from-pool",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "tasks",
+                ":id",
+                "pick-from-pool"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "1",
+                  "description": "Target id"
+                }
+              ]
+            },
+            "description": "Executes endpoint operation on /api/tasks/{id}/pick-from-pool."
+          },
+          "response": []
+        },
+        {
+          "name": "POST /api/tasks/{id}/pick-for-sit - Endpoint",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/tasks/:id/pick-for-sit",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "tasks",
+                ":id",
+                "pick-for-sit"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "1",
+                  "description": "Target id"
+                }
+              ]
+            },
+            "description": "Executes endpoint operation on /api/tasks/{id}/pick-for-sit."
+          },
+          "response": []
+        },
+        {
+          "name": "POST /api/tasks/{id}/approve-sit - Endpoint",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/tasks/:id/approve-sit",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "tasks",
+                ":id",
+                "approve-sit"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "1",
+                  "description": "Target id"
+                }
+              ]
+            },
+            "description": "Executes endpoint operation on /api/tasks/{id}/approve-sit."
+          },
+          "response": []
+        },
+        {
+          "name": "POST /api/tasks/{id}/reject-sit - Endpoint",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/tasks/:id/reject-sit",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "tasks",
+                ":id",
+                "reject-sit"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "1",
+                  "description": "Target id"
+                }
+              ]
+            },
+            "description": "Executes endpoint operation on /api/tasks/{id}/reject-sit."
+          },
+          "response": []
+        },
+        {
+          "name": "POST /api/tasks/{id}/pick-for-uat - Endpoint",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/tasks/:id/pick-for-uat",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "tasks",
+                ":id",
+                "pick-for-uat"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "1",
+                  "description": "Target id"
+                }
+              ]
+            },
+            "description": "Executes endpoint operation on /api/tasks/{id}/pick-for-uat."
+          },
+          "response": []
+        },
+        {
+          "name": "POST /api/tasks/{id}/approve-uat - Endpoint",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/tasks/:id/approve-uat",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "tasks",
+                ":id",
+                "approve-uat"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "1",
+                  "description": "Target id"
+                }
+              ]
+            },
+            "description": "Executes endpoint operation on /api/tasks/{id}/approve-uat."
+          },
+          "response": []
+        },
+        {
+          "name": "POST /api/tasks/{id}/reject-uat - Endpoint",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/tasks/:id/reject-uat",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "tasks",
+                ":id",
+                "reject-uat"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "1",
+                  "description": "Target id"
+                }
+              ]
+            },
+            "description": "Executes endpoint operation on /api/tasks/{id}/reject-uat."
+          },
+          "response": []
+        },
+        {
+          "name": "GET /api/tasks/{id}/current-step - Endpoint",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/tasks/:id/current-step",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "tasks",
+                ":id",
+                "current-step"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "1",
+                  "description": "Target id"
+                }
+              ]
+            },
+            "description": "Executes endpoint operation on /api/tasks/{id}/current-step."
+          },
+          "response": []
+        },
+        {
+          "name": "GET /api/tasks/{id}/steps - Endpoint",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/tasks/:id/steps",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "tasks",
+                ":id",
+                "steps"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "1",
+                  "description": "Target id"
+                }
+              ]
+            },
+            "description": "Executes endpoint operation on /api/tasks/{id}/steps."
+          },
+          "response": []
+        },
+        {
+          "name": "GET /api/tasks/current - Get tasks by step type",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/tasks/current?type=sample_val",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "tasks",
+                "current"
+              ],
+              "query": [
+                {
+                  "key": "type",
+                  "value": "sample_val",
+                  "description": "Type: String, Required: True"
+                }
+              ]
+            },
+            "description": "Dynamic Workflow Endpoints"
+          },
+          "response": []
+        },
+        {
+          "name": "POST /api/tasks/{id}/approve - Endpoint",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/tasks/:id/approve",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "tasks",
+                ":id",
+                "approve"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "1",
+                  "description": "Target id"
+                }
+              ]
+            },
+            "description": "Executes endpoint operation on /api/tasks/{id}/approve."
+          },
+          "response": []
+        },
+        {
+          "name": "POST /api/tasks/{id}/reject - Endpoint",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/tasks/:id/reject",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "tasks",
+                ":id",
+                "reject"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "1",
+                  "description": "Target id"
+                }
+              ]
+            },
+            "description": "Executes endpoint operation on /api/tasks/{id}/reject."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "25. Task Types",
+      "description": "Custom task types (Feature, Bug, CR, Refactor, Maintenance) definitions.",
+      "item": [
+        {
+          "name": "GET /api/task-types/api/task-types - Endpoint",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/task-types/api/task-types",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "task-types",
+                "api",
+                "task-types"
+              ]
+            },
+            "description": "Executes endpoint operation on /api/task-types/api/task-types."
+          },
+          "response": []
+        },
+        {
+          "name": "GET /api/task-types - Get all task types",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/task-types",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "task-types"
+              ]
+            },
+            "description": "Executes getAllTaskTypes operation on /api/task-types."
+          },
+          "response": []
+        },
+        {
+          "name": "POST /api/task-types - Create task type",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/task-types",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "task-types"
+              ]
+            },
+            "description": "Executes createTaskType operation on /api/task-types.\n\n**Request Body Type:** `TaskType`",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"CR (Change Request)\",\n  \"description\": \"Change Request Task Type\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "DELETE /api/task-types/{id} - Endpoint",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/task-types/:id",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "task-types",
+                ":id"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "1",
+                  "description": "Target id"
+                }
+              ]
+            },
+            "description": "Executes endpoint operation on /api/task-types/{id}."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "10. Test Cases & Execution",
+      "description": "Test case definitions, execution statuses, and association with developer tasks or reported bugs.",
+      "item": [
+        {
+          "name": "GET /api/test-cases/api/test-cases - Endpoint",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/test-cases/api/test-cases",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "test-cases",
+                "api",
+                "test-cases"
+              ]
+            },
+            "description": "Executes endpoint operation on /api/test-cases/api/test-cases."
+          },
+          "response": []
+        },
+        {
+          "name": "GET /api/test-cases - Get all test cases",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/test-cases",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "test-cases"
+              ]
+            },
+            "description": "Executes getAllTestCases operation on /api/test-cases."
+          },
+          "response": []
+        },
+        {
+          "name": "POST /api/test-cases - Create test case",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/test-cases",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "test-cases"
+              ]
+            },
+            "description": "Executes createTestCase operation on /api/test-cases.\n\n**Request Body Type:** `TestCase`",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Verify Login with Valid Credentials\",\n  \"description\": \"User enters correct username and password and clicks submit\",\n  \"expectedResult\": \"User receives 200 OK and valid JWT token\",\n  \"taskId\": 1,\n  \"status\": \"PASSED\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "PUT /api/test-cases/{id} - Endpoint",
+          "request": {
+            "method": "PUT",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/test-cases/:id",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "test-cases",
+                ":id"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "1",
+                  "description": "Target id"
+                }
+              ]
+            },
+            "description": "Executes endpoint operation on /api/test-cases/{id}."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "11. Tester Workspace",
+      "description": "Dedicated workbench for QA Testers to review pending items, log test results, and track testing metrics.",
+      "item": [
+        {
+          "name": "GET /api/tester-workspace/api/tester-workspace - Endpoint",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/tester-workspace/api/tester-workspace",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "tester-workspace",
+                "api",
+                "tester-workspace"
+              ]
+            },
+            "description": "Executes endpoint operation on /api/tester-workspace/api/tester-workspace."
+          },
+          "response": []
+        },
+        {
+          "name": "GET /api/tester-workspace/tested-crs - Get tested crs",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/tester-workspace/tested-crs?page=0&size=50&sort=testingCompletedDate,desc&search=sample_val&project=sample_val&sprintId=sample_val&priority=sample_val&status=sample_val",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "tester-workspace",
+                "tested-crs"
+              ],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "0",
+                  "description": "Type: int, Required: True"
+                },
+                {
+                  "key": "size",
+                  "value": "50",
+                  "description": "Type: int, Required: True"
+                },
+                {
+                  "key": "sort",
+                  "value": "testingCompletedDate,desc",
+                  "description": "Type: String, Required: True"
+                },
+                {
+                  "key": "search",
+                  "value": "sample_val",
+                  "description": "Type: String, Required: False"
+                },
+                {
+                  "key": "project",
+                  "value": "sample_val",
+                  "description": "Type: String, Required: False"
+                },
+                {
+                  "key": "sprintId",
+                  "value": "sample_val",
+                  "description": "Type: Long, Required: False"
+                },
+                {
+                  "key": "priority",
+                  "value": "sample_val",
+                  "description": "Type: String, Required: False"
+                },
+                {
+                  "key": "status",
+                  "value": "sample_val",
+                  "description": "Type: String, Required: False"
+                }
+              ]
+            },
+            "description": "Executes getTestedCrs operation on /api/tester-workspace/tested-crs."
+          },
+          "response": []
+        },
+        {
+          "name": "POST /api/tester-workspace/tested-crs/export - Export tested crs",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/tester-workspace/tested-crs/export?search=sample_val&project=sample_val&sprintId=sample_val&priority=sample_val&status=sample_val",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "tester-workspace",
+                "tested-crs",
+                "export"
+              ],
+              "query": [
+                {
+                  "key": "search",
+                  "value": "sample_val",
+                  "description": "Type: String, Required: False"
+                },
+                {
+                  "key": "project",
+                  "value": "sample_val",
+                  "description": "Type: String, Required: False"
+                },
+                {
+                  "key": "sprintId",
+                  "value": "sample_val",
+                  "description": "Type: Long, Required: False"
+                },
+                {
+                  "key": "priority",
+                  "value": "sample_val",
+                  "description": "Type: String, Required: False"
+                },
+                {
+                  "key": "status",
+                  "value": "sample_val",
+                  "description": "Type: String, Required: False"
+                }
+              ]
+            },
+            "description": "Executes exportTestedCrs operation on /api/tester-workspace/tested-crs/export."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "3. User Management",
+      "description": "Endpoints for querying system users, profiles, role assignments, and team member management.",
+      "item": [
+        {
+          "name": "GET /api/users/api/users - Endpoint",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/users/api/users",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "users",
+                "api",
+                "users"
+              ]
+            },
+            "description": "Executes endpoint operation on /api/users/api/users."
+          },
+          "response": []
+        },
+        {
+          "name": "GET /api/users - Get all users",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/users",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "users"
+              ]
+            },
+            "description": "Executes getAllUsers operation on /api/users."
+          },
+          "response": []
+        },
+        {
+          "name": "PUT /api/users/profile - Update profile",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/users/profile",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "users",
+                "profile"
+              ]
+            },
+            "description": "Executes updateProfile operation on /api/users/profile.\n\n**Request Body Type:** `ProfileUpdateRequest`",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"fullName\": \"John Developer Updated\",\n  \"email\": \"john.updated@company.com\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "PUT /api/users/theme - Update theme",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/users/theme",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "users",
+                "theme"
+              ]
+            },
+            "description": "Executes updateTheme operation on /api/users/theme.\n\n**Request Body Type:** `Map<String,`",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"key\": \"value\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "PUT /api/users/{id}/status - Endpoint",
+          "request": {
+            "method": "PUT",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/users/:id/status",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "users",
+                ":id",
+                "status"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "1",
+                  "description": "Target id"
+                }
+              ]
+            },
+            "description": "Executes endpoint operation on /api/users/{id}/status."
+          },
+          "response": []
+        },
+        {
+          "name": "PUT /api/users/{id}/roles - Endpoint",
+          "request": {
+            "method": "PUT",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/users/:id/roles",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "users",
+                ":id",
+                "roles"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "1",
+                  "description": "Target id"
+                }
+              ]
+            },
+            "description": "Executes endpoint operation on /api/users/{id}/roles."
+          },
+          "response": []
+        },
+        {
+          "name": "GET /api/users/{id}/status-audit - Endpoint",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/users/:id/status-audit",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "users",
+                ":id",
+                "status-audit"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "1",
+                  "description": "Target id"
+                }
+              ]
+            },
+            "description": "Executes endpoint operation on /api/users/{id}/status-audit."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "24. Workflow Definitions",
+      "description": "Configurable workflow pipeline definitions, steps, and process types.",
+      "item": [
+        {
+          "name": "GET /api/workflows/api/workflows - Endpoint",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/workflows/api/workflows",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "workflows",
+                "api",
+                "workflows"
+              ]
+            },
+            "description": "Executes endpoint operation on /api/workflows/api/workflows."
+          },
+          "response": []
+        },
+        {
+          "name": "GET /api/workflows - Get all workflows",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/workflows",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "workflows"
+              ]
+            },
+            "description": "Executes getAllWorkflows operation on /api/workflows."
+          },
+          "response": []
+        },
+        {
+          "name": "GET /api/workflows/type/{type} - Endpoint",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/workflows/type/:type",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "workflows",
+                "type",
+                ":type"
+              ],
+              "variable": [
+                {
+                  "key": "type",
+                  "value": "1",
+                  "description": "Target type"
+                }
+              ]
+            },
+            "description": "Executes endpoint operation on /api/workflows/type/{type}."
+          },
+          "response": []
+        },
+        {
+          "name": "POST /api/workflows - Create workflow",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/workflows",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "workflows"
+              ]
+            },
+            "description": "Executes createWorkflow operation on /api/workflows.\n\n**Request Body Type:** `Workflow`",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Standard Code Review Workflow\",\n  \"type\": \"TASK\",\n  \"description\": \"Workflow for standard developer task approval\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "GET /api/workflows/{id} - Endpoint",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/workflows/:id",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "workflows",
+                ":id"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "1",
+                  "description": "Target id"
+                }
+              ]
+            },
+            "description": "Executes endpoint operation on /api/workflows/{id}."
+          },
+          "response": []
+        },
+        {
+          "name": "PUT /api/workflows/{id} - Endpoint",
+          "request": {
+            "method": "PUT",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/workflows/:id",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "workflows",
+                ":id"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "1",
+                  "description": "Target id"
+                }
+              ]
+            },
+            "description": "Executes endpoint operation on /api/workflows/{id}."
+          },
+          "response": []
+        },
+        {
+          "name": "DELETE /api/workflows/{id} - Endpoint",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/workflows/:id",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "workflows",
+                ":id"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "1",
+                  "description": "Target id"
+                }
+              ]
+            },
+            "description": "Executes endpoint operation on /api/workflows/{id}."
+          },
+          "response": []
+        }
+      ]
+    }
+  ]
+}
