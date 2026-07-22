@@ -4,12 +4,15 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.thymeleaf.IEngineConfiguration;
 import org.thymeleaf.spring6.SpringTemplateEngine;
 import org.thymeleaf.templateresolver.ClassLoaderTemplateResolver;
 import org.thymeleaf.templateresolver.FileTemplateResolver;
 import org.thymeleaf.templateresolver.ITemplateResolver;
+import org.thymeleaf.templateresolver.TemplateResolution;
 
 import java.io.File;
+import java.util.Map;
 
 /**
  * Thymeleaf configuration that supports hot-reloadable external email templates.
@@ -18,17 +21,6 @@ import java.io.File;
  * {@code MAIL_TEMPLATES_DIR} or application.properties default), filesystem
  * resolvers are registered with caching disabled. Edits on disk are picked up
  * immediately on the next email send without application restart.</p>
- *
- * <p>Resolver Chain:
- * <ol>
- *   <li><b>Direct File Resolver (Order 1)</b>: Resolves templates placed directly inside
- *       the external directory (e.g. {@code /EmailTemplates/bug-notification.html})
- *       even when code requests {@code "email/bug-notification"}.</li>
- *   <li><b>Nested File Resolver (Order 2)</b>: Resolves templates placed inside a subfolder
- *       (e.g. {@code /EmailTemplates/email/bug-notification.html}).</li>
- *   <li><b>Classpath Resolver (Order 3)</b>: Fallback bundled JAR templates.</li>
- * </ol>
- * </p>
  */
 @Configuration
 @Slf4j
@@ -48,7 +40,7 @@ public class ThymeleafConfig {
                     externalTemplatesDir, dir.exists());
 
             // Order 1: Direct file resolver (strips "email/" prefix if files are directly in EmailTemplates/)
-            engine.addTemplateResolver(directFileTemplateResolver());
+            engine.addTemplateResolver(new DirectFileTemplateResolver(externalTemplatesDir, 1));
 
             // Order 2: Nested file resolver (retains "email/" subfolder if files are in EmailTemplates/email/)
             engine.addTemplateResolver(nestedFileTemplateResolver());
@@ -60,38 +52,6 @@ public class ThymeleafConfig {
         engine.addTemplateResolver(classpathTemplateResolver());
 
         return engine;
-    }
-
-    /**
-     * Resolves templates directly under externalTemplatesDir (e.g. /EmailTemplates/bug-notification.html)
-     * when requested name is "email/bug-notification".
-     */
-    private ITemplateResolver directFileTemplateResolver() {
-        String prefix = externalTemplatesDir.endsWith("/") || externalTemplatesDir.endsWith("\\")
-                ? externalTemplatesDir
-                : externalTemplatesDir + "/";
-
-        FileTemplateResolver resolver = new FileTemplateResolver() {
-            @Override
-            protected String computePatternReplacedTemplateName(String templateName) {
-                String name = templateName;
-                if (name != null && name.startsWith("email/")) {
-                    name = name.substring(6);
-                } else if (name != null && name.startsWith("email\\")) {
-                    name = name.substring(6);
-                }
-                return super.computePatternReplacedTemplateName(name);
-            }
-        };
-
-        resolver.setOrder(1);
-        resolver.setPrefix(prefix);
-        resolver.setSuffix(".html");
-        resolver.setTemplateMode("HTML");
-        resolver.setCharacterEncoding("UTF-8");
-        resolver.setCacheable(false);     // Hot-reload: no cache
-        resolver.setCheckExistence(true); // Fall through to next resolver if file not on disk
-        return resolver;
     }
 
     /**
@@ -126,5 +86,49 @@ public class ThymeleafConfig {
         resolver.setCacheable(true);
         resolver.setCheckExistence(true);
         return resolver;
+    }
+
+    /**
+     * Delegating ITemplateResolver that strips "email/" prefix from requested template names
+     * to resolve files placed directly inside externalTemplatesDir.
+     */
+    private static class DirectFileTemplateResolver implements ITemplateResolver {
+        private final FileTemplateResolver delegate;
+
+        public DirectFileTemplateResolver(String externalTemplatesDir, int order) {
+            String prefix = externalTemplatesDir.endsWith("/") || externalTemplatesDir.endsWith("\\")
+                    ? externalTemplatesDir
+                    : externalTemplatesDir + "/";
+
+            this.delegate = new FileTemplateResolver();
+            this.delegate.setOrder(order);
+            this.delegate.setPrefix(prefix);
+            this.delegate.setSuffix(".html");
+            this.delegate.setTemplateMode("HTML");
+            this.delegate.setCharacterEncoding("UTF-8");
+            this.delegate.setCacheable(false);
+            this.delegate.setCheckExistence(true);
+        }
+
+        @Override
+        public String getName() {
+            return "DirectFileTemplateResolver";
+        }
+
+        @Override
+        public Integer getOrder() {
+            return delegate.getOrder();
+        }
+
+        @Override
+        public TemplateResolution resolveTemplate(IEngineConfiguration configuration, String ownerTemplate, String template, Map<String, Object> templateResolutionAttributes) {
+            String cleanTemplateName = template;
+            if (cleanTemplateName != null && cleanTemplateName.startsWith("email/")) {
+                cleanTemplateName = cleanTemplateName.substring(6);
+            } else if (cleanTemplateName != null && cleanTemplateName.startsWith("email\\")) {
+                cleanTemplateName = cleanTemplateName.substring(6);
+            }
+            return delegate.resolveTemplate(configuration, ownerTemplate, cleanTemplateName, templateResolutionAttributes);
+        }
     }
 }
