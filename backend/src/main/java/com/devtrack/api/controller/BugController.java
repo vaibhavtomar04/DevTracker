@@ -360,9 +360,10 @@ public class BugController {
                         }
 
                         // NEW: Prevent developer updates if bug is in active testing phase or has a tester assigned
-                        boolean isActiveTesting = bug.getStatus() != null && (bug.getStatus().contains("TESTING") || 
-                                               (bug.getStatus().contains("UAT") && !bug.getStatus().contains("COMPLETED")) ||
-                                               (bug.getStatus().contains("SIT") && !bug.getStatus().contains("COMPLETED")));
+                        boolean isActiveTesting = bug.getStatus() != null && 
+                                               ((bug.getStatus().contains("TESTING") && !bug.getStatus().contains("COMPLETED")) || 
+                                                (bug.getStatus().contains("UAT") && !bug.getStatus().contains("COMPLETED")) ||
+                                                (bug.getStatus().contains("SIT") && !bug.getStatus().contains("COMPLETED")));
 
                         if ((bug.getTester() != null || isActiveTesting) && 
                             !isAdmin && !isReviewer && !roles.contains("ROLE_TESTER")) {

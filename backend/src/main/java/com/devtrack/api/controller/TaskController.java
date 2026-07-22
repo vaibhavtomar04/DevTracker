@@ -343,7 +343,11 @@ public class TaskController {
                                                      task.getStatus().equals("PROD_DEPLOYED") ||
                                                      task.getStatus().equals("CLOSED");
                         
-                        // Exemption: developer is allowed to move from CODE_REVIEW_DONE to MOVE_TO_UAT, from MOVE_TO_UAT to TESTING_POOL, and from BUG_FOUND to TESTING_IN_PROGRESS
+                        // Exemptions for developers transitioning or updating tasks in allowed pipeline states:
+                        // 1. From CODE_REVIEW_DONE to MOVE_TO_UAT
+                        // 2. From MOVE_TO_UAT to TESTING_POOL
+                        // 3. From BUG_FOUND to TESTING_IN_PROGRESS
+                        // 4. When testing is completed (TESTING_COMPLETED, UAT_COMPLETED, SIT_COMPLETED, etc.) or PROD_DEPLOYED (allowing deployment to Prod or closing)
                         if (task.getStatus().equals("CODE_REVIEW_DONE") && "MOVE_TO_UAT".equals(taskDetails.getStatus())) {
                             isDeveloperBlocked = false;
                         }
@@ -351,6 +355,14 @@ public class TaskController {
                             isDeveloperBlocked = false;
                         }
                         if (task.getStatus().equals("BUG_FOUND") && "TESTING_IN_PROGRESS".equals(taskDetails.getStatus())) {
+                            isDeveloperBlocked = false;
+                        }
+                        boolean isTestingCompletedState = task.getStatus().equals("TESTING_COMPLETED") || 
+                                                          task.getStatus().equals("UAT_COMPLETED") || 
+                                                          task.getStatus().equals("SIT_COMPLETED") || 
+                                                          task.getStatus().equals("TESTING_DONE") || 
+                                                          task.getStatus().equals("UAT_TESTING_COMPLETED");
+                        if (isTestingCompletedState || task.getStatus().equals("PROD_DEPLOYED")) {
                             isDeveloperBlocked = false;
                         }
                         
