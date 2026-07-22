@@ -75,7 +75,7 @@ public class RecognitionEventListener {
      * notification handler below).
      */
     @Async("taskExecutor")
-    @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
+    @EventListener
     public void onRecognitionTrigger(RecognitionTriggerEvent trigger) {
         String eventType = trigger.getEventType();
 

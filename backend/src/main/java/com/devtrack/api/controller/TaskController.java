@@ -650,39 +650,41 @@ public class TaskController {
                                 log.error("Failed to evaluate CR risk in updateTask status transition", e);
                             }
 
-                            // ── Recognition hook — fire AFTER_COMMIT via ApplicationEventPublisher ──
+                            // ── Recognition hook — fire via ApplicationEventPublisher ──
                             // Each event type maps to a point delta in RecognitionEventListener.
                             try {
                                 Long devId = savedFinal.getAssignedDeveloper() != null
-                                        ? savedFinal.getAssignedDeveloper().getId() : null;
+                                        ? savedFinal.getAssignedDeveloper().getId() 
+                                        : (savedFinal.getCreatedBy() != null ? savedFinal.getCreatedBy().getId() : currentUserFinal.getId());
                                 Long testerId = savedFinal.getTester() != null
-                                        ? savedFinal.getTester().getId() : null;
+                                        ? savedFinal.getTester().getId() 
+                                        : currentUserFinal.getId();
                                 String newSt = savedFinal.getStatus();
                                 java.util.Map<String, Object> meta = java.util.Map.of(
-                                    "jtrackId", savedFinal.getJtrackId(),
+                                    "jtrackId", savedFinal.getJtrackId() != null ? savedFinal.getJtrackId() : "",
                                     "priority", savedFinal.getPriority() != null ? savedFinal.getPriority() : ""
                                 );
-                                if (("PROD_COMPLETED".equals(newSt) || "CLOSED".equals(newSt)) && devId != null) {
+                                if (("PROD_COMPLETED".equalsIgnoreCase(newSt) || "CLOSED".equalsIgnoreCase(newSt)) && devId != null) {
                                     applicationEventPublisher.publishEvent(new RecognitionTriggerEvent(
                                         savedFinal, "CR_COMPLETED", devId, "TASK", savedFinal.getId(),
                                         currentUserFinal.getUsername(), meta));
                                 }
-                                if ("PROD_DEPLOYED".equals(newSt) && devId != null) {
+                                if ("PROD_DEPLOYED".equalsIgnoreCase(newSt) && devId != null) {
                                     applicationEventPublisher.publishEvent(new RecognitionTriggerEvent(
                                         savedFinal, "DEPLOYMENT_SUCCESS", devId, "TASK", savedFinal.getId(),
                                         currentUserFinal.getUsername(), meta));
                                 }
-                                if ("CODE_REVIEW_DONE".equals(newSt) && devId != null) {
+                                if (("CODE_REVIEW_DONE".equalsIgnoreCase(newSt) || "MOVE_TO_UAT".equalsIgnoreCase(newSt)) && devId != null) {
                                     applicationEventPublisher.publishEvent(new RecognitionTriggerEvent(
                                         savedFinal, "CODE_APPROVED", devId, "TASK", savedFinal.getId(),
                                         currentUserFinal.getUsername(), meta));
                                 }
-                                if ("CHANGES_REQUESTED".equals(newSt) && devId != null) {
+                                if ("CHANGES_REQUESTED".equalsIgnoreCase(newSt) && devId != null) {
                                     applicationEventPublisher.publishEvent(new RecognitionTriggerEvent(
                                         savedFinal, "CODE_CHANGES_REQUESTED", devId, "TASK", savedFinal.getId(),
                                         currentUserFinal.getUsername(), meta));
                                 }
-                                if ("TESTING_COMPLETED".equals(newSt) && testerId != null) {
+                                if (("TESTING_COMPLETED".equalsIgnoreCase(newSt) || "UAT_COMPLETED".equalsIgnoreCase(newSt) || "SIT_COMPLETED".equalsIgnoreCase(newSt)) && testerId != null) {
                                     applicationEventPublisher.publishEvent(new RecognitionTriggerEvent(
                                         savedFinal, "TESTING_COMPLETED", testerId, "TASK", savedFinal.getId(),
                                         currentUserFinal.getUsername(), meta));
