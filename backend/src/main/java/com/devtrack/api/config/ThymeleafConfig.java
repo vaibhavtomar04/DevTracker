@@ -1,5 +1,6 @@
 package com.devtrack.api.config;
 
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -8,90 +9,116 @@ import org.thymeleaf.templateresolver.ClassLoaderTemplateResolver;
 import org.thymeleaf.templateresolver.FileTemplateResolver;
 import org.thymeleaf.templateresolver.ITemplateResolver;
 
+import java.io.File;
+
 /**
- * Thymeleaf configuration that supports hot-reloadable email templates.
+ * Thymeleaf configuration that supports hot-reloadable external email templates.
  *
- * <p>When {@code devtrack.mail.templates-dir} is set (e.g. via the
- * {@code MAIL_TEMPLATES_DIR} environment variable), a {@link FileTemplateResolver}
- * is registered at order=1 with caching disabled. Thymeleaf will resolve templates
- * from that directory first, so you can edit {@code .html} files on disk and the
- * next email send will use the updated version — no restart required.</p>
+ * <p>When {@code devtrack.mail.templates-dir} is set (via environment variable
+ * {@code MAIL_TEMPLATES_DIR} or application.properties default), filesystem
+ * resolvers are registered with caching disabled. Edits on disk are picked up
+ * immediately on the next email send without application restart.</p>
  *
- * <p>If the external directory is not configured, or the requested template is not
- * found there, Thymeleaf falls through to the bundled classpath templates at order=2
- * (the application's {@code src/main/resources/templates/} directory).</p>
- *
- * <h3>Quick-start</h3>
- * <pre>
- *   # 1. Set the environment variable pointing to your templates root:
- *   export MAIL_TEMPLATES_DIR=/opt/devtrack/templates
- *
- *   # 2. Copy the template(s) you want to customise:
- *   mkdir -p /opt/devtrack/templates/email
- *   cp bug-notification.html /opt/devtrack/templates/email/
- *
- *   # 3. Edit the file — no restart needed.
- * </pre>
+ * <p>Resolver Chain:
+ * <ol>
+ *   <li><b>Direct File Resolver (Order 1)</b>: Resolves templates placed directly inside
+ *       the external directory (e.g. {@code /EmailTemplates/bug-notification.html})
+ *       even when code requests {@code "email/bug-notification"}.</li>
+ *   <li><b>Nested File Resolver (Order 2)</b>: Resolves templates placed inside a subfolder
+ *       (e.g. {@code /EmailTemplates/email/bug-notification.html}).</li>
+ *   <li><b>Classpath Resolver (Order 3)</b>: Fallback bundled JAR templates.</li>
+ * </ol>
+ * </p>
  */
 @Configuration
+@Slf4j
 public class ThymeleafConfig {
 
-    /** Absolute path to the external templates root directory, e.g. {@code /opt/devtrack/templates}. */
     @Value("${devtrack.mail.templates-dir:}")
     private String externalTemplatesDir;
 
-    /**
-     * Configures the {@link SpringTemplateEngine} with a two-level resolver chain:
-     * <ol>
-     *   <li>External filesystem resolver (order=1, cache disabled) — only registered
-     *       when {@code devtrack.mail.templates-dir} is non-blank.</li>
-     *   <li>Classpath resolver (order=2) — always present as a safe fallback.</li>
-     * </ol>
-     */
     @Bean
     public SpringTemplateEngine templateEngine() {
         SpringTemplateEngine engine = new SpringTemplateEngine();
         engine.setEnableSpringELCompiler(true);
 
-        // ── Order 1: external filesystem resolver (hot-reload) ──────────────────
         if (externalTemplatesDir != null && !externalTemplatesDir.isBlank()) {
-            engine.addTemplateResolver(fileTemplateResolver());
+            File dir = new File(externalTemplatesDir);
+            log.info("Configuring external email templates directory: {} (exists: {})", 
+                    externalTemplatesDir, dir.exists());
+
+            // Order 1: Direct file resolver (strips "email/" prefix if files are directly in EmailTemplates/)
+            engine.addTemplateResolver(directFileTemplateResolver());
+
+            // Order 2: Nested file resolver (retains "email/" subfolder if files are in EmailTemplates/email/)
+            engine.addTemplateResolver(nestedFileTemplateResolver());
+        } else {
+            log.info("No external email template directory configured; using bundled classpath templates.");
         }
 
-        // ── Order 2: bundled classpath resolver (fallback) ──────────────────────
+        // Order 3: Classpath resolver (fallback inside JAR)
         engine.addTemplateResolver(classpathTemplateResolver());
 
         return engine;
     }
 
     /**
-     * Filesystem-based resolver that reads templates from the configured external
-     * directory. Caching is disabled so file edits are picked up immediately.
+     * Resolves templates directly under externalTemplatesDir (e.g. /EmailTemplates/bug-notification.html)
+     * when requested name is "email/bug-notification".
      */
-    private ITemplateResolver fileTemplateResolver() {
-        // Normalise the directory path — ensure it ends with a separator
+    private ITemplateResolver directFileTemplateResolver() {
         String prefix = externalTemplatesDir.endsWith("/") || externalTemplatesDir.endsWith("\\")
                 ? externalTemplatesDir
                 : externalTemplatesDir + "/";
 
-        FileTemplateResolver resolver = new FileTemplateResolver();
+        FileTemplateResolver resolver = new FileTemplateResolver() {
+            @Override
+            protected String computePatternReplacedTemplateName(String templateName) {
+                String name = templateName;
+                if (name != null && name.startsWith("email/")) {
+                    name = name.substring(6);
+                } else if (name != null && name.startsWith("email\\")) {
+                    name = name.substring(6);
+                }
+                return super.computePatternReplacedTemplateName(name);
+            }
+        };
+
         resolver.setOrder(1);
         resolver.setPrefix(prefix);
         resolver.setSuffix(".html");
         resolver.setTemplateMode("HTML");
         resolver.setCharacterEncoding("UTF-8");
-        resolver.setCacheable(false);          // ← key: no cache = hot-reload
-        resolver.setCheckExistence(true);      // fall-through to next resolver if missing
+        resolver.setCacheable(false);     // Hot-reload: no cache
+        resolver.setCheckExistence(true); // Fall through to next resolver if file not on disk
         return resolver;
     }
 
     /**
-     * Classpath-based resolver that serves the bundled templates packaged inside
-     * the JAR. Acts as a guaranteed fallback when an external template is absent.
+     * Resolves templates under externalTemplatesDir/email/ (e.g. /EmailTemplates/email/bug-notification.html).
+     */
+    private ITemplateResolver nestedFileTemplateResolver() {
+        String prefix = externalTemplatesDir.endsWith("/") || externalTemplatesDir.endsWith("\\")
+                ? externalTemplatesDir
+                : externalTemplatesDir + "/";
+
+        FileTemplateResolver resolver = new FileTemplateResolver();
+        resolver.setOrder(2);
+        resolver.setPrefix(prefix);
+        resolver.setSuffix(".html");
+        resolver.setTemplateMode("HTML");
+        resolver.setCharacterEncoding("UTF-8");
+        resolver.setCacheable(false);
+        resolver.setCheckExistence(true);
+        return resolver;
+    }
+
+    /**
+     * Fallback classpath resolver (Order 3).
      */
     private ITemplateResolver classpathTemplateResolver() {
         ClassLoaderTemplateResolver resolver = new ClassLoaderTemplateResolver();
-        resolver.setOrder(2);
+        resolver.setOrder(3);
         resolver.setPrefix("templates/");
         resolver.setSuffix(".html");
         resolver.setTemplateMode("HTML");
