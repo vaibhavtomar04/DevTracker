@@ -33,7 +33,7 @@ import java.util.stream.Collectors;
 import org.springframework.transaction.annotation.Transactional;
 
 @RestController
-@RequestMapping("/mfa")
+@RequestMapping("/api/mfa")
 @Slf4j
 @Tag(name = "Multi-Factor Authentication", description = "RFC 6238 TOTP enrollment, QR code, verification, backup codes, trusted devices")
 @CrossOrigin(origins = "*")

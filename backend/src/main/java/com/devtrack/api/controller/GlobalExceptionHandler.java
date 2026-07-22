@@ -92,6 +92,12 @@ public class GlobalExceptionHandler {
         return buildErrorResponse(message, HttpStatus.INTERNAL_SERVER_ERROR);
     }
 
+    @ExceptionHandler(org.springframework.web.servlet.resource.NoResourceFoundException.class)
+    public ResponseEntity<Map<String, Object>> handleNoResourceFound(org.springframework.web.servlet.resource.NoResourceFoundException ex) {
+        log.warn("Resource or API endpoint not found: {}", ex.getResourcePath());
+        return buildErrorResponse("Resource or API endpoint not found: " + ex.getResourcePath(), HttpStatus.NOT_FOUND);
+    }
+
     @ExceptionHandler(org.springframework.web.server.ResponseStatusException.class)
     public ResponseEntity<Map<String, Object>> handleResponseStatusException(org.springframework.web.server.ResponseStatusException ex) {
         log.warn("Response status exception: status={}, reason={}", ex.getStatusCode(), ex.getReason());
