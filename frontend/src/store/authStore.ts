@@ -235,9 +235,9 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       if (inactivityTimeoutId) clearTimeout(inactivityTimeoutId);
       inactivityTimeoutId = setTimeout(() => {
         get().logout().then(() => {
-          window.location.href = "/login";
+          window.location.href = `${APP_CONFIG.contextPath}/login`;
         });
-      }, 15 * 60 * 1000); // 15 minutes of inactivity
+      }, 30 * 60 * 1000); // 30 minutes of inactivity
     };
 
     resetTimerListener = resetTimer;
