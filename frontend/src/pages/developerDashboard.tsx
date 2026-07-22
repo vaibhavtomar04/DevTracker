@@ -2353,7 +2353,7 @@ export default function DeveloperDashboard() {
                             QA Verification / Testing In Progress {selectedTask.tester ? `(Tester: ${selectedTask.tester.fullName})` : ""}
                           </div>
                         )}
-                        {(selectedTask.status === "TESTING_COMPLETED" || selectedTask.status === "UAT_COMPLETED" || selectedTask.status === "SIT_COMPLETED" || selectedTask.status === "TESTING_DONE" || selectedTask.status === "UAT_TESTING_COMPLETED") && (
+                        {(selectedTask.status === "TESTING_COMPLETED" || selectedTask.status === "UAT_COMPLETED" || selectedTask.status === "TESTING_DONE" || selectedTask.status === "UAT_TESTING_COMPLETED") && (
                           <Button
                             className="w-full text-xs h-10 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-bold"
                             onClick={() => handleUpdateStatus(selectedTask, "PROD_DEPLOYED")}
