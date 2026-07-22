@@ -42,9 +42,9 @@ public class AchievementEmailJob {
         for (AchievementNotification notif : pending) {
             try {
                 if (notif.getUser() != null && notif.getUser().getEmail() != null) {
-                    // Dispatch email notification
-                    emailService.sendEmail(
-                        notif.getUser().getEmail(),
+                    // Dispatch role-aware achievement email notification
+                    emailService.sendAchievementNotificationEmail(
+                        notif.getUser(),
                         notif.getTitle(),
                         notif.getMessage()
                     );

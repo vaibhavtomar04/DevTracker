@@ -32,6 +32,7 @@ import com.devtrack.api.repository.TaskRepository;
 import com.devtrack.api.repository.UserRepository;
 import com.devtrack.api.repository.DocumentRepository;
 import com.devtrack.api.model.Document;
+import com.devtrack.api.model.Role;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -544,6 +545,30 @@ public class EmailNotificationService {
 			}
 		} catch (Exception e) {
 			log.error("Failed to send email to {}", to, e);
+		}
+	}
+
+	public void sendAchievementNotificationEmail(User user, String subject, String body) {
+		try {
+			boolean isDevRole = false;
+			if (user != null && user.getRoles() != null) {
+				for (Role r : user.getRoles()) {
+					String rName = r.name().toUpperCase();
+					if (rName.contains("DEV") || rName.contains("ADMIN") || rName.contains("REVIEW")) {
+						isDevRole = true;
+						break;
+					}
+				}
+			}
+			String sender = isDevRole ? developersMail : testingSender;
+			String cc = isDevRole ? reviewCc : testingCc;
+
+			EmailRequestVo requestMap = createEmailRequestMap(body, subject, user != null ? user.getEmail() : null, null, sender, cc);
+			if (requestMap != null) {
+				callSendNotificationApi(requestMap);
+			}
+		} catch (Exception e) {
+			log.error("Failed to send achievement email to {}", user != null ? user.getEmail() : "null", e);
 		}
 	}
 
