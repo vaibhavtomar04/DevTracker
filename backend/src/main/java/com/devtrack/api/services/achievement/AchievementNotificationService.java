@@ -108,11 +108,16 @@ public class AchievementNotificationService {
                     meta.getOrDefault("achievementName", ""),
                     meta.getOrDefault("rarity", ""),
                     meta.getOrDefault("points", 0));
-            case "LEVEL_UP" -> String.format(
-                    "Congratulations! You've advanced from %s to %s with a total score of %s.",
-                    meta.getOrDefault("prevLevel", "Novice"),
-                    meta.getOrDefault("newLevel", ""),
-                    meta.getOrDefault("totalScore", 0));
+            case "LEVEL_UP" -> {
+                String prev = meta.get("prevLevel") != null ? meta.get("prevLevel").toString().trim() : "";
+                String next = meta.getOrDefault("newLevel", "").toString().trim();
+                Object score = meta.getOrDefault("totalScore", 0);
+                if (!prev.isEmpty()) {
+                    yield String.format("Congratulations! You've advanced from %s to %s with a total score of %s.", prev, next, score);
+                } else {
+                    yield String.format("Congratulations! You've reached the level of %s with a total score of %s.", next, score);
+                }
+            }
             default -> "Keep up the great work!";
         };
     }
