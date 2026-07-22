@@ -561,9 +561,8 @@ public class EmailNotificationService {
 				}
 			}
 			String sender = isDevRole ? developersMail : testingSender;
-			String cc = isDevRole ? reviewCc : testingCc;
 
-			EmailRequestVo requestMap = createEmailRequestMap(body, subject, user != null ? user.getEmail() : null, null, sender, cc);
+			EmailRequestVo requestMap = createEmailRequestMap(body, subject, user != null ? user.getEmail() : null, null, sender, null);
 			if (requestMap != null) {
 				callSendNotificationApi(requestMap);
 			}
