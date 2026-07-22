@@ -203,10 +203,8 @@ export const useNotificationStore = create<NotificationState>((set, get) => ({
   // 📣 Add notification (from WS push) ─────────────────────────────────────────────────────────────────────────────────────────────────
   addNotification: (notification: AppNotification) => {
     set((state) => {
-      // Deduplication check: ID or identical Title + Description
-      const exists = state.notifications.some(
-        (n) => n.id === notification.id || (n.title === notification.title && n.desc === notification.desc)
-      );
+      // Deduplication check: by ID only (title+desc would block real-time popups for same-text notifications)
+      const exists = state.notifications.some((n) => n.id === notification.id);
       if (exists) return state;
       
       const notifications = [notification, ...state.notifications];
