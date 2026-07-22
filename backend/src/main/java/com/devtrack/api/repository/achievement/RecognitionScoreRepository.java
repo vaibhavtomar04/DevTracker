@@ -53,7 +53,7 @@ public interface RecognitionScoreRepository extends JpaRepository<RecognitionSco
             rs.sprint_success_rate AS sprintSuccessRate,
             rl.title AS levelTitle,
             rl.level_number AS levelNumber,
-            rl.icon_name AS levelIcon
+            rl.badge_icon_key AS levelIcon
         FROM recognition_score rs
         JOIN users u ON rs.user_id = u.id
         LEFT JOIN recognition_level rl ON rs.current_level_id = rl.id
