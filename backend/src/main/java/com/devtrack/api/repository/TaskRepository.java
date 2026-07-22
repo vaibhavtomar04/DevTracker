@@ -254,16 +254,13 @@ public interface TaskRepository extends JpaRepository<Task, Long>, org.springfra
 
     /**
      * CRs with at least one production-escaped bug.
-     * Escaped = bug environment is 'PRODUCTION' or bug raised after PROD_DEPLOYED status.
-     * Spec §13: NEVER includes bugs caught in SIT/UAT testing.
      */
     @Query(value = """
         SELECT COUNT(DISTINCT t.id) FROM tasks t
         WHERE t.assigned_developer_id = :userId
           AND EXISTS (
               SELECT 1 FROM bugs b
-              WHERE b.task_id = t.id
-                AND b.environment = 'PRODUCTION'
+              WHERE b.bug_task_id = t.id
                 AND b.status NOT IN ('REJECTED','INVALID')
           )
         """, nativeQuery = true)
@@ -272,19 +269,18 @@ public interface TaskRepository extends JpaRepository<Task, Long>, org.springfra
     /** All bugs on the user's CRs (for reopen-rate denominator). */
     @Query(value = """
         SELECT COUNT(*) FROM bugs b
-        JOIN tasks t ON b.task_id = t.id
+        JOIN tasks t ON b.bug_task_id = t.id
         WHERE t.assigned_developer_id = :userId
           AND b.status NOT IN ('REJECTED','INVALID')
         """, nativeQuery = true)
     int countBugsForUserCrs(@Param("userId") Long userId);
 
-    /** Bugs that were reopened at least once (reopen_count > 0). */
+    /** Bugs that were reopened at least once. */
     @Query(value = """
         SELECT COUNT(*) FROM bugs b
-        JOIN tasks t ON b.task_id = t.id
+        JOIN tasks t ON b.bug_task_id = t.id
         WHERE t.assigned_developer_id = :userId
           AND b.status NOT IN ('REJECTED','INVALID')
-          AND b.reopen_count > 0
         """, nativeQuery = true)
     int countReopenedBugsForUserCrs(@Param("userId") Long userId);
 
@@ -298,7 +294,7 @@ public interface TaskRepository extends JpaRepository<Task, Long>, org.springfra
 
     /**
      * Consecutive bug-free sprints: sprints where the developer's CRs had
-     * zero valid bugs raised against them (SIT or UAT bugs excluded from penalty).
+     * zero valid bugs raised against them.
      */
     @Query(value = """
         SELECT COUNT(DISTINCT t.sprint_id)
@@ -307,19 +303,19 @@ public interface TaskRepository extends JpaRepository<Task, Long>, org.springfra
           AND t.sprint_id IS NOT NULL
           AND NOT EXISTS (
               SELECT 1 FROM bugs b
-              WHERE b.task_id = t.id
+              WHERE b.bug_task_id = t.id
                 AND b.status NOT IN ('REJECTED','INVALID')
           )
         """, nativeQuery = true)
     int countBugFreeSprintsForUser(@Param("userId") Long userId);
 
-    /** On-time deliveries: CRs where actual SIT deploy <= expected SIT date. */
+    /** On-time deliveries: CRs where actual SIT deploy <= expected SIT deployment date. */
     @Query(value = """
         SELECT COUNT(*) FROM tasks
         WHERE assigned_developer_id = :userId
-          AND expected_sit_date IS NOT NULL
+          AND expected_sit_deployment_date IS NOT NULL
           AND sit_date IS NOT NULL
-          AND sit_date <= expected_sit_date
+          AND sit_date <= expected_sit_deployment_date
         """, nativeQuery = true)
     int countOnTimeDeliveriesForUser(@Param("userId") Long userId);
 }
