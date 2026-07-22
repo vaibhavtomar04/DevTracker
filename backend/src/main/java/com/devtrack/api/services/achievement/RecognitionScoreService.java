@@ -58,6 +58,19 @@ public class RecognitionScoreService {
      */
     @Transactional
     public void applyDeltaAndRecalculate(Long userId, String triggeredBy) {
+        applyDeltaAndRecalculate(userId, triggeredBy, false);
+    }
+
+    /**
+     * Materialises score from ledger, recalculates quality rates, evaluates
+     * level changes, and publishes LEVEL_UP if threshold crossed.
+     *
+     * @param userId        user to update
+     * @param triggeredBy   actor (username or "SYSTEM") for audit columns
+     * @param suppressEmail true to skip email dispatch for LEVEL_UP events
+     */
+    @Transactional
+    public void applyDeltaAndRecalculate(Long userId, String triggeredBy, boolean suppressEmail) {
         User user = userRepo.findById(userId)
                 .orElseThrow(() -> new IllegalArgumentException("User not found: " + userId));
 
@@ -117,10 +130,11 @@ public class RecognitionScoreService {
                     score.getId(),
                     triggeredBy,
                     Map.of(
-                        "newLevel",    newLevel != null ? newLevel.getTitle()       : "",
-                        "newLevelNum", newLevel != null ? newLevel.getLevelNumber() : 0,
-                        "prevLevel",   previousLevel != null ? previousLevel.getTitle() : "",
-                        "totalScore",  newTotal
+                        "newLevel",      newLevel != null ? newLevel.getTitle()       : "",
+                        "newLevelNum",   newLevel != null ? newLevel.getLevelNumber() : 0,
+                        "prevLevel",     previousLevel != null ? previousLevel.getTitle() : "",
+                        "totalScore",    newTotal,
+                        "suppressEmail", suppressEmail
                     )
             ));
         }

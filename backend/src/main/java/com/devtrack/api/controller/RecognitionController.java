@@ -197,7 +197,7 @@ public class RecognitionController {
             @PathVariable Long userId,
             @RequestParam(required = false, defaultValue = "false") boolean suppressEmail) {
         String actor = SecurityContextHolder.getContext().getAuthentication().getName();
-        scoreService.applyDeltaAndRecalculate(userId, actor);
+        scoreService.applyDeltaAndRecalculate(userId, actor, suppressEmail);
         evaluationService.evaluateForUser(userId, actor, suppressEmail);
         auditService.logManualAction("RECALCULATE_SCORE", userId, "Full recalculation triggered (suppressEmail=" + suppressEmail + ")", actor);
         return ResponseEntity.ok(Map.of(
