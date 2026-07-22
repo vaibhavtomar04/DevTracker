@@ -56,6 +56,9 @@ public class AchievementNotificationService {
         String message = buildMessage(notificationType, metadata);
         int    points  = resolvePoints(metadata);
 
+        boolean suppressEmail = Boolean.TRUE.equals(metadata.get("suppressEmail"))
+                || "true".equalsIgnoreCase(String.valueOf(metadata.get("suppressEmail")));
+
         AchievementNotification notif = new AchievementNotification();
         notif.setUser(user);
         notif.setNotificationType(notificationType);
@@ -65,7 +68,7 @@ public class AchievementNotificationService {
         notif.setMessage(message);
         notif.setPointsDelta(points);
         notif.setIsRead(0);
-        notif.setIsEmailSent(0);   // email sent lazily by @Scheduled job
+        notif.setIsEmailSent(suppressEmail ? 1 : 0);   // 1 if email suppressed by admin option
         notif.setCreatedBy(createdBy);
         notifRepo.save(notif);
 

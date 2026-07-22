@@ -186,20 +186,24 @@ public class RecognitionController {
     }
 
     /**
-     * POST /api/recognition/admin/recalculate/{userId}
+     * POST /api/recognition/admin/recalculate/{userId}?suppressEmail=true
      * Forces a full score recalculation for a user (admin only).
      * Use after data migrations or manual corrections.
+     * Pass suppressEmail=true to prevent triggering notification emails on unlock.
      */
     @PostMapping("/admin/recalculate/{userId}")
     @PreAuthorize("hasAnyRole('DEVADMIN', 'TESTADMIN')")
-    public ResponseEntity<Map<String, Object>> adminRecalculate(@PathVariable Long userId) {
+    public ResponseEntity<Map<String, Object>> adminRecalculate(
+            @PathVariable Long userId,
+            @RequestParam(required = false, defaultValue = "false") boolean suppressEmail) {
         String actor = SecurityContextHolder.getContext().getAuthentication().getName();
         scoreService.applyDeltaAndRecalculate(userId, actor);
-        evaluationService.evaluateForUser(userId, actor);
-        auditService.logManualAction("RECALCULATE_SCORE", userId, "Full recalculation triggered", actor);
+        evaluationService.evaluateForUser(userId, actor, suppressEmail);
+        auditService.logManualAction("RECALCULATE_SCORE", userId, "Full recalculation triggered (suppressEmail=" + suppressEmail + ")", actor);
         return ResponseEntity.ok(Map.of(
                 "message", "Recalculation triggered",
-                "userId", userId));
+                "userId", userId,
+                "suppressEmail", suppressEmail));
     }
 
     /**

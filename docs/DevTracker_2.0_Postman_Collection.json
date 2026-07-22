@@ -1,6 +1,6 @@
 {
   "info": {
-    "_postman_id": "b8b42844-79ff-4d90-ad76-5b6c4e4756d8",
+    "_postman_id": "6fc36194-7d28-4b17-88cb-881b88e97030",
     "name": "DevTracker 2.0 API Collection",
     "description": "Comprehensive Postman API collection for DevTracker 2.0 enterprise application. Includes 196+ endpoints spanning Authentication, Task Management, Bug Tracking, Sprints, Test Cases, Analytics, Recognition, MFA, Notifications, and Configuration.",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
@@ -3382,7 +3382,7 @@
                 }
               ]
             },
-            "description": "POST /api/recognition/admin/recalculate/{userId} Forces a full score recalculation for a user (admin only). Use after data migrations or manual corrections."
+            "description": "POST /api/recognition/admin/recalculate/{userId}?suppressEmail=true Forces a full score recalculation for a user (admin only). Use after data migrations or manual corrections. Pass suppressEmail=true to prevent triggering notification emails on unlock."
           },
           "response": []
         },

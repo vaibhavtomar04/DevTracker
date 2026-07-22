@@ -63,6 +63,18 @@ public class AchievementEvaluationService {
      */
     @Transactional
     public void evaluateForUser(Long userId, String triggeredBy) {
+        evaluateForUser(userId, triggeredBy, false);
+    }
+
+    /**
+     * Evaluates all auto-evaluable achievement rules for a given user.
+     *
+     * @param userId        user to evaluate
+     * @param triggeredBy   actor (username or "SYSTEM")
+     * @param suppressEmail true to skip sending email notification on unlock
+     */
+    @Transactional
+    public void evaluateForUser(Long userId, String triggeredBy, boolean suppressEmail) {
         User user = userRepo.findById(userId)
                 .orElseThrow(() -> new IllegalArgumentException("User not found: " + userId));
 
@@ -74,7 +86,7 @@ public class AchievementEvaluationService {
                 .collect(java.util.stream.Collectors.groupingBy(r -> r.getAchievement().getId()))
                 .forEach((achievementId, achievementRules) -> {
                     Achievement achievement = achievementRules.get(0).getAchievement();
-                    evaluateAchievement(user, achievement, achievementRules, triggeredBy);
+                    evaluateAchievement(user, achievement, achievementRules, triggeredBy, suppressEmail);
                 });
     }
 
@@ -94,7 +106,7 @@ public class AchievementEvaluationService {
                 .orElseThrow(() -> new IllegalArgumentException("Achievement not found: " + achievementCode));
 
         String idempotencyKey = "ADMIN_GRANT:" + achievementCode + ":" + userId;
-        unlock(userId, achievement, idempotencyKey, reason, grantedBy);
+        unlock(userId, achievement, idempotencyKey, reason, grantedBy, false);
     }
 
     // ─────────────────────────────────────────────────────────────────────
@@ -102,7 +114,7 @@ public class AchievementEvaluationService {
     // ─────────────────────────────────────────────────────────────────────
 
     private void evaluateAchievement(User user, Achievement achievement,
-                                     List<AchievementRule> rules, String triggeredBy) {
+                                     List<AchievementRule> rules, String triggeredBy, boolean suppressEmail) {
         Long userId = user.getId();
 
         // Already unlocked? Skip entirely.
@@ -127,7 +139,7 @@ public class AchievementEvaluationService {
         if (allPass && currentValue.compareTo(BigDecimal.ZERO) > 0) {
             String idempotencyKey = "ACHIEVEMENT:" + achievement.getCode() + ":" + userId;
             unlock(userId, achievement, idempotencyKey,
-                    "Auto-evaluated: " + achievement.getName(), triggeredBy);
+                    "Auto-evaluated: " + achievement.getName(), triggeredBy, suppressEmail);
         }
     }
 
@@ -223,7 +235,7 @@ public class AchievementEvaluationService {
     // ─────────────────────────────────────────────────────────────────────
 
     private void unlock(Long userId, Achievement achievement,
-                        String idempotencyKey, String reason, String triggeredBy) {
+                        String idempotencyKey, String reason, String triggeredBy, boolean suppressEmail) {
 
         // Guard: idempotency via source_event_id
         if (userAchievementRepo.existsBySourceEventId(idempotencyKey)) {
@@ -276,7 +288,8 @@ public class AchievementEvaluationService {
                     "achievementCode", achievement.getCode(),
                     "achievementName", achievement.getName(),
                     "rarity",          achievement.getRarity(),
-                    "points",          achievement.getPointValue()
+                    "points",          achievement.getPointValue(),
+                    "suppressEmail",   suppressEmail
                 )
         ));
     }

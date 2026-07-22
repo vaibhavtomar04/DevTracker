@@ -2008,7 +2008,7 @@ This document provides a comprehensive specification and usage guide for all **1
 ### `POST` `/api/recognition/admin/recalculate/{userId}`
 
 **Java Method:** `endpoint`  
-**Description & Usage:** POST /api/recognition/admin/recalculate/{userId} Forces a full score recalculation for a user (admin only). Use after data migrations or manual corrections.
+**Description & Usage:** POST /api/recognition/admin/recalculate/{userId}?suppressEmail=true Forces a full score recalculation for a user (admin only). Use after data migrations or manual corrections. Pass suppressEmail=true to prevent triggering notification emails on unlock.
 
 **Authentication:** Required (`Bearer <JWT Token>`)
 
