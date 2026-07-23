@@ -73,7 +73,7 @@ public class DashboardController {
                     .username(currentUser.getUsername())
                     .fullName(currentUser.getFullName())
                     .email(currentUser.getEmail())
-                    .roles(currentUser.getRoles().stream().map(r -> r.replace("ROLE_", "")).collect(Collectors.toList()))
+                    .roles(currentUser.getRoles().stream().map(r -> r.name().replace("ROLE_", "")).collect(Collectors.toList()))
                     .build();
         }
 
@@ -83,7 +83,7 @@ public class DashboardController {
         if (activeSprintOpt.isPresent()) {
             Sprint s = activeSprintOpt.get();
             List<Task> sprintTasks = taskRepository.findAll().stream()
-                    .filter(t -> t.getSprint() != null && t.getSprint().getId().equals(s.getId()))
+                    .filter(t -> t.getSprintId() != null && t.getSprintId().equals(s.getId()))
                     .collect(Collectors.toList());
             int totalTasks = sprintTasks.size();
             int completedTasks = (int) sprintTasks.stream().filter(t -> "CLOSED".equalsIgnoreCase(t.getStatus()) || "PROD_DEPLOYED".equalsIgnoreCase(t.getStatus())).count();
@@ -129,7 +129,7 @@ public class DashboardController {
         if (currentUser != null) {
             pendingTasks = allTasks.stream()
                     .filter(t -> (t.getAssignedDeveloper() != null && t.getAssignedDeveloper().getId().equals(currentUser.getId()))
-                            || (t.getAssignedTester() != null && t.getAssignedTester().getId().equals(currentUser.getId())))
+                            || (t.getTester() != null && t.getTester().getId().equals(currentUser.getId())))
                     .filter(t -> !"CLOSED".equalsIgnoreCase(t.getStatus()) && !"PROD_DEPLOYED".equalsIgnoreCase(t.getStatus()))
                     .limit(5)
                     .map(t -> DashboardSummaryDTO.PendingTaskSummary.builder()
