@@ -22,7 +22,7 @@ CREATE INDEX idx_bugs_status ON bugs (status);
 CREATE INDEX idx_bugs_raised_by ON bugs (raised_by_id);
 
 -- 4. Index notifications table
-CREATE INDEX idx_notifications_user_unread ON notifications (user_id, is_unread);
+CREATE INDEX idx_notifications_user_unread ON notifications (user_id, unread);
 
 -- 5. Index sprints table
 CREATE INDEX idx_sprints_status ON sprints (status);

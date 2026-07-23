@@ -12,7 +12,7 @@ public interface NotificationRepository extends JpaRepository<Notification, Long
 
     boolean existsByUserIdAndTitleAndDesc(Long userId, String title, String desc);
 
-    @org.springframework.data.jpa.repository.Query("SELECT COUNT(n) FROM Notification n WHERE n.userId = :userId AND n.isUnread = true")
+    @org.springframework.data.jpa.repository.Query("SELECT COUNT(n) FROM Notification n WHERE n.userId = :userId AND n.unread = true")
     long countUnreadByUserId(@org.springframework.data.repository.query.Param("userId") Long userId);
 
     @org.springframework.data.jpa.repository.Query("SELECT n FROM Notification n WHERE n.userId = :userId AND " +
