@@ -187,37 +187,62 @@ export const useTaskStore = create<TaskState>((set, get) => ({
       set({ loading: true })
     }
     set({ error: null, isFetching: true })
+
+    const safeFetch = async (endpoint: string) => {
+      try {
+        return await apiClient(endpoint);
+      } catch (e1) {
+        // Retry once after 300ms if initial connection queue was busy
+        try {
+          await new Promise(r => setTimeout(r, 300));
+          return await apiClient(endpoint);
+        } catch (e2) {
+          console.error(`Failed to fetch ${endpoint}:`, e2);
+          return [];
+        }
+      }
+    };
+
     try {
-      const [tasksRes, bugsRes, auditRes, configsRes, testCasesRes, notificationsRes, usersRes, bugReviewsRes, sprintTasksRes] = await Promise.all([
-        apiClient("/api/tasks").catch(err => { console.error(err); return []; }),
-        apiClient("/api/bugs").catch(err => { console.error(err); return []; }),
-        apiClient("/api/audit").catch(err => { console.error(err); return []; }),
-        //apiClient("/api/comments").catch(err => { console.error(err); return []; }),
-        apiClient("/api/configs").catch(err => { console.error(err); return []; }),
-        apiClient("/api/test-cases").catch(err => { console.error(err); return []; }),
-        apiClient("/api/notifications").catch(err => { console.error(err); return []; }),
-        apiClient("/api/users").catch(err => { console.error(err); return []; }),
-        apiClient("/api/bug-reviews").catch(err => { console.error(err); return []; }),
-        apiClient("/api/sprint-tasks").catch(err => { console.error(err); return []; })
-      ])
-        const normalizedUsers = (usersRes || []).map((u: any) => ({
-          ...u,
-          roles: Array.isArray(u.roles) ? u.roles.map((r: string) => r.replace(/^ROLE_/, "")) : []
-        }))
-        set({
-          tasks: tasksRes,
-          bugs: bugsRes,
-          auditLogs: auditRes,
-          comments: [],
-          configs: configsRes,
-          testCases: testCasesRes,
-          notifications: notificationsRes,
-          users: normalizedUsers,
-          bugReviews: mapBugReviews(bugReviewsRes),
-          sprintTasks: sprintTasksRes || [],
-          loading: false,
-          isFetching: false
-        })
+      // 1. Core Batch: Fetch critical data first so UI renders immediately
+      const [tasksRes, bugsRes, configsRes, usersRes] = await Promise.all([
+        safeFetch("/api/tasks"),
+        safeFetch("/api/bugs"),
+        safeFetch("/api/configs"),
+        safeFetch("/api/users"),
+      ]);
+
+      const normalizedUsers = (usersRes || []).map((u: any) => ({
+        ...u,
+        roles: Array.isArray(u.roles) ? u.roles.map((r: string) => r.replace(/^ROLE_/, "")) : []
+      }));
+
+      // Immediately display core UI
+      set({
+        tasks: tasksRes || [],
+        bugs: bugsRes || [],
+        configs: configsRes || [],
+        users: normalizedUsers,
+        loading: false,
+      });
+
+      // 2. Secondary Batch: Fetch supplementary metadata asynchronously
+      const [auditRes, testCasesRes, notificationsRes, bugReviewsRes, sprintTasksRes] = await Promise.all([
+        safeFetch("/api/audit"),
+        safeFetch("/api/test-cases"),
+        safeFetch("/api/notifications"),
+        safeFetch("/api/bug-reviews"),
+        safeFetch("/api/sprint-tasks")
+      ]);
+
+      set({
+        auditLogs: auditRes || [],
+        testCases: testCasesRes || [],
+        notifications: notificationsRes || [],
+        bugReviews: mapBugReviews(bugReviewsRes),
+        sprintTasks: sprintTasksRes || [],
+        isFetching: false
+      });
     } catch (err: any) {
       set({ error: err.message || "Failed to fetch database records", loading: false, isFetching: false })
     }
