@@ -26,18 +26,12 @@ public class AchievementEmailJob {
     private final AchievementNotificationRepository notifRepo;
     private final EmailNotificationService          emailService;
 
-    @org.springframework.beans.factory.annotation.Value("${devtrack.achievement.email.enabled:true}")
-    private boolean achievementEmailEnabled;
-
     /**
      * Runs every 60 seconds to process unsent achievement notification emails.
      */
     @Scheduled(fixedDelay = 60000)
     @Transactional
     public void processUnsentAchievementEmails() {
-        if (!achievementEmailEnabled) {
-            return;
-        }
         List<AchievementNotification> pending = notifRepo.findByIsEmailSentAndActiveFlag(0, 1);
         if (pending.isEmpty()) {
             return;

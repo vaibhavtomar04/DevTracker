@@ -52,6 +52,7 @@ public class MilestoneSlaEngine {
     private final NotificationRepository notificationRepository;
     private final com.devtrack.api.config.NotificationWebSocketHandler webSocketHandler;
     private final NotificationService notificationService;
+    private final ConfigRepository configRepository;
 
     /**
      * Helper to check if a milestone is missed.
@@ -219,21 +220,30 @@ public class MilestoneSlaEngine {
             String subject = String.format("[%s] %s Commitment %s: %s", 
                 priority.getLabel(), milestone.displayName, timing, task.getJtrackId());
             
-            Map<String, Object> data = new HashMap<>();
-            data.put("task", task);
-            data.put("remarks", remark);
-            data.put("bodyText", String.format("The change request '%s' (%s) milestone '%s' is scheduled for: %s. Current status: %s.",
-                task.getTitle(), task.getJtrackId(), milestone.displayName, milestone.expectedDateGetter.apply(task), timing));
+            // Check DB table 'app_configs' for MILESTONE_SLA_EMAIL_ENABLED setting
+            boolean isEmailEnabled = configRepository.findByConfigKey("MILESTONE_SLA_EMAIL_ENABLED")
+                    .map(c -> "true".equalsIgnoreCase(c.getConfigValue()))
+                    .orElse(true);
 
-            // Central notification dispatch
-            notificationService.sendNotification(
-                NotificationType.MILESTONE_DEADLINE_ALERT,
-                null,
-                null,
-                null,
-                data,
-                priority
-            );
+            if (!isEmailEnabled) {
+                log.info("Milestone SLA emails disabled via DB config 'MILESTONE_SLA_EMAIL_ENABLED'. Skipping email dispatch for task ID={}", task.getId());
+            } else {
+                Map<String, Object> data = new HashMap<>();
+                data.put("task", task);
+                data.put("remarks", remark);
+                data.put("bodyText", String.format("The change request '%s' (%s) milestone '%s' is scheduled for: %s. Current status: %s.",
+                    task.getTitle(), task.getJtrackId(), milestone.displayName, milestone.expectedDateGetter.apply(task), timing));
+
+                // Central notification dispatch
+                notificationService.sendNotification(
+                    NotificationType.MILESTONE_DEADLINE_ALERT,
+                    null,
+                    null,
+                    null,
+                    data,
+                    priority
+                );
+            }
 
             // In-app persistent notification push
             notifyInApp(task, subject, remark);
