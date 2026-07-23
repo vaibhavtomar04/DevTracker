@@ -24,35 +24,35 @@ import com.zaxxer.hikari.HikariDataSource;
 		transactionManagerRef = "devtrackTransactionManager")
 public class PersistanceDevtrackConfiguration {
 
-	@Value("${spring.devtrack-datasource.show-sql}")
+	@Value("${spring.devtrack-datasource.show-sql:false}")
 	private String showsql;
-	@Value("${spring.devtrack-datasource.hibernate.dialect}")
+	@Value("${spring.devtrack-datasource.hibernate.dialect:org.hibernate.dialect.MySQLDialect}")
 	private String dialect;
-	@Value("${spring.devtrack-datasource.hibernate.ddl-auto}")
+	@Value("${spring.devtrack-datasource.hibernate.ddl-auto:none}")
 	private String hbm2ddl;
-	@Value("${spring.devtrack-datasource.maximumPoolSize}")
+	@Value("${spring.devtrack-datasource.maximumPoolSize:30}")
 	private String maximumPoolSize;
-	@Value("${spring.devtrack-datasource.poolName}")
+	@Value("${spring.devtrack-datasource.poolName:DevTrackHikariPool}")
 	private String poolName;
-	@Value("${spring.devtrack-datasource.idleTimeout}")
+	@Value("${spring.devtrack-datasource.idleTimeout:600000}")
 	private String idleTimeout;
-	@Value("${spring.devtrack-datasource.leakDetectionThreshold}")
+	@Value("${spring.devtrack-datasource.leakDetectionThreshold:0}")
 	private String leakDetectionThreshold;
-	@Value("${spring.devtrack-datasource.maxLifetime}")
+	@Value("${spring.devtrack-datasource.maxLifetime:1800000}")
 	private String maxLifetime;
-	@Value("${spring.devtrack-datasource.minimumIdle}")
+	@Value("${spring.devtrack-datasource.minimumIdle:2}")
 	private String minimumIdle;
-	@Value("${spring.devtrack-datasource.readOnly}")
+	@Value("${spring.devtrack-datasource.readOnly:false}")
 	private String readOnly;
-	@Value("${spring.devtrack-datasource.schema}")
+	@Value("${spring.devtrack-datasource.schema:}")
 	private String schema;
-	@Value("${spring.devtrack-datasource.transactionIsolation}")
+	@Value("${spring.devtrack-datasource.transactionIsolation:}")
 	private String transactionIsolation;
-	@Value("${spring.devtrack-datasource.validationTimeout}")
+	@Value("${spring.devtrack-datasource.validationTimeout:5000}")
 	private String validationTimeout;
-	@Value("${spring.devtrack-datasource.connectionInitSql}")
+	@Value("${spring.devtrack-datasource.connectionInitSql:}")
 	private String connectionInitSql;
-	@Value("${spring.devtrack-datasource.initializationFailTimeout}")
+	@Value("${spring.devtrack-datasource.initializationFailTimeout:1}")
 	private String initializationFailTimeout;
 
 
