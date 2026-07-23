@@ -98,6 +98,8 @@ export interface AchievementNotification {
   message: string;
   pointsDelta: number;
   isRead: number;
+  isEmailSent?: number;
+  suppressEmail?: number;
   createdDate: string;
 }
 

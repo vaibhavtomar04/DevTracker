@@ -63,6 +63,9 @@ public class AchievementNotification {
     @Column(name = "is_email_sent", nullable = false)
     private int isEmailSent = 0;
 
+    @Column(name = "suppress_email", nullable = false)
+    private int suppressEmail = 0;
+
     @Column(name = "email_sent_at")
     private LocalDateTime emailSentAt;
 

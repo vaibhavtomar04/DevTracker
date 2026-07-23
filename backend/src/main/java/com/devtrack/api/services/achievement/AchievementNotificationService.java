@@ -68,7 +68,8 @@ public class AchievementNotificationService {
         notif.setMessage(message);
         notif.setPointsDelta(points);
         notif.setIsRead(0);
-        notif.setIsEmailSent(suppressEmail ? 1 : 0);   // 1 if email suppressed by admin option
+        notif.setSuppressEmail(suppressEmail ? 1 : 0);
+        notif.setIsEmailSent(suppressEmail ? 1 : 0);   // Mark as sent/suppressed if suppressed by admin option
         notif.setCreatedBy(createdBy);
         notifRepo.save(notif);
 

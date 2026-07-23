@@ -41,6 +41,14 @@ public class AchievementEmailJob {
 
         for (AchievementNotification notif : pending) {
             try {
+                if (notif.getSuppressEmail() == 1) {
+                    log.info("Achievement email suppressed via suppressEmail flag for notifId={}", notif.getId());
+                    notif.setIsEmailSent(1);
+                    notif.setModifiedDate(LocalDateTime.now());
+                    notifRepo.save(notif);
+                    continue;
+                }
+
                 if (notif.getUser() != null && notif.getUser().getEmail() != null) {
                     // Dispatch role-aware achievement email notification
                     emailService.sendAchievementNotificationEmail(
