@@ -901,12 +901,12 @@ export default function DeveloperDashboard() {
 
                         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3.5">
                           {[
-                            { id: "active_crs", label: "Active CRs", value: tasks.filter(t => t.assignedDeveloper?.id === user?.id && t.status !== "CLOSED" && t.status !== "PROD_DEPLOYED").length, type: "cyan", icon: "⚡" },
+                            { id: "active_crs", label: "Active CRs", value: tasks.filter(t => isAssignedToMe(t) && t.status !== "CLOSED" && t.status !== "PROD_DEPLOYED").length, type: "cyan", icon: "⚡" },
                             { id: "pending_approvals", label: "Approvals", value: tasks.filter(t => t.status === "CODE_REVIEW").length, type: "emerald", icon: "✓" },
                             { id: "proposed_bug_reviews", label: "Proposed Bug Reviews", value: pendingReviews.length, type: "rose", icon: "🔎" },
                             { id: "assigned_bugs", label: "Assigned Bugs", value: bugFoundCrs.length, type: "rose", icon: "🐛" },
-                            { id: "pending_deployments", label: "Deployments", value: tasks.filter(t => t.assignedDeveloper?.id === user?.id && (t.status === "MOVE_TO_UAT" || t.status === "SIT_DEPLOYED")).length, type: "cyan", icon: "🚀" },
-                            { id: "closed_crs", label: "Closed CRs", value: tasks.filter(t => t.assignedDeveloper?.id === user?.id && (t.status === "CLOSED" || t.status === "PROD_DEPLOYED")).length, type: "emerald", icon: "✅" },
+                            { id: "pending_deployments", label: "Deployments", value: tasks.filter(t => isAssignedToMe(t) && (t.status === "MOVE_TO_UAT" || t.status === "SIT_DEPLOYED")).length, type: "cyan", icon: "🚀" },
+                            { id: "closed_crs", label: "Closed CRs", value: tasks.filter(t => isAssignedToMe(t) && (t.status === "CLOSED" || t.status === "PROD_DEPLOYED")).length, type: "emerald", icon: "✅" },
                           ].map((card, i) => {
                             const isSelected = filterCard === card.id
                             const isDark = theme === "dark"

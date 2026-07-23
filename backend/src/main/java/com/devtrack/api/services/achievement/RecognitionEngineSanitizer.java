@@ -5,13 +5,15 @@ import com.devtrack.api.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.CommandLineRunner;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
 import java.util.List;
 
 /**
- * Startup task to ensure all user recognition scores and achievements
+ * Task to ensure all user recognition scores and achievements
  * are recalculated and awarded seamlessly without missing past completions.
+ * Runs on startup and scheduled daily at 9:00 AM.
  */
 @Component
 @Slf4j
@@ -24,6 +26,19 @@ public class RecognitionEngineSanitizer implements CommandLineRunner {
 
     @Override
     public void run(String... args) throws Exception {
+        executeSanitization();
+    }
+
+    /**
+     * Scheduled job running once a day at morning 9:00 AM (09:00 AM server time).
+     */
+    @Scheduled(cron = "0 0 9 * * ?")
+    public void executeDailySanitization() {
+        log.info("Executing scheduled RecognitionEngineSanitizer daily at 9:00 AM...");
+        executeSanitization();
+    }
+
+    private void executeSanitization() {
         log.info("Starting RecognitionEngineSanitizer to recalculate user scores & evaluate achievements...");
         try {
             List<User> users = userRepo.findAll();
