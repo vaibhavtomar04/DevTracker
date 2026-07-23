@@ -41,22 +41,17 @@ public class DashboardController {
     }
 
     @GetMapping("/summary")
+    @Cacheable(value = "dashboardSummary", key = "#authentication != null ? #authentication.name : 'anonymous'")
     public ResponseEntity<DashboardSummaryDTO> getDashboardSummary(Authentication authentication) {
         String username = authentication != null ? authentication.getName() : null;
         Optional<User> currentUserOpt = username != null ? userRepository.findByUsername(username) : Optional.empty();
         User currentUser = currentUserOpt.orElse(null);
 
-        // 1. Overall stats
+        // 1. Overall stats via fast index-driven SQL queries
         long totalCrs = taskRepository.count();
-        long pendingApprovals = taskRepository.findAll().stream()
-                .filter(t -> "PENDING_APPROVAL".equalsIgnoreCase(t.getStatus()) || "CODE_REVIEW".equalsIgnoreCase(t.getStatus()))
-                .count();
-        long activeBugs = bugRepository.findAll().stream()
-                .filter(b -> !"CLOSED".equalsIgnoreCase(b.getStatus()) && !"VERIFIED".equalsIgnoreCase(b.getStatus()))
-                .count();
-        long completedUat = taskRepository.findAll().stream()
-                .filter(t -> "UAT_TESTING".equalsIgnoreCase(t.getStatus()) || "PROD_DEPLOYED".equalsIgnoreCase(t.getStatus()))
-                .count();
+        long pendingApprovals = taskRepository.countByStatusIn(List.of("PENDING_APPROVAL", "CODE_REVIEW"));
+        long activeBugs = bugRepository.countActiveBugs();
+        long completedUat = taskRepository.countByStatusIn(List.of("UAT_TESTING", "PROD_DEPLOYED"));
 
         DashboardSummaryDTO.StatsSummary stats = new DashboardSummaryDTO.StatsSummary(
                 totalCrs, pendingApprovals, activeBugs, completedUat);
@@ -78,9 +73,7 @@ public class DashboardController {
         Optional<Sprint> activeSprintOpt = sprintRepository.findByStatus("ACTIVE");
         if (activeSprintOpt.isPresent()) {
             Sprint s = activeSprintOpt.get();
-            List<Task> sprintTasks = taskRepository.findAll().stream()
-                    .filter(t -> t.getSprintId() != null && t.getSprintId().equals(s.getId()))
-                    .collect(Collectors.toList());
+            List<Task> sprintTasks = taskRepository.findBySprintId(s.getId());
             int totalTasks = sprintTasks.size();
             int completedTasks = (int) sprintTasks.stream().filter(t -> "CLOSED".equalsIgnoreCase(t.getStatus()) || "PROD_DEPLOYED".equalsIgnoreCase(t.getStatus())).count();
 
@@ -99,16 +92,12 @@ public class DashboardController {
         // 4. Unread Notification Count
         long unreadCount = 0;
         if (currentUser != null) {
-            unreadCount = notificationRepository.findByUserId(currentUser.getId()).stream()
-                    .filter(com.devtrack.api.model.Notification::isUnread)
-                    .count();
+            unreadCount = notificationRepository.countUnreadByUserId(currentUser.getId());
         }
 
-        // 5. Recent CRs (top 5)
-        List<Task> allTasks = taskRepository.findAll();
-        List<DashboardSummaryDTO.RecentCrSummary> recentCrs = allTasks.stream()
-                .sorted((a, b) -> Long.compare(b.getId(), a.getId()))
-                .limit(5)
+        // 5. Recent CRs (top 5 via SQL PageRequest)
+        List<Task> recentTaskList = taskRepository.findRecentTasks(org.springframework.data.domain.PageRequest.of(0, 5)).getContent();
+        List<DashboardSummaryDTO.RecentCrSummary> recentCrs = recentTaskList.stream()
                 .map(t -> new DashboardSummaryDTO.RecentCrSummary(
                         t.getId(),
                         t.getJtrackId(),
@@ -120,14 +109,16 @@ public class DashboardController {
                 ))
                 .collect(Collectors.toList());
 
-        // 6. Pending Tasks for current user
+        // 6. Pending Tasks for current user (top 5 via multi-developer SQL PageRequest)
         List<DashboardSummaryDTO.PendingTaskSummary> pendingTasks = Collections.emptyList();
         if (currentUser != null) {
-            pendingTasks = allTasks.stream()
-                    .filter(t -> (t.getAssignedDeveloper() != null && t.getAssignedDeveloper().getId().equals(currentUser.getId()))
-                            || (t.getTester() != null && t.getTester().getId().equals(currentUser.getId())))
-                    .filter(t -> !"CLOSED".equalsIgnoreCase(t.getStatus()) && !"PROD_DEPLOYED".equalsIgnoreCase(t.getStatus()))
-                    .limit(5)
+            List<Task> pendingTaskList = taskRepository.findPendingTasksForUser(
+                    currentUser.getId(), 
+                    List.of("CLOSED", "PROD_DEPLOYED"), 
+                    org.springframework.data.domain.PageRequest.of(0, 5)
+            ).getContent();
+
+            pendingTasks = pendingTaskList.stream()
                     .map(t -> new DashboardSummaryDTO.PendingTaskSummary(
                             t.getId(),
                             t.getJtrackId(),

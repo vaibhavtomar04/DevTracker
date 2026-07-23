@@ -241,6 +241,7 @@ public class TaskController {
     }
 
     @PostMapping
+    @org.springframework.cache.annotation.CacheEvict(value = "dashboardSummary", allEntries = true)
     public Task createTask(@RequestBody Task task) {
         String username = SecurityContextHolder.getContext().getAuthentication().getName();
         User currentUser = userRepository.findByUsername(username).orElseThrow();
@@ -321,6 +322,7 @@ public class TaskController {
     }
 
     @PutMapping("/{id}")
+    @org.springframework.cache.annotation.CacheEvict(value = "dashboardSummary", allEntries = true)
     public ResponseEntity<?> updateTask(@PathVariable Long id, @RequestBody Task taskDetails) {
     	log.info("Inside Update task");
         return taskRepository.findById(id)
@@ -333,15 +335,19 @@ public class TaskController {
                         return ResponseEntity.status(403).body("This task is in a terminal state (CLOSED) and cannot be updated.");
                     }
                     
-                    // Restriction: Only assigned developer can update, UNLESS it's a Code Review or Admin override
-                    if (task.getAssignedDeveloper() != null) {
-                        String roles = SecurityContextHolder.getContext().getAuthentication().getAuthorities().toString();
-                        boolean isReviewer = roles.contains("ROLE_CODEREVIEWER");
-                        boolean isAdmin = roles.contains("ROLE_DEVADMIN");
-                        
-                        if (!task.getAssignedDeveloper().getUsername().equals(username) && !isReviewer && !isAdmin) {
-                            return ResponseEntity.status(403).body("Only the assigned developer (" + task.getAssignedDeveloper().getFullName() + ") can update this task.");
-                        }
+                    // Restriction: Assigned developers (primary or co-developers) can update, UNLESS it's a Code Review or Admin override
+                    boolean isAssignedDev = (task.getAssignedDeveloper() != null && task.getAssignedDeveloper().getUsername().equals(username)) ||
+                            (task.getDevelopers() != null && task.getDevelopers().stream().anyMatch(td -> td.getDeveloper() != null && username.equals(td.getDeveloper().getUsername())));
+                    
+                    String roles = SecurityContextHolder.getContext().getAuthentication().getAuthorities().toString();
+                    boolean isReviewer = roles.contains("ROLE_CODEREVIEWER");
+                    boolean isAdmin = roles.contains("ROLE_DEVADMIN");
+                    
+                    if (!isAssignedDev && !isReviewer && !isAdmin) {
+                        return ResponseEntity.status(403).body("Only assigned developers can update this task.");
+                    }
+
+                    if (isAssignedDev || isAdmin || isReviewer) {
 
                         // Developers can test and complete SIT. Block only for Code Review, UAT, Testing, or terminal phases
                         boolean isDeveloperBlocked = task.getStatus().equals("CODE_REVIEW") || 

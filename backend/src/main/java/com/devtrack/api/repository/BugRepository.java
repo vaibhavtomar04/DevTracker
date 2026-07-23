@@ -126,5 +126,8 @@ public interface BugRepository extends JpaRepository<Bug, Long> {
 	    
 	    long countByBugTaskId(Long bugTaskId);
 
+	    @Query("SELECT COUNT(b) FROM Bug b WHERE b.status NOT IN ('CLOSED', 'VERIFIED', 'INVALID_BUG')")
+	    long countActiveBugs();
+
 	    List<Bug> findByBugTaskId(Long bugTaskId);
 }

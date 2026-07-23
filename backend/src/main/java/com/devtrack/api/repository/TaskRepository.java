@@ -46,8 +46,8 @@ public interface TaskRepository extends JpaRepository<Task, Long>, org.springfra
            "LEFT JOIN FETCH t.createdBy " +
            "LEFT JOIN FETCH t.workflow " +
            "LEFT JOIN FETCH t.tester " +
-           "WHERE t.assignedDeveloper.id = :devId",
-           countQuery = "SELECT COUNT(t) FROM Task t WHERE t.assignedDeveloper.id = :devId")
+           "WHERE (t.assignedDeveloper.id = :devId OR EXISTS (SELECT td FROM TaskDeveloper td WHERE td.task = t AND td.developer.id = :devId))",
+           countQuery = "SELECT COUNT(DISTINCT t) FROM Task t WHERE (t.assignedDeveloper.id = :devId OR EXISTS (SELECT td FROM TaskDeveloper td WHERE td.task = t AND td.developer.id = :devId))")
     Page<Task> findAllOptimizedByAssignedDeveloperId(@Param("devId") Long devId, Pageable pageable);
 
     @Query(value = "SELECT DISTINCT t FROM Task t " +
@@ -56,8 +56,8 @@ public interface TaskRepository extends JpaRepository<Task, Long>, org.springfra
            "LEFT JOIN FETCH t.createdBy " +
            "LEFT JOIN FETCH t.workflow " +
            "LEFT JOIN FETCH t.tester " +
-           "WHERE t.assignedDeveloper.id = :devId AND t.status not in :status",
-           countQuery = "SELECT COUNT(t) FROM Task t WHERE t.assignedDeveloper.id = :devId AND t.status not in :status")
+           "WHERE (t.assignedDeveloper.id = :devId OR EXISTS (SELECT td FROM TaskDeveloper td WHERE td.task = t AND td.developer.id = :devId)) AND t.status not in :status",
+           countQuery = "SELECT COUNT(DISTINCT t) FROM Task t WHERE (t.assignedDeveloper.id = :devId OR EXISTS (SELECT td FROM TaskDeveloper td WHERE td.task = t AND td.developer.id = :devId)) AND t.status not in :status")
     Page<Task> findAllOptimizedByAssignedDeveloperIdAndStatusNot(@Param("devId") Long devId, @Param("status") List<String> status, Pageable pageable);
 
     @Query(value = "SELECT DISTINCT t FROM Task t " +
@@ -66,8 +66,8 @@ public interface TaskRepository extends JpaRepository<Task, Long>, org.springfra
             "LEFT JOIN FETCH t.createdBy " +
             "LEFT JOIN FETCH t.workflow " +
             "LEFT JOIN FETCH t.tester " +
-            "WHERE t.assignedDeveloper.id = :devId AND t.status in :status",
-            countQuery = "SELECT COUNT(t) FROM Task t WHERE t.assignedDeveloper.id = :devId AND t.status in :status")
+            "WHERE (t.assignedDeveloper.id = :devId OR EXISTS (SELECT td FROM TaskDeveloper td WHERE td.task = t AND td.developer.id = :devId)) AND t.status in :status",
+            countQuery = "SELECT COUNT(DISTINCT t) FROM Task t WHERE (t.assignedDeveloper.id = :devId OR EXISTS (SELECT td FROM TaskDeveloper td WHERE td.task = t AND td.developer.id = :devId)) AND t.status in :status")
      Page<Task> findAllOptimizedByAssignedDeveloperIdAndStatusIn(@Param("devId") Long devId, @Param("status") List<String> status, Pageable pageable);
     
     @Query(value = "SELECT DISTINCT t FROM Task t " +
@@ -76,8 +76,8 @@ public interface TaskRepository extends JpaRepository<Task, Long>, org.springfra
     		"LEFT JOIN FETCH t.createdBy " +
     		"LEFT JOIN FETCH t.workflow " +
     		"LEFT JOIN FETCH t.tester " +
-    		"WHERE t.assignedDeveloper.id = :devId AND t.status in :status and t.priority=:priority",
-    		countQuery = "SELECT COUNT(t) FROM Task t WHERE t.assignedDeveloper.id = :devId AND t.status in :status and t.priority=:priority")
+    		"WHERE (t.assignedDeveloper.id = :devId OR EXISTS (SELECT td FROM TaskDeveloper td WHERE td.task = t AND td.developer.id = :devId)) AND t.status in :status and t.priority=:priority",
+    		countQuery = "SELECT COUNT(DISTINCT t) FROM Task t WHERE (t.assignedDeveloper.id = :devId OR EXISTS (SELECT td FROM TaskDeveloper td WHERE td.task = t AND td.developer.id = :devId)) AND t.status in :status and t.priority=:priority")
     Page<Task> findAllOptimizedByDeveloperAndStatusAndPriority(@Param("devId") Long devId, @Param("status") List<String> status, @Param("priority") String priority, Pageable pageable);
     
     @Query(value = "SELECT DISTINCT t FROM Task t " +
@@ -86,8 +86,8 @@ public interface TaskRepository extends JpaRepository<Task, Long>, org.springfra
     		"LEFT JOIN FETCH t.createdBy " +
     		"LEFT JOIN FETCH t.workflow " +
     		"LEFT JOIN FETCH t.tester " +
-    		"WHERE t.assignedDeveloper.id = :devId AND t.priority=:priority",
-    		countQuery = "SELECT COUNT(t) FROM Task t WHERE t.assignedDeveloper.id = :devId and t.priority=:priority")
+    		"WHERE (t.assignedDeveloper.id = :devId OR EXISTS (SELECT td FROM TaskDeveloper td WHERE td.task = t AND td.developer.id = :devId)) AND t.priority=:priority",
+    		countQuery = "SELECT COUNT(DISTINCT t) FROM Task t WHERE (t.assignedDeveloper.id = :devId OR EXISTS (SELECT td FROM TaskDeveloper td WHERE td.task = t AND td.developer.id = :devId)) and t.priority=:priority")
     Page<Task> findAllOptimizedByDeveloperAndPriority(@Param("devId") Long devId, @Param("priority") String priority, Pageable pageable);
     
     @Query(value = "SELECT DISTINCT t FROM Task t " +
@@ -119,6 +119,34 @@ public interface TaskRepository extends JpaRepository<Task, Long>, org.springfra
             "WHERE t.status in :status and t.priority=:priority",
             countQuery = "SELECT COUNT(t) FROM Task t WHERE t.status in :status and t.priority=:priority")
      Page<Task> findAllOptimizedByStatusAndPriority(@Param("status") List<String> status, @Param("priority") String priority,Pageable pageable);
+
+    @Query("SELECT COUNT(t) FROM Task t WHERE t.status IN :statuses")
+    long countByStatusIn(@Param("statuses") List<String> statuses);
+
+    @Query("SELECT COUNT(t) FROM Task t WHERE t.status NOT IN :statuses")
+    long countByStatusNotIn(@Param("statuses") List<String> statuses);
+
+    @Query(value = "SELECT DISTINCT t FROM Task t " +
+           "LEFT JOIN FETCH t.type " +
+           "LEFT JOIN FETCH t.assignedDeveloper " +
+           "LEFT JOIN FETCH t.createdBy " +
+           "LEFT JOIN FETCH t.workflow " +
+           "LEFT JOIN FETCH t.tester " +
+           "ORDER BY t.id DESC",
+           countQuery = "SELECT COUNT(t) FROM Task t")
+    Page<Task> findRecentTasks(Pageable pageable);
+
+    @Query(value = "SELECT DISTINCT t FROM Task t " +
+           "LEFT JOIN FETCH t.type " +
+           "LEFT JOIN FETCH t.assignedDeveloper " +
+           "LEFT JOIN FETCH t.createdBy " +
+           "LEFT JOIN FETCH t.workflow " +
+           "LEFT JOIN FETCH t.tester " +
+           "WHERE (t.assignedDeveloper.id = :userId OR t.tester.id = :userId OR EXISTS (SELECT td FROM TaskDeveloper td WHERE td.task = t AND td.developer.id = :userId)) " +
+           "AND t.status NOT IN :excludedStatuses " +
+           "ORDER BY t.id DESC",
+           countQuery = "SELECT COUNT(DISTINCT t) FROM Task t WHERE (t.assignedDeveloper.id = :userId OR t.tester.id = :userId OR EXISTS (SELECT td FROM TaskDeveloper td WHERE td.task = t AND td.developer.id = :userId)) AND t.status NOT IN :excludedStatuses")
+    Page<Task> findPendingTasksForUser(@Param("userId") Long userId, @Param("excludedStatuses") List<String> excludedStatuses, Pageable pageable);
 
     /**
      * Full-text search used by the Command Palette.

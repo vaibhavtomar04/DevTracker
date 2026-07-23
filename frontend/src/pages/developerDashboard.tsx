@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useMemo } from "react"
+import React, { useEffect, useState, useMemo, useCallback } from "react"
 import { useTaskStore } from "@/store/taskStore"
 import { useAuthStore } from "@/store/authStore"
 import { useSprintStore } from "@/store/sprintStore"
@@ -408,10 +408,19 @@ export default function DeveloperDashboard() {
     )
   }, [bugReviews, user])
 
+  const isAssignedToMe = useCallback((t: Task) => {
+    if (!user?.id) return false;
+    if (t.assignedDeveloper?.id === user.id) return true;
+    if (t.developers && Array.isArray(t.developers)) {
+      return t.developers.some((d: any) => d.developer?.id === user.id);
+    }
+    return false;
+  }, [user]);
+
   // Filter Tasks & Bugs Assigned to Developer
   const myTasks = useMemo(() => {
     const filtered = tasks.filter(t => {
-      const assigned = t.assignedDeveloper?.id === user?.id
+      const assigned = isAssignedToMe(t)
       if (!assigned) return false
       
       // Search filter
@@ -446,16 +455,16 @@ export default function DeveloperDashboard() {
       return t.status !== "CLOSED" && t.status !== "PROD_DEPLOYED"
     })
     return [...filtered].sort((a, b) => b.id - a.id)
-  }, [tasks, user, searchQuery, filterCard, pendingReviews])
+  }, [tasks, user, searchQuery, filterCard, pendingReviews, isAssignedToMe])
 
   const bugFoundCrs = useMemo(() => {
-    return tasks.filter(t => t.assignedDeveloper?.id === user?.id && t.status === "BUG_FOUND")
-  }, [tasks, user])
+    return tasks.filter(t => isAssignedToMe(t) && t.status === "BUG_FOUND")
+  }, [tasks, isAssignedToMe])
 
   // Dynamic Focus Points Calculation
   const focusPoints = useMemo(() => {
     const dueTodayCount = tasks.filter(t => {
-      if (t.assignedDeveloper?.id !== user?.id) return false
+      if (!isAssignedToMe(t)) return false
       if (t.status === "CLOSED" || t.status === "PROD_DEPLOYED") return false
       const details = calculateDeadlineDetails(t)
       const todayStr = new Date().toISOString().split("T")[0]
@@ -464,7 +473,7 @@ export default function DeveloperDashboard() {
 
     const pendingApprovalsCount = tasks.filter(t => t.status === "CODE_REVIEW").length
     const bugQueueCount = bugs.filter(b => b.assignedDeveloper?.id === user?.id && (b.status === "OPEN" || b.status === "IN_PROGRESS")).length
-    const activeTasksCount = tasks.filter(t => t.assignedDeveloper?.id === user?.id && (t.status === "IN_PROGRESS" || t.status === "CHANGES_REQUESTED")).length
+    const activeTasksCount = tasks.filter(t => isAssignedToMe(t) && (t.status === "IN_PROGRESS" || t.status === "CHANGES_REQUESTED")).length
 
     return [
       { id: "due_today", label: `${dueTodayCount} Change Requests Due / At Risk`, icon: "📅", color: "text-amber-400" },
@@ -472,7 +481,7 @@ export default function DeveloperDashboard() {
       { id: "bug_queue", label: `${bugQueueCount} Bugs Queue Waiting for Fix`, icon: "🐛", color: "text-rose-400" },
       { id: "active_tasks", label: `${activeTasksCount} Active Coding Tasks`, icon: "⚡", color: "text-emerald-400" },
     ]
-  }, [tasks, bugs, user])
+  }, [tasks, bugs, user, isAssignedToMe])
 
   // --- Real-time Activity Logs Mapping & Formatting ---
   const taskMap = useMemo(() => new Map(tasks.map(t => [t.id, t])), [tasks])
