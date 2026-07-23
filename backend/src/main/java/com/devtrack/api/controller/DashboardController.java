@@ -58,23 +58,19 @@ public class DashboardController {
                 .filter(t -> "UAT_TESTING".equalsIgnoreCase(t.getStatus()) || "PROD_DEPLOYED".equalsIgnoreCase(t.getStatus()))
                 .count();
 
-        DashboardSummaryDTO.StatsSummary stats = DashboardSummaryDTO.StatsSummary.builder()
-                .totalCrs(totalCrs)
-                .pendingApprovals(pendingApprovals)
-                .activeBugs(activeBugs)
-                .completedUat(completedUat)
-                .build();
+        DashboardSummaryDTO.StatsSummary stats = new DashboardSummaryDTO.StatsSummary(
+                totalCrs, pendingApprovals, activeBugs, completedUat);
 
         // 2. User summary
         DashboardSummaryDTO.UserSummary userSummary = null;
         if (currentUser != null) {
-            userSummary = DashboardSummaryDTO.UserSummary.builder()
-                    .id(currentUser.getId())
-                    .username(currentUser.getUsername())
-                    .fullName(currentUser.getFullName())
-                    .email(currentUser.getEmail())
-                    .roles(currentUser.getRoles().stream().map(r -> r.name().replace("ROLE_", "")).collect(Collectors.toList()))
-                    .build();
+            userSummary = new DashboardSummaryDTO.UserSummary(
+                    currentUser.getId(),
+                    currentUser.getUsername(),
+                    currentUser.getFullName(),
+                    currentUser.getEmail(),
+                    currentUser.getRoles().stream().map(r -> r.name().replace("ROLE_", "")).collect(Collectors.toList())
+            );
         }
 
         // 3. Active Sprint summary
@@ -88,16 +84,16 @@ public class DashboardController {
             int totalTasks = sprintTasks.size();
             int completedTasks = (int) sprintTasks.stream().filter(t -> "CLOSED".equalsIgnoreCase(t.getStatus()) || "PROD_DEPLOYED".equalsIgnoreCase(t.getStatus())).count();
 
-            activeSprintSummary = DashboardSummaryDTO.ActiveSprintSummary.builder()
-                    .id(s.getId())
-                    .name(s.getName())
-                    .goal(s.getGoal())
-                    .startDate(s.getStartDate() != null ? s.getStartDate().toString() : null)
-                    .endDate(s.getEndDate() != null ? s.getEndDate().toString() : null)
-                    .status(s.getStatus())
-                    .totalTasks(totalTasks)
-                    .completedTasks(completedTasks)
-                    .build();
+            activeSprintSummary = new DashboardSummaryDTO.ActiveSprintSummary(
+                    s.getId(),
+                    s.getName(),
+                    s.getGoal(),
+                    s.getStartDate() != null ? s.getStartDate().toString() : null,
+                    s.getEndDate() != null ? s.getEndDate().toString() : null,
+                    s.getStatus(),
+                    totalTasks,
+                    completedTasks
+            );
         }
 
         // 4. Unread Notification Count
@@ -113,15 +109,15 @@ public class DashboardController {
         List<DashboardSummaryDTO.RecentCrSummary> recentCrs = allTasks.stream()
                 .sorted((a, b) -> Long.compare(b.getId(), a.getId()))
                 .limit(5)
-                .map(t -> DashboardSummaryDTO.RecentCrSummary.builder()
-                        .id(t.getId())
-                        .jtrackId(t.getJtrackId())
-                        .title(t.getTitle())
-                        .priority(t.getPriority())
-                        .status(t.getStatus())
-                        .updatedDate(t.getUpdatedDate() != null ? t.getUpdatedDate().toString() : null)
-                        .assignedDeveloperName(t.getAssignedDeveloper() != null ? t.getAssignedDeveloper().getFullName() : null)
-                        .build())
+                .map(t -> new DashboardSummaryDTO.RecentCrSummary(
+                        t.getId(),
+                        t.getJtrackId(),
+                        t.getTitle(),
+                        t.getPriority(),
+                        t.getStatus(),
+                        t.getUpdatedDate() != null ? t.getUpdatedDate().toString() : null,
+                        t.getAssignedDeveloper() != null ? t.getAssignedDeveloper().getFullName() : null
+                ))
                 .collect(Collectors.toList());
 
         // 6. Pending Tasks for current user
@@ -132,25 +128,25 @@ public class DashboardController {
                             || (t.getTester() != null && t.getTester().getId().equals(currentUser.getId())))
                     .filter(t -> !"CLOSED".equalsIgnoreCase(t.getStatus()) && !"PROD_DEPLOYED".equalsIgnoreCase(t.getStatus()))
                     .limit(5)
-                    .map(t -> DashboardSummaryDTO.PendingTaskSummary.builder()
-                            .id(t.getId())
-                            .jtrackId(t.getJtrackId())
-                            .title(t.getTitle())
-                            .priority(t.getPriority())
-                            .status(t.getStatus())
-                            .dueDate(t.getDueDate() != null ? t.getDueDate().toString() : null)
-                            .build())
+                    .map(t -> new DashboardSummaryDTO.PendingTaskSummary(
+                            t.getId(),
+                            t.getJtrackId(),
+                            t.getTitle(),
+                            t.getPriority(),
+                            t.getStatus(),
+                            t.getDueDate() != null ? t.getDueDate().toString() : null
+                    ))
                     .collect(Collectors.toList());
         }
 
-        DashboardSummaryDTO summary = DashboardSummaryDTO.builder()
-                .stats(stats)
-                .user(userSummary)
-                .activeSprint(activeSprintSummary)
-                .unreadNotificationCount(unreadCount)
-                .recentCrs(recentCrs)
-                .pendingTasks(pendingTasks)
-                .build();
+        DashboardSummaryDTO summary = new DashboardSummaryDTO(
+                stats,
+                userSummary,
+                activeSprintSummary,
+                unreadCount,
+                recentCrs,
+                pendingTasks
+        );
 
         return ResponseEntity.ok(summary);
     }
