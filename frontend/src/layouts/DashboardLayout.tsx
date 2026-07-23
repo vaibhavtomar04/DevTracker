@@ -202,7 +202,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
   const { prefetchNextModules } = usePrefetchModules()
 
   useEffect(() => {
-    // Perform initial fetch on mount
+    // Perform initial fetch on mount (once)
     fetchData()
     fetchSprints()
     checkAchievementUnlocks()
@@ -213,7 +213,8 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
     }, 1500)
 
     return () => clearTimeout(prefetchTimer)
-  }, [fetchData, fetchSprints, checkAchievementUnlocks, prefetchNextModules])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   const handleDismissAchievementModal = async () => {
     setActiveAchievementUnlock(null)

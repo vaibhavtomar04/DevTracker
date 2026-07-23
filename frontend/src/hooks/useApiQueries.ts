@@ -1,3 +1,4 @@
+import { useCallback } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { apiClient } from '@/utils/apiClient';
 
@@ -87,7 +88,7 @@ export function useConfigsQuery() {
 export function usePrefetchModules() {
   const queryClient = useQueryClient();
 
-  const prefetchNextModules = () => {
+  const prefetchNextModules = useCallback(() => {
     // Prefetch Notifications
     queryClient.prefetchQuery({
       queryKey: ['notifications'],
@@ -108,7 +109,7 @@ export function usePrefetchModules() {
       queryFn: ({ signal }) => apiClient('/api/sprints', { signal }),
       staleTime: 5 * 60 * 1000,
     });
-  };
+  }, [queryClient]);
 
   return { prefetchNextModules };
 }

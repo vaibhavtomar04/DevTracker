@@ -15,8 +15,9 @@ interface SprintState {
   sprints: Sprint[]
   loading: boolean
   error: string | null
+  lastFetched?: number
 
-  fetchSprints: () => Promise<void>
+  fetchSprints: (force?: boolean) => Promise<void>
   createSprint: (data: Omit<Sprint, "id" | "createdDate" | "status">) => Promise<Sprint>
   updateSprint: (id: number, data: Partial<Sprint>) => Promise<Sprint>
   deleteSprint: (id: number) => Promise<void>
@@ -29,9 +30,15 @@ export const useSprintStore = create<SprintState>((set, get) => ({
   sprints: [],
   loading: false,
   error: null,
+  lastFetched: 0,
 
-  fetchSprints: async () => {
-    set({ loading: true, error: null })
+  fetchSprints: async (force = false) => {
+    const now = Date.now()
+    const lastFetched = get().lastFetched || 0
+    if (get().loading) return
+    if (!force && lastFetched > 0 && now - lastFetched < 10000) return
+
+    set({ loading: true, error: null, lastFetched: now })
     try {
       const data = await apiClient("/api/sprints")
       set({ sprints: data, loading: false })
