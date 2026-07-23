@@ -82,10 +82,11 @@ interface TaskState {
   downloadTarget: { base64Data: string; defaultFileName: string } | null
   bugReviews: any[]
   sprintTasks: SprintTask[]
+  lastFetched?: number
   setDownloadTarget: (target: { base64Data: string; defaultFileName: string } | null) => void
 
   // Fetching
-  fetchData: () => Promise<void>
+  fetchData: (force?: boolean) => Promise<void>
   fetchUsers: () => Promise<void>
   fetchSprintTasks: (sprintId?: number) => Promise<void>
   createSprintTask: (sprintTaskData: any) => Promise<SprintTask>
@@ -180,13 +181,18 @@ export const useTaskStore = create<TaskState>((set, get) => ({
   downloadTarget: null,
   setDownloadTarget: (target) => set({ downloadTarget: target }),
 
-  fetchData: async () => {
-    // Guard: skip if a fetch is already in-flight to prevent connection pool exhaustion
+  lastFetched: 0,
+  fetchData: async (force = false) => {
+    // Guard: skip if a fetch is already in-flight or fetched within last 10s unless forced
+    const now = Date.now()
+    const lastFetched = get().lastFetched || 0
     if (get().isFetching) return
+    if (!force && lastFetched > 0 && now - lastFetched < 10000) return
+
     if (get().tasks.length === 0) {
       set({ loading: true })
     }
-    set({ error: null, isFetching: true })
+    set({ error: null, isFetching: true, lastFetched: now })
 
     const safeFetch = async (endpoint: string) => {
       try {

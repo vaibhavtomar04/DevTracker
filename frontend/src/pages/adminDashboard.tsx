@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom"
 import { createPortal } from "react-dom"
 import { motion, AnimatePresence } from "framer-motion"
 import { useTaskStore } from "@/store/taskStore"
+import { performanceMonitor } from "@/utils/PerformanceMonitor"
 import {
   Users,
   Sparkles,
@@ -17,7 +18,9 @@ import {
   TrendingUp,
   AlertCircle,
   CheckCircle2,
-  Clock
+  Clock,
+  Activity,
+  Gauge
 } from "lucide-react"
 import BugDetailModal from "@/components/shared/BugDetailModal"
 import { CRTimelinePopup } from "@/components/shared/CRTimelinePopup"
@@ -613,6 +616,65 @@ export default function AdminDashboard() {
           </div>
         </motion.div>
       </div>
+
+      {/* ── System & API Performance Monitoring Widget (Requirement 19) ── */}
+      {(() => {
+        const perf = performanceMonitor.getSummary();
+        return (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.65, duration: 0.5 }}
+            className={`${glassCard} p-6 border-emerald-500/20 bg-emerald-500/[0.02] shadow-[0_0_30px_rgba(16,185,129,0.05)]`}
+          >
+            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6">
+              <div className="flex items-center space-x-3">
+                <div className="p-2.5 rounded-2xl bg-emerald-500/15 border border-emerald-500/30 text-emerald-400">
+                  <Activity className="h-5 w-5" />
+                </div>
+                <div>
+                  <h2 className="text-base font-black tracking-tight text-foreground flex items-center gap-2">
+                    Application Performance & Health Metrics
+                    <span className="px-2 py-0.5 rounded-full text-[9px] font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 uppercase tracking-widest animate-pulse">
+                      Live Telemetry
+                    </span>
+                  </h2>
+                  <p className="text-xs text-muted-foreground mt-0.5">
+                    Real-time network latency, API response times, and caching efficiency
+                  </p>
+                </div>
+              </div>
+              <div className="flex items-center space-x-2 text-xs font-mono text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-3 py-1.5 rounded-xl">
+                <Gauge className="h-3.5 w-3.5" />
+                <span>Avg Response: <strong>{perf.avgApiResponseTimeMs} ms</strong></span>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              <div className="p-4 rounded-xl border border-white/[0.06] bg-white/[0.02] space-y-1">
+                <span className="text-[10px] text-muted-foreground font-bold uppercase tracking-wider">Total Requests</span>
+                <div className="text-2xl font-black text-foreground font-mono">{perf.totalRequests}</div>
+              </div>
+              <div className="p-4 rounded-xl border border-white/[0.06] bg-white/[0.02] space-y-1">
+                <span className="text-[10px] text-muted-foreground font-bold uppercase tracking-wider">Avg Latency</span>
+                <div className="text-2xl font-black text-emerald-400 font-mono">{perf.avgApiResponseTimeMs} ms</div>
+              </div>
+              <div className="p-4 rounded-xl border border-white/[0.06] bg-white/[0.02] space-y-1">
+                <span className="text-[10px] text-muted-foreground font-bold uppercase tracking-wider">Slow Requests (&gt;500ms)</span>
+                <div className={`text-2xl font-black font-mono ${perf.slowRequestsCount > 0 ? "text-amber-400" : "text-emerald-400"}`}>
+                  {perf.slowRequestsCount}
+                </div>
+              </div>
+              <div className="p-4 rounded-xl border border-white/[0.06] bg-white/[0.02] space-y-1">
+                <span className="text-[10px] text-muted-foreground font-bold uppercase tracking-wider">Failed Requests</span>
+                <div className={`text-2xl font-black font-mono ${perf.failedRequestsCount > 0 ? "text-rose-400" : "text-emerald-400"}`}>
+                  {perf.failedRequestsCount}
+                </div>
+              </div>
+            </div>
+          </motion.div>
+        );
+      })()}
 
       {/* ── CR Tracking Table ── */}
       <motion.div

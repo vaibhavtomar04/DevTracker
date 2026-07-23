@@ -10,6 +10,7 @@ import { useNotificationStore } from "@/store/notificationStore"
 import { useTaskStore } from "@/store/taskStore"
 import { useSprintStore } from "@/store/sprintStore"
 import { useAuthStore } from "@/store/authStore"
+import { usePrefetchModules } from "@/hooks/useApiQueries"
 import { motion, AnimatePresence } from "framer-motion"
 import { ShieldOff } from "lucide-react"
 
@@ -198,18 +199,21 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
     }
   }, [activeAchievementUnlock])
 
+  const { prefetchNextModules } = usePrefetchModules()
+
   useEffect(() => {
-    fetchData() // Initial fetch
+    // Perform initial fetch on mount
+    fetchData()
     fetchSprints()
     checkAchievementUnlocks()
 
-    const timer = setInterval(() => {
-      fetchData()
-      fetchSprints()
-      checkAchievementUnlocks()
-    }, 5000) // Poll every 5 seconds silently
-    return () => clearInterval(timer)
-  }, [fetchData, fetchSprints, checkAchievementUnlocks])
+    // Intelligently prefetch next likely modules in background after dashboard load
+    const prefetchTimer = setTimeout(() => {
+      prefetchNextModules()
+    }, 1500)
+
+    return () => clearTimeout(prefetchTimer)
+  }, [fetchData, fetchSprints, checkAchievementUnlocks, prefetchNextModules])
 
   const handleDismissAchievementModal = async () => {
     setActiveAchievementUnlock(null)

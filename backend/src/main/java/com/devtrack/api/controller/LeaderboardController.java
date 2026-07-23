@@ -37,6 +37,7 @@ public class LeaderboardController {
      * is always "all-time" by spec; period rows are future extension points.
      */
     @GetMapping
+    @org.springframework.cache.annotation.Cacheable(value = "leaderboard", key = "#page + '-' + #size + '-' + #period")
     public ResponseEntity<Page<Map<String, Object>>> leaderboard(
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size,
@@ -52,6 +53,7 @@ public class LeaderboardController {
      * Quick-access top-N for dashboard widgets (no auth required beyond login).
      */
     @GetMapping("/top")
+    @org.springframework.cache.annotation.Cacheable(value = "leaderboard", key = "'top-' + #limit")
     public ResponseEntity<List<Map<String, Object>>> topN(
             @RequestParam(defaultValue = "5") int limit) {
         Pageable pageable = PageRequest.of(0, Math.min(limit, 50));

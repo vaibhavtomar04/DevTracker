@@ -193,6 +193,15 @@ public class TaskController {
                 .orElse(ResponseEntity.notFound().build());
     }
 
+    @PostMapping("/batch-details")
+    public ResponseEntity<List<Task>> getTasksBatch(@RequestBody java.util.Map<String, List<Long>> payload) {
+        List<Long> ids = payload != null ? payload.get("ids") : null;
+        if (ids == null || ids.isEmpty()) {
+            return ResponseEntity.ok(java.util.Collections.emptyList());
+        }
+        return ResponseEntity.ok(taskRepository.findAllById(ids));
+    }
+
     private String generateUniqueJtrackId(String requestedJtrackId) {
         if (requestedJtrackId == null || requestedJtrackId.trim().isEmpty()) {
             requestedJtrackId = "CR-1";

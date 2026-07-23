@@ -1,6 +1,6 @@
 import { useAuthStore } from "@/store/authStore";
-
 import { APP_CONFIG } from "@/config/appConfig";
+import { performanceMonitor } from "@/utils/PerformanceMonitor";
 
 const API_BASE = `${APP_CONFIG.apiUrl}/api`;
 
@@ -43,6 +43,7 @@ function onRefreshed(token: string) {
 
 export async function apiClient(endpoint: string, options: RequestOptions = {}): Promise<any> {
   const { token, logout, setSession } = useAuthStore.getState();
+  const startTime = performance.now();
 
   // Construct URL with query parameters if present (handle endpoint with or without /api prefix)
   const normalizedEndpoint = endpoint.startsWith('/api') ? endpoint.substring(4) : endpoint.startsWith('/') ? endpoint : `/${endpoint}`;
@@ -81,6 +82,8 @@ export async function apiClient(endpoint: string, options: RequestOptions = {}):
   };
 
   const response = await fetch(url, fetchOptions);
+  const durationMs = Math.round(performance.now() - startTime);
+  performanceMonitor.recordApiCall(endpoint, options.method || 'GET', durationMs, response.status);
 
   if (response.status === 401 && endpoint !== "/api/auth/refresh" && endpoint !== "/api/auth/login" && endpoint !== "/mfa/verify" && endpoint !== "/mfa/backup-codes/verify") {
     if (!isRefreshing) {
