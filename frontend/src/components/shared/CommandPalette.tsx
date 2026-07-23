@@ -247,18 +247,18 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({ open, onClose, o
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.95, y: -20 }}
             transition={{ type: 'spring', stiffness: 400, damping: 30 }}
-            className="fixed top-[15%] left-1/2 -translate-x-1/2 w-full max-w-[600px] bg-[#0d1120] border border-white/[0.1] rounded-2xl shadow-2xl z-50 overflow-hidden"
+            className="fixed top-[15%] left-1/2 -translate-x-1/2 w-full max-w-[600px] bg-[#0f172a] border border-slate-700/80 rounded-2xl shadow-2xl z-50 overflow-hidden"
           >
             {/* Search Input */}
-            <div className="flex items-center gap-3 px-5 py-4 border-b border-white/[0.07]">
-              <span className="text-zinc-500 text-lg shrink-0">🔍</span>
+            <div className="flex items-center gap-3 px-5 py-4 border-b border-slate-700/80 bg-slate-900/60">
+              <span className="text-sky-400 text-lg font-bold shrink-0">🔍</span>
               <input
                 ref={inputRef}
                 value={query}
                 onChange={(e) => handleQueryChange(e.target.value)}
                 onKeyDown={handleKeyDown}
                 placeholder="Search CRs, bugs, developers..."
-                className="flex-1 bg-transparent text-zinc-100 placeholder-zinc-600 text-sm outline-none"
+                className="flex-1 bg-transparent text-slate-100 placeholder:text-slate-300 dark:placeholder:text-slate-400 text-sm font-semibold outline-none"
                 autoComplete="off"
                 spellCheck={false}
               />
@@ -266,10 +266,10 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({ open, onClose, o
                 <motion.div
                   animate={{ rotate: 360 }}
                   transition={{ repeat: Infinity, duration: 0.8, ease: 'linear' }}
-                  className="w-4 h-4 border-2 border-sky-500 border-t-transparent rounded-full shrink-0"
+                  className="w-4 h-4 border-2 border-sky-400 border-t-transparent rounded-full shrink-0"
                 />
               )}
-              <kbd className="text-xs text-zinc-600 bg-white/5 px-1.5 py-0.5 rounded border border-white/10 shrink-0">
+              <kbd className="text-xs text-slate-200 bg-slate-800 px-2 py-0.5 rounded border border-slate-600 font-mono font-bold shrink-0">
                 ESC
               </kbd>
             </div>
@@ -278,17 +278,17 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({ open, onClose, o
             <div className="max-h-[400px] overflow-y-auto">
               {showRecent && (
                 <div className="p-3">
-                  <p className="text-xs text-zinc-600 uppercase tracking-wider font-semibold px-2 mb-2">
-                    Recent
+                  <p className="text-xs text-sky-400 uppercase tracking-wider font-extrabold px-2 mb-2">
+                    Recent Searches
                   </p>
                   {recentSearches.map((term, i) => (
                     <button
                       key={i}
                       onClick={() => handleQueryChange(term)}
-                      className="w-full flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-white/5 text-left transition-colors"
+                      className="w-full flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-slate-800/60 text-left transition-colors"
                     >
-                      <span className="text-zinc-600 text-sm">🕐</span>
-                      <span className="text-sm text-zinc-400">{term}</span>
+                      <span className="text-sky-400 text-sm font-bold">🕐</span>
+                      <span className="text-sm text-slate-200 font-medium">{term}</span>
                     </button>
                   ))}
                 </div>
@@ -322,17 +322,17 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({ open, onClose, o
               {query.trim() && !loading && results.length === 0 && (
                 <div className="py-12 text-center">
                   <span className="text-3xl">🔍</span>
-                  <p className="text-zinc-500 text-sm mt-2">No results for "{query}"</p>
-                  <p className="text-zinc-600 text-xs mt-1">Try a different keyword or CR ID</p>
+                  <p className="text-slate-200 text-sm font-semibold mt-2">No results for "{query}"</p>
+                  <p className="text-slate-400 text-xs font-medium mt-1">Try a different keyword or CR ID</p>
                 </div>
               )}
             </div>
 
             {/* Footer */}
-            <div className="px-5 py-2.5 border-t border-white/[0.1] bg-black/40 flex items-center gap-4 text-xs font-medium text-zinc-300">
-              <span><kbd className="bg-zinc-800 text-zinc-100 px-1.5 py-0.5 rounded border border-zinc-600 font-mono font-bold">↑↓</kbd> navigate</span>
-              <span><kbd className="bg-zinc-800 text-zinc-100 px-1.5 py-0.5 rounded border border-zinc-600 font-mono font-bold">↵</kbd> open</span>
-              <span><kbd className="bg-zinc-800 text-zinc-100 px-1.5 py-0.5 rounded border border-zinc-600 font-mono font-bold">ESC</kbd> close</span>
+            <div className="px-5 py-3 border-t border-slate-700/80 bg-slate-900/90 flex items-center gap-5 text-xs font-semibold text-slate-200">
+              <span><kbd className="bg-slate-800 text-slate-100 px-2 py-0.5 rounded border border-slate-600 font-mono font-black shadow-sm mr-1.5">↑↓</kbd> navigate</span>
+              <span><kbd className="bg-slate-800 text-slate-100 px-2 py-0.5 rounded border border-slate-600 font-mono font-black shadow-sm mr-1.5">↵</kbd> open</span>
+              <span><kbd className="bg-slate-800 text-slate-100 px-2 py-0.5 rounded border border-slate-600 font-mono font-black shadow-sm mr-1.5">ESC</kbd> close</span>
             </div>
           </motion.div>
         </>
@@ -354,7 +354,7 @@ const ResultGroup: React.FC<ResultGroupProps> = ({
   title, results, query, allResults, selectedIndex, onSelect,
 }) => (
   <div>
-    <p className="text-xs text-zinc-600 uppercase tracking-wider font-semibold px-2 mb-1">{title}</p>
+    <p className="text-xs text-sky-400 uppercase tracking-wider font-extrabold px-2 mb-1.5">{title}</p>
     {results.map((result) => {
       const globalIndex = allResults.indexOf(result);
       const isSelected = globalIndex === selectedIndex;
@@ -362,21 +362,21 @@ const ResultGroup: React.FC<ResultGroupProps> = ({
         <button
           key={`${result.type}-${result.id}`}
           onClick={() => onSelect(result)}
-          className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl transition-colors text-left ${
-            isSelected ? 'bg-sky-500/10 border border-sky-500/20' : 'hover:bg-white/5 border border-transparent'
+          className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all text-left ${
+            isSelected ? 'bg-sky-500/20 border border-sky-400/40 shadow-sm' : 'hover:bg-slate-800/60 border border-transparent'
           }`}
         >
-          <span className="font-mono text-xs text-zinc-500 shrink-0 w-20 truncate">
+          <span className="font-mono text-xs font-bold text-sky-400 shrink-0 w-20 truncate">
             {result.jtrackId}
           </span>
-          <span className="flex-1 text-sm text-zinc-200 truncate">
+          <span className="flex-1 text-sm text-slate-100 font-semibold truncate">
             {highlightMatch(result.title, query)}
           </span>
-          <span className={`text-xs px-2 py-0.5 rounded-full shrink-0 ${STATUS_PILL_COLORS[result.status] ?? 'bg-zinc-700 text-zinc-400'}`}>
+          <span className={`text-xs px-2.5 py-0.5 rounded-full font-bold uppercase shrink-0 ${STATUS_PILL_COLORS[result.status] ?? 'bg-slate-700 text-slate-300'}`}>
             {result.status.replace(/_/g, ' ')}
           </span>
           {result.priority && (
-            <span className="text-xs text-zinc-600 shrink-0">{result.priority}</span>
+            <span className="text-xs text-slate-300 font-medium shrink-0">{result.priority}</span>
           )}
         </button>
       );

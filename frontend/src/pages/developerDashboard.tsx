@@ -2579,19 +2579,19 @@ export default function DeveloperDashboard() {
               exit={{ opacity: 0, scale: 0.96, y: -20 }}
               className="bg-[#161619] border border-white/[0.08] w-full max-w-lg rounded-3xl overflow-hidden shadow-2xl text-left"
             >
-              <div className="p-4 flex items-center space-x-3 border-b border-[#242427]">
-                <Search className="h-4.5 w-4.5 text-zinc-400 shrink-0" />
+              <div className="p-4 flex items-center space-x-3 border-b border-[#242427] bg-black/40">
+                <Search className="h-4.5 w-4.5 text-sky-400 shrink-0" />
                 <input
                   type="text"
                   placeholder="Type to search CRs, bugs, sprints, docs, branches..."
                   value={searchVal}
                   onChange={e => setSearchVal(e.target.value)}
                   autoFocus
-                  className="flex-1 bg-transparent text-sm text-zinc-100 placeholder:text-zinc-500 focus:outline-none"
+                  className="flex-1 bg-transparent text-sm font-semibold text-slate-100 placeholder:text-slate-300 dark:placeholder:text-slate-400 focus:outline-none"
                 />
                 <button 
                   onClick={() => setSearchOpen(false)} 
-                  className="text-zinc-500 hover:text-zinc-300 text-xs bg-[#242427] px-2 py-0.5 rounded border border-white/[0.04] font-bold"
+                  className="text-slate-100 hover:text-white text-xs bg-slate-800 px-2 py-0.5 rounded border border-slate-600 font-mono font-bold transition-colors"
                 >
                   ESC
                 </button>
