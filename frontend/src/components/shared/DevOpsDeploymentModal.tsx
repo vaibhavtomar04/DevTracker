@@ -152,20 +152,20 @@ export const DevOpsDeploymentModal: React.FC<DevOpsDeploymentModalProps> = ({
                 {/* Path — Server-1.42 hardcoded */}
                 <div>
                   <FieldLabel icon={<Server size={13} />} label="Path" required />
-                  <div className="flex items-stretch rounded-xl border border-slate-200 bg-slate-50 overflow-hidden focus-within:border-violet-400 focus-within:ring-2 focus-within:ring-violet-100 transition-all">
-                    <div className="flex items-center gap-1.5 px-3.5 py-3 bg-violet-50 border-r border-slate-200 shrink-0">
-                      <Server size={12} className="text-violet-500" />
-                      <span className="text-xs font-mono font-bold text-violet-700 whitespace-nowrap">Server-1.42:</span>
+                  <div className="flex items-stretch rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 overflow-hidden focus-within:border-violet-500 focus-within:ring-2 focus-within:ring-violet-500/20 transition-all shadow-sm">
+                    <div className="flex items-center gap-1.5 px-3.5 py-3 bg-slate-100 dark:bg-slate-800 border-r border-slate-300 dark:border-slate-700 shrink-0">
+                      <Server size={14} className="text-violet-600 dark:text-violet-400" />
+                      <span className="text-xs font-mono font-bold text-slate-900 dark:text-slate-100 whitespace-nowrap">Server-1.42:</span>
                     </div>
                     <input
                       type="text"
                       value={pathSuffix}
                       onChange={(e) => setPathSuffix(e.target.value)}
                       placeholder="/opt/tpf/apps/devtrack/lib"
-                      className="flex-1 bg-transparent px-3.5 py-3 text-sm text-slate-800 placeholder:text-slate-400 outline-none min-w-0"
+                      className="flex-1 bg-transparent px-3.5 py-3 text-sm text-slate-900 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-500 font-mono font-medium outline-none min-w-0"
                     />
                   </div>
-                  <p className="text-[11px] text-slate-400 mt-1.5 pl-1">Enter the full deployment path inside the server</p>
+                  <p className="text-[11px] text-slate-500 dark:text-slate-400 font-medium mt-1.5 pl-1">Enter the full deployment path inside the server</p>
                 </div>
 
                 {/* Items to Deploy */}

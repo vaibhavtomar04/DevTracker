@@ -396,28 +396,28 @@ function OverviewTab({ task, currentUser }: { task: Task; currentUser?: User | n
     <div className="space-y-6">
       {/* Code Review Rejection & Required Changes Alert Card */}
       {(task.status === 'CHANGES_REQUESTED' || task.status === 'IN_PROGRESS') && (rejectLog || task.remarks) && (
-        <div className="rounded-2xl border-2 border-rose-500/40 bg-gradient-to-r from-rose-500/15 via-amber-500/10 to-rose-500/15 p-4.5 shadow-[0_0_25px_rgba(244,63,94,0.15)] space-y-3">
-          <div className="flex items-center justify-between border-b border-rose-500/20 pb-2.5">
+        <div className="rounded-2xl border-2 border-rose-500/60 bg-gradient-to-r from-rose-950/90 via-rose-900/75 to-rose-950/90 p-4.5 shadow-2xl space-y-3 text-left">
+          <div className="flex items-center justify-between border-b border-rose-500/30 pb-2.5">
             <div className="flex items-center gap-2">
-              <span className="text-rose-400 text-lg">⚠️</span>
-              <span className="text-xs font-black uppercase tracking-wider text-rose-300">
+              <span className="text-rose-300 text-lg">⚠️</span>
+              <span className="text-xs font-black uppercase tracking-wider text-rose-200">
                 Code Review Rejection & Required Changes
               </span>
             </div>
-            <span className="text-xs font-bold text-rose-200 bg-rose-500/20 border border-rose-500/30 px-3 py-0.5 rounded-full">
+            <span className="text-xs font-bold text-rose-100 bg-rose-600/40 border border-rose-400/50 px-3 py-0.5 rounded-full">
               Reviewer: {reviewerName}
             </span>
           </div>
           <div>
-            <span className="text-[10px] font-bold text-rose-400 uppercase tracking-wider block mb-1">
+            <span className="text-[10px] font-bold text-rose-300 uppercase tracking-wider block mb-1">
               Reviewer Remarks / Feedback:
             </span>
-            <p className="text-sm font-semibold text-rose-100 bg-black/50 border border-rose-500/25 p-3.5 rounded-xl leading-relaxed whitespace-pre-wrap">
+            <p className="text-sm font-bold text-white bg-black/70 border border-rose-400/40 p-3.5 rounded-xl leading-relaxed whitespace-pre-wrap shadow-inner">
               {displayRemarks || "Changes requested during code review. Please review and resubmit."}
             </p>
           </div>
-          <p className="text-xs text-rose-300/90 italic text-right">
-            Sent back by <strong className="text-rose-100 font-bold">{reviewerName}</strong>
+          <p className="text-xs text-rose-200 italic text-right">
+            Sent back by <strong className="text-white font-black">{reviewerName}</strong>
           </p>
         </div>
       )}

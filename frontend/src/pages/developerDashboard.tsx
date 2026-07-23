@@ -2538,28 +2538,27 @@ export default function DeveloperDashboard() {
                 </div>
 
                 <div className="space-y-1.5">
-                  <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider">Transition Remarks</label>
+                  <label className="text-[10px] font-bold text-zinc-300 uppercase tracking-wider">Transition Remarks</label>
                   <input
                     placeholder="Provide developer submission remarks..."
                     value={remarks}
                     onChange={e => setRemarks(e.target.value)}
                     required
-                    className="h-10 w-full bg-[#0f0f11] border border-white/[0.08] focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20 rounded-xl px-3 py-2 text-xs text-zinc-200 focus:outline-none"
+                    className="h-10 w-full bg-[#0f0f11] border border-white/[0.12] focus:border-cyan-400 focus:ring-2 focus:ring-cyan-500/20 rounded-xl px-3 py-2 text-xs text-zinc-100 placeholder:text-zinc-400 focus:outline-none font-medium"
                   />
                 </div>
 
                 <div className="flex justify-end space-x-3 pt-3 border-t border-[#242427]">
                   <Button 
                     type="button" 
-                    variant="secondary" 
                     onClick={() => setIsSubmitOpen(false)}
-                    className="h-9 rounded-xl px-4 border border-white/[0.08] hover:bg-white/5 text-zinc-400 hover:text-zinc-300"
+                    className="h-9 rounded-xl px-4 bg-zinc-800 hover:bg-zinc-700 text-zinc-100 border border-zinc-700 font-bold transition-colors"
                   >
                     Cancel
                   </Button>
                   <Button 
                     type="submit" 
-                    className="h-9 rounded-xl px-4 bg-cyan-500 text-black font-black hover:bg-cyan-400"
+                    className="h-9 rounded-xl px-4 bg-emerald-500 text-zinc-950 font-black hover:bg-emerald-400 shadow-md transition-colors"
                   >
                     Submit Review Request
                   </Button>

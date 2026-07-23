@@ -329,10 +329,10 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({ open, onClose, o
             </div>
 
             {/* Footer */}
-            <div className="px-5 py-2.5 border-t border-white/[0.06] flex items-center gap-4 text-xs text-zinc-600">
-              <span><kbd className="bg-white/5 px-1.5 py-0.5 rounded border border-white/10">↑↓</kbd> navigate</span>
-              <span><kbd className="bg-white/5 px-1.5 py-0.5 rounded border border-white/10">↵</kbd> open</span>
-              <span><kbd className="bg-white/5 px-1.5 py-0.5 rounded border border-white/10">ESC</kbd> close</span>
+            <div className="px-5 py-2.5 border-t border-white/[0.1] bg-black/40 flex items-center gap-4 text-xs font-medium text-zinc-300">
+              <span><kbd className="bg-zinc-800 text-zinc-100 px-1.5 py-0.5 rounded border border-zinc-600 font-mono font-bold">↑↓</kbd> navigate</span>
+              <span><kbd className="bg-zinc-800 text-zinc-100 px-1.5 py-0.5 rounded border border-zinc-600 font-mono font-bold">↵</kbd> open</span>
+              <span><kbd className="bg-zinc-800 text-zinc-100 px-1.5 py-0.5 rounded border border-zinc-600 font-mono font-bold">ESC</kbd> close</span>
             </div>
           </motion.div>
         </>

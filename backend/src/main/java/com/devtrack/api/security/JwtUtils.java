@@ -2,31 +2,29 @@ package com.devtrack.api.security;
 
 import io.jsonwebtoken.*;
 import io.jsonwebtoken.security.Keys;
+import org.slf.Logger;
+import org.slf.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Component;
 
 import javax.crypto.SecretKey;
+import java.nio.charset.StandardCharsets;
 import java.util.Date;
 
 @Component
 public class JwtUtils {
+    private static final Logger logger = LoggerFactory.getLogger(JwtUtils.class);
 
     @Value("${devtrack.jwtExpirationMs:86400000}")
     private int jwtExpirationMs;
 
-    private final SecretKey key;
-
-    public JwtUtils() {
-        // Generate a new secure key on startup. 
-        // This ensures all JWTs are invalidated upon server restart, logging users out.
-        byte[] randomBytes = new byte[64];
-        new java.security.SecureRandom().nextBytes(randomBytes);
-        this.key = Keys.hmacShaKeyFor(randomBytes);
-    }
+    @Value("${devtrack.jwtSecret:DevTrackSuperSecretKeyWithMinimum256BitsLengthForHS512AlgorithmValidationRules2026}")
+    private String jwtSecret;
 
     private SecretKey getSigningKey() {
-        return this.key;
+        byte[] keyBytes = jwtSecret.getBytes(StandardCharsets.UTF_8);
+        return Keys.hmacShaKeyFor(keyBytes);
     }
 
     public String generateJwtToken(Authentication authentication) {
@@ -64,8 +62,9 @@ public class JwtUtils {
             Jwts.parser().verifyWith(getSigningKey()).build().parse(authToken);
             return true;
         } catch (JwtException | IllegalArgumentException e) {
-            System.err.println("Invalid JWT: " + e.getMessage());
+            logger.debug("Invalid JWT token: {}", e.getMessage());
         }
         return false;
     }
 }
+
