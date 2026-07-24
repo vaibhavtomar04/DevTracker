@@ -56,12 +56,14 @@ import com.devtrack.api.services.EmailNotificationService;
 import com.devtrack.api.services.WorkflowExecutionService;
 import org.springframework.context.ApplicationEventPublisher;
 
-import lombok.extern.slf4j.Slf4j;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 @RestController
 @RequestMapping("/api/tasks")
-@Slf4j
 public class TaskController {
+
+    private static final Logger log = LoggerFactory.getLogger(TaskController.class);
 
     private final EmailNotificationService emailNotificationService;
 

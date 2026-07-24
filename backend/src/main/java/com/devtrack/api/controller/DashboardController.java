@@ -76,7 +76,7 @@ public class DashboardController {
         // ── Determine scope from JWT roles (server-enforced) ──
         boolean isAdminScope = currentUser != null && currentUser.getRoles() != null &&
                 currentUser.getRoles().stream().anyMatch(r ->
-                        r == Role.ROLE_DEVADMIN || r == Role.ROLE_TESTADMIN);
+                        r == Role.DEVADMIN || r == Role.TESTADMIN);
 
         // ── Phase 1: Parallel aggregate queries via dedicated executor ──────────────
 
