@@ -227,8 +227,6 @@ public interface TaskRepository extends JpaRepository<Task, Long>, org.springfra
 
     boolean existsByJtrackId(String jtrackId);
 
-    long countByStatusIn(List<String> statuses);
-
     @Query("SELECT t.jtrackId FROM Task t WHERE t.jtrackId LIKE CONCAT(:prefix, '%')")
     List<String> findJtrackIdsByPrefix(@Param("prefix") String prefix);
 
