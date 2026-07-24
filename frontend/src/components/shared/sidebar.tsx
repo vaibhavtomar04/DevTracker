@@ -76,9 +76,13 @@ export default function Sidebar({ collapsed, setCollapsed }: SidebarProps) {
     const roleAllowed = item.roles.some((role) => normalizedUserRoles.includes(role))
     if (!roleAllowed) return false
 
-    // Sprint Board & Sprint Tasks are visible to DEVELOPER and TESTER ONLY IF an ACTIVE sprint exists
-    const isSprintItem = item.name === "Sprint Board" || item.name === "Sprint Tasks"
-    if (isSprintItem && !isAdmin && !hasActiveSprint) {
+    // Sprint Tasks item is visible ONLY IF an ACTIVE sprint exists across all roles
+    if (item.name === "Sprint Tasks" && !hasActiveSprint) {
+      return false
+    }
+
+    // Sprint Board is visible to non-admins ONLY IF an ACTIVE sprint exists
+    if (item.name === "Sprint Board" && !isAdmin && !hasActiveSprint) {
       return false
     }
 

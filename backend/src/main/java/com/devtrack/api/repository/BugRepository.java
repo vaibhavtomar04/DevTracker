@@ -50,8 +50,8 @@ public interface BugRepository extends JpaRepository<Bug, Long> {
 	           "LEFT JOIN FETCH b.assignedDeveloper " +
 	           "LEFT JOIN FETCH b.workflow " +
 	           "LEFT JOIN FETCH b.tester " +
-	           "WHERE b.assignedDeveloper.id = :devId",
-	           countQuery = "SELECT COUNT(b) FROM Bug b WHERE b.assignedDeveloper.id = :devId")
+	           "WHERE (b.assignedDeveloper.id = :devId OR EXISTS (SELECT td FROM TaskDeveloper td WHERE td.task = b.bugTask AND td.developer.id = :devId))",
+	           countQuery = "SELECT COUNT(b) FROM Bug b WHERE (b.assignedDeveloper.id = :devId OR EXISTS (SELECT td FROM TaskDeveloper td WHERE td.task = b.bugTask AND td.developer.id = :devId))")
 	    Page<Bug> findAllOptimizedByAssignedDeveloperId(@Param("devId") Long devId, Pageable pageable);
 
 	    @Query(value = "SELECT DISTINCT b FROM Bug b " +
@@ -60,8 +60,8 @@ public interface BugRepository extends JpaRepository<Bug, Long> {
 	           "LEFT JOIN FETCH b.assignedDeveloper " +
 	           "LEFT JOIN FETCH b.workflow " +
 	           "LEFT JOIN FETCH b.tester " +
-	           "WHERE b.assignedDeveloper.id = :devId AND b.status NOT IN ('CLOSED', 'VERIFIED', 'INVALID_BUG')",
-	           countQuery = "SELECT COUNT(b) FROM Bug b WHERE b.assignedDeveloper.id = :devId AND b.status NOT IN ('CLOSED', 'VERIFIED', 'INVALID_BUG')")
+	           "WHERE (b.assignedDeveloper.id = :devId OR EXISTS (SELECT td FROM TaskDeveloper td WHERE td.task = b.bugTask AND td.developer.id = :devId)) AND b.status NOT IN ('CLOSED', 'VERIFIED', 'INVALID_BUG')",
+	           countQuery = "SELECT COUNT(b) FROM Bug b WHERE (b.assignedDeveloper.id = :devId OR EXISTS (SELECT td FROM TaskDeveloper td WHERE td.task = b.bugTask AND td.developer.id = :devId)) AND b.status NOT IN ('CLOSED', 'VERIFIED', 'INVALID_BUG')")
 	    Page<Bug> findAllOptimizedByAssignedDeveloperIdAndActive(@Param("devId") Long devId, Pageable pageable);
 
 	    @Query(value = "SELECT DISTINCT b FROM Bug b " +
@@ -100,9 +100,9 @@ public interface BugRepository extends JpaRepository<Bug, Long> {
 		           "LEFT JOIN FETCH b.assignedDeveloper " +
 		           "LEFT JOIN FETCH b.workflow " +
 		           "LEFT JOIN FETCH b.tester " +
-		           "WHERE b.assignedDeveloper.id = :devId AND b.status =:status AND b.severity=:severity",
-		           countQuery = "SELECT COUNT(b) FROM Bug b WHERE b.assignedDeveloper.id = :devId and b.status =:status AND b.severity=:severity")
-		Page<Bug> findAllOptimizedByDeveloperStatusAndSeverity(@Param("devId")Long id, String status, String severity, Pageable pageable);
+		           "WHERE (b.assignedDeveloper.id = :devId OR EXISTS (SELECT td FROM TaskDeveloper td WHERE td.task = b.bugTask AND td.developer.id = :devId)) AND b.status =:status AND b.severity=:severity",
+		           countQuery = "SELECT COUNT(b) FROM Bug b WHERE (b.assignedDeveloper.id = :devId OR EXISTS (SELECT td FROM TaskDeveloper td WHERE td.task = b.bugTask AND td.developer.id = :devId)) and b.status =:status AND b.severity=:severity")
+		Page<Bug> findAllOptimizedByDeveloperStatusAndSeverity(@Param("devId")Long devId, String status, String severity, Pageable pageable);
 
 	    @Query(value = "SELECT DISTINCT b FROM Bug b " +
 		           "LEFT JOIN FETCH b.bugTask " +
@@ -110,9 +110,9 @@ public interface BugRepository extends JpaRepository<Bug, Long> {
 		           "LEFT JOIN FETCH b.assignedDeveloper " +
 		           "LEFT JOIN FETCH b.workflow " +
 		           "LEFT JOIN FETCH b.tester " +
-		           "WHERE b.assignedDeveloper.id = :devId AND b.status =:status",
-		           countQuery = "SELECT COUNT(b) FROM Bug b WHERE b.assignedDeveloper.id = :devId and b.status =:status")
-		Page<Bug> findAllOptimizedByDeveloperStatus(@Param("devId")Long id, String status, Pageable pageable);
+		           "WHERE (b.assignedDeveloper.id = :devId OR EXISTS (SELECT td FROM TaskDeveloper td WHERE td.task = b.bugTask AND td.developer.id = :devId)) AND b.status =:status",
+		           countQuery = "SELECT COUNT(b) FROM Bug b WHERE (b.assignedDeveloper.id = :devId OR EXISTS (SELECT td FROM TaskDeveloper td WHERE td.task = b.bugTask AND td.developer.id = :devId)) and b.status =:status")
+		Page<Bug> findAllOptimizedByDeveloperStatus(@Param("devId")Long devId, String status, Pageable pageable);
 
 	    @Query(value = "SELECT DISTINCT b FROM Bug b " +
 		           "LEFT JOIN FETCH b.bugTask " +
@@ -120,9 +120,9 @@ public interface BugRepository extends JpaRepository<Bug, Long> {
 		           "LEFT JOIN FETCH b.assignedDeveloper " +
 		           "LEFT JOIN FETCH b.workflow " +
 		           "LEFT JOIN FETCH b.tester " +
-		           "WHERE b.assignedDeveloper.id = :devId AND b.severity=:severity",
-		           countQuery = "SELECT COUNT(b) FROM Bug b WHERE b.assignedDeveloper.id = :devId AND b.severity=:severity")
-		Page<Bug> findAllOptimizedByDeveloperSeverity(@Param("devId")Long id, String severity, Pageable pageable);
+		           "WHERE (b.assignedDeveloper.id = :devId OR EXISTS (SELECT td FROM TaskDeveloper td WHERE td.task = b.bugTask AND td.developer.id = :devId)) AND b.severity=:severity",
+		           countQuery = "SELECT COUNT(b) FROM Bug b WHERE (b.assignedDeveloper.id = :devId OR EXISTS (SELECT td FROM TaskDeveloper td WHERE td.task = b.bugTask AND td.developer.id = :devId)) AND b.severity=:severity")
+		Page<Bug> findAllOptimizedByDeveloperSeverity(@Param("devId")Long devId, String severity, Pageable pageable);
 	    
 	    long countByBugTaskId(Long bugTaskId);
 

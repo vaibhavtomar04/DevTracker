@@ -7,6 +7,7 @@ import { motion } from "framer-motion"
 import { Button } from "@/components/ui/button"
 import type { Bug as BugType } from "@/services/mockData"
 import APP_CONFIG from "@/config/appConfig"
+import { getAssignedDevNames } from "@/utils/devUtils"
 
 interface BugDetailModalProps {
   bugId: number
@@ -197,6 +198,7 @@ export default function BugDetailModal({ bugId, onClose, showDeveloperActions = 
                     { label: "Priority",    value: bug.priority },
                     { label: "Raised By",   value: bug.raisedBy?.fullName || "—" },
                     { label: "Raised On",   value: fmt(bug.createdDate) },
+                    { label: "Assigned Dev(s)", value: getAssignedDevNames(bug.bugTask || bug) },
                     { label: "Resolved On", value: bug.resolvedOn ? fmt(bug.resolvedOn) : <span className="text-muted-foreground italic">Not yet resolved</span> },
                     { label: "Linked CR",   value: bug.crTaskId ? <span className="font-mono text-violet-500">CR #{bug.crTaskId}</span> : "—" },
                   ].map(({ label, value }) => (

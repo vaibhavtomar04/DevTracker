@@ -1,4 +1,6 @@
 import React, { useState, useEffect } from "react"
+import { fmtDate } from "@/utils/dateFormat"
+import { getAssignedDevNames } from "@/utils/devUtils"
 import { useTaskStore } from "@/store/taskStore"
 import { useAuthStore } from "@/store/authStore"
 import { useSprintStore } from "@/store/sprintStore"
@@ -108,7 +110,7 @@ export default function MissedDeadlinesPage() {
           const val = search.toLowerCase()
           const matchJtrack = t.jtrackId.toLowerCase().includes(val)
           const matchTitle = t.title.toLowerCase().includes(val)
-          const matchDev = t.assignedDeveloper?.fullName?.toLowerCase().includes(val)
+          const matchDev = getAssignedDevNames(t).toLowerCase().includes(val)
           if (!matchJtrack && !matchTitle && !matchDev) return false
         }
 
@@ -143,14 +145,7 @@ export default function MissedDeadlinesPage() {
     }
   }
 
-  const formatDate = (dateStr?: string | null) => {
-    if (!dateStr) return "—"
-    return new Date(dateStr).toLocaleDateString("en-GB", {
-      day: "2-digit",
-      month: "short",
-      year: "numeric"
-    })
-  }
+  const formatDate = (dateStr?: string | null) => fmtDate(dateStr)
 
   return (
     <div className="flex-1 overflow-y-auto px-6 py-6 text-zinc-200 bg-[#060814] relative">
@@ -348,7 +343,7 @@ export default function MissedDeadlinesPage() {
 
                       {/* Developer */}
                       <td className="px-4 py-3 text-xs text-zinc-350 font-semibold">
-                        {t.assignedDeveloper?.fullName || "—"}
+                        {getAssignedDevNames(t)}
                       </td>
 
                       {/* Priority */}

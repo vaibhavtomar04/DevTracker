@@ -109,6 +109,7 @@ export interface Bug {
   jtrackId: string
   bugTaskId?: number
   crTaskId?: number
+  bugTask?: Task
   title: string
   description: string
   reason?: string

@@ -18,6 +18,10 @@ import { CommandPalette } from "./CommandPalette"
 import { NotificationPanel } from "./NotificationPanel"
 import { MfaWizard } from "./MfaWizard"
 import { MfaDeactivateModal } from "./MfaDeactivateModal"
+import { CRDetailSlideOver } from "./CRDetailSlideOver"
+import BugDetailModal from "./BugDetailModal"
+import { apiClient } from "@/utils/apiClient"
+import type { Task } from "@/services/mockData"
 import { useNotificationStore } from "@/store/notificationStore"
 
 export default function Navbar() {
@@ -42,8 +46,11 @@ export default function Navbar() {
     }
   }, [user?.id]) // eslint-disable-line react-hooks/exhaustive-deps
 
-  // ── Command Palette ───────────────────────────────────────────────
+  // ── Command Palette & CR Selection ───────────────────────────────
   const [cmdOpen, setCmdOpen] = useState(false)
+  const [selectedCrId, setSelectedCrId] = useState<number | null>(null)
+  const [selectedCrTask, setSelectedCrTask] = useState<Task | null>(null)
+  const [selectedBugId, setSelectedBugId] = useState<number | null>(null)
 
   // Keyboard shortcut: Cmd+K / Ctrl+K
   useEffect(() => {
@@ -57,11 +64,30 @@ export default function Navbar() {
     return () => document.removeEventListener("keydown", handler)
   }, [])
 
-  const handleSelectCR = useCallback((id: number) => {
-    // Navigate or open CR detail — parent can handle via CRDetailSlideOver
-    console.info("Open CR", id)
-    // TODO: emit event or use global state to trigger slide-over
+  const handleSelectCR = useCallback(async (id: number, type?: 'CR' | 'BUG') => {
+    if (type === 'BUG') {
+      setSelectedBugId(id)
+      return
+    }
+    try {
+      const taskObj = await apiClient(`/api/tasks/${id}`)
+      setSelectedCrTask(taskObj)
+      setSelectedCrId(id)
+    } catch (err) {
+      console.error("Failed to load CR details for search result:", err)
+    }
   }, [])
+
+  useEffect(() => {
+    const handleOpenCrEvent = (e: Event) => {
+      const customEvt = e as CustomEvent<{ id: number; type?: 'CR' | 'BUG' }>
+      if (customEvt.detail?.id) {
+        handleSelectCR(customEvt.detail.id, customEvt.detail.type || 'CR')
+      }
+    }
+    window.addEventListener("devtrack:open-cr", handleOpenCrEvent)
+    return () => window.removeEventListener("devtrack:open-cr", handleOpenCrEvent)
+  }, [handleSelectCR])
 
   // ── Breadcrumbs ───────────────────────────────────────────────────
   const pathnames = location.pathname.split("/").filter((x) => x)
@@ -331,6 +357,27 @@ export default function Navbar() {
           if (user) useAuthStore.setState({ user: { ...user, mfaEnabled: false } });
         }}
       />
+
+      {/* Global CR Detail Slide-Over (opens from Command Palette or global events) */}
+      <CRDetailSlideOver
+        crId={selectedCrId}
+        task={selectedCrTask}
+        open={selectedCrId !== null}
+        onClose={() => {
+          setSelectedCrId(null)
+          setSelectedCrTask(null)
+        }}
+        currentUser={user}
+      />
+
+      {/* Global Bug Detail Modal */}
+      {selectedBugId !== null && (
+        <BugDetailModal
+          bugId={selectedBugId}
+          onClose={() => setSelectedBugId(null)}
+          showDeveloperActions={user?.roles?.includes("DEVELOPER") || user?.roles?.includes("DEVADMIN")}
+        />
+      )}
     </>
   )
 }

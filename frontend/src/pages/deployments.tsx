@@ -1,6 +1,8 @@
 import { useEffect, useState } from "react"
 import { useTaskStore } from "@/store/taskStore"
 import { useAuthStore } from "@/store/authStore"
+import { getAssignedDevNames } from "@/utils/devUtils"
+import { getCRStatusBadgeClass } from "@/utils/statusColors"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import {
@@ -171,22 +173,7 @@ export default function Deployments() {
                         <span className="font-mono font-bold text-violet-400 bg-violet-400/5 border border-violet-400/10 px-1.5 py-0.5 rounded text-[9px] shadow-sm">
                           {task.jtrackId}
                         </span>
-                        <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded border uppercase tracking-wide ${
-                          task.status === "OPEN" ? "text-slate-400 bg-slate-500/10 border-slate-500/20" :
-                          task.status === "IN_PROGRESS" ? "text-sky-400 bg-sky-500/10 border-sky-500/20" :
-                          task.status === "CHANGES_REQUESTED" ? "text-rose-300 bg-rose-500/15 border-rose-500/30 shadow-[0_0_12px_rgba(239,68,68,0.15)]" :
-                          task.status === "SIT_DEPLOYED" ? "text-indigo-300 bg-indigo-500/15 border-indigo-500/30 shadow-[0_0_12px_rgba(99,102,241,0.15)]" :
-                          task.status === "SIT_TESTING" ? "text-amber-300 bg-amber-500/15 border-amber-500/30" :
-                          task.status === "SIT_COMPLETED" ? "text-emerald-300 bg-emerald-500/15 border-emerald-500/30" :
-                          task.status === "CODE_REVIEW" ? "text-purple-300 bg-purple-500/15 border-purple-500/30" :
-                          task.status === "CODE_REVIEW_DONE" ? "text-pink-300 bg-pink-500/15 border-pink-500/30" :
-                          task.status === "MOVE_TO_UAT" ? "text-teal-300 bg-teal-500/15 border-teal-500/30" :
-                          task.status === "UAT_TESTING" ? "text-cyan-300 bg-cyan-500/15 border-cyan-500/30" :
-                          task.status === "UAT_COMPLETED" ? "text-emerald-300 bg-emerald-600/15 border-emerald-600/30" :
-                          task.status === "PROD_DEPLOYED" ? "text-rose-300 bg-rose-500/15 border-rose-500/30" :
-                          task.status === "BUG_FOUND" ? "text-rose-400 bg-rose-500/10 border-rose-500/20 shadow-sm" :
-                          "text-zinc-400 bg-zinc-600/10 border-zinc-600/20"
-                        }`}>
+                        <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded border uppercase tracking-wide ${getCRStatusBadgeClass(task.status)}`}>
                           {task.status === "BUG_FOUND" ? "Bug Found" : task.status.replace(/_/g, " ")}
                         </span>
                       </div>
@@ -364,9 +351,7 @@ export default function Deployments() {
                     <span className="font-semibold text-xs text-white mt-0.5 block flex items-center space-x-1">
                       <User className="h-3 w-3 text-violet-400" />
                       <span>
-                        {selectedTaskForDetails.assignedDeveloper?.fullName || 
-                         selectedTaskForDetails.developers?.[0]?.developer?.fullName || 
-                         "Unassigned"}
+                        {getAssignedDevNames(selectedTaskForDetails)}
                       </span>
                     </span>
                   </div>

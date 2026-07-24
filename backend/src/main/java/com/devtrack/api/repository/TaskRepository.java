@@ -23,6 +23,17 @@ public interface TaskRepository extends JpaRepository<Task, Long>, org.springfra
            "LEFT JOIN FETCH td.developer")
     List<Task> findAllOptimized();
 
+    @Query("SELECT DISTINCT t FROM Task t " +
+           "LEFT JOIN FETCH t.type " +
+           "LEFT JOIN FETCH t.assignedDeveloper " +
+           "LEFT JOIN FETCH t.createdBy " +
+           "LEFT JOIN FETCH t.workflow " +
+           "LEFT JOIN FETCH t.tester " +
+           "LEFT JOIN FETCH t.developers td " +
+           "LEFT JOIN FETCH td.developer " +
+           "WHERE t.id = :id")
+    java.util.Optional<Task> findByIdOptimized(@Param("id") Long id);
+
     @Query(value = "SELECT DISTINCT t FROM Task t " +
            "LEFT JOIN FETCH t.type " +
            "LEFT JOIN FETCH t.assignedDeveloper " +

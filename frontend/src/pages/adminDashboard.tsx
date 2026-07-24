@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom"
 import { createPortal } from "react-dom"
 import { motion, AnimatePresence } from "framer-motion"
 import { useTaskStore } from "@/store/taskStore"
+import { getAssignedDevNames } from "@/utils/devUtils"
 import { performanceMonitor } from "@/utils/PerformanceMonitor"
 import {
   Users,
@@ -169,7 +170,7 @@ export default function AdminDashboard() {
     if (colFilterPriority && cr.priority !== colFilterPriority) return false
     if (colFilterStatus && cr.status !== colFilterStatus) return false
     if (colFilterDeveloper.trim()) {
-      const devName = cr.assignedDeveloper?.fullName || "Unassigned"
+      const devName = getAssignedDevNames(cr)
       if (!devName.toLowerCase().includes(colFilterDeveloper.toLowerCase().trim())) return false
     }
     return true
@@ -839,7 +840,7 @@ export default function AdminDashboard() {
                       {cr.status.replace(/_/g, " ")}
                     </td>
                     <td className="p-3 text-xs text-slate-700 dark:text-slate-300 font-semibold">
-                      {cr.assignedDeveloper ? cr.assignedDeveloper.fullName : <span className="text-slate-400 dark:text-slate-500 text-[10px] italic">Unassigned</span>}
+                      {getAssignedDevNames(cr)}
                     </td>
                     <td className="p-3">
                       <div className="flex items-center justify-end gap-1.5">

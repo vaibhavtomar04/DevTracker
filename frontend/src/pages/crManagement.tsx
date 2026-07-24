@@ -1,6 +1,9 @@
 import React, { useState } from "react"
+import { fmtDate } from "@/utils/dateFormat"
+import { getAssignedDevNames } from "@/utils/devUtils"
 import { useTaskStore } from "@/store/taskStore"
 import { useAuthStore } from "@/store/authStore"
+import { getCRStatusBadgeClass } from "@/utils/statusColors"
 import { Button } from "@/components/ui/button"
 import {
   Plus,
@@ -45,7 +48,9 @@ export default function CrManagement() {
   const { user } = useAuthStore()
 
   React.useEffect(() => {
-    fetchData()
+    fetchData(true)
+    const timer = setInterval(() => fetchData(true), 5000)
+    return () => clearInterval(timer)
   }, [])
 
   const [deleteModalTask, setDeleteModalTask] = useState<any>(null)
@@ -144,7 +149,7 @@ export default function CrManagement() {
       // Category filter
       if (exportCategory !== "all" && (t.type?.name || "CR") !== exportCategory) return false
       // Developer filter
-      if (exportDev !== "all" && (t.assignedDeveloper?.fullName || "Unassigned") !== exportDev) return false
+      if (exportDev !== "all" && !getAssignedDevNames(t).includes(exportDev)) return false
       // Bugs filter
       if (exportHasBugs !== "all") {
         const taskBugCount = bugs.filter(b => b.crTaskId === t.id).length
@@ -178,7 +183,7 @@ export default function CrManagement() {
         t.type?.name || "CR",
         t.priority,
         t.status,
-        t.assignedDeveloper?.fullName || "Unassigned",
+        getAssignedDevNames(t),
         t.createdBy.fullName,
         t.createdDate ? new Date(t.createdDate).toISOString().split('T')[0] : "NA",
         getAuditDate(t.id, "SIT_DEPLOYED"),
@@ -223,7 +228,7 @@ export default function CrManagement() {
     const matchesCategory = filterCategory === "all" || (t.type?.name || "CR") === filterCategory
     const matchesPriority = colFilterPriority === "all" || t.priority === colFilterPriority
     const matchesStatus = colFilterStatus === "all" || t.status === colFilterStatus
-    const matchesDev = colFilterDev === "all" || (t.assignedDeveloper?.fullName || "Unassigned") === colFilterDev
+    const matchesDev = colFilterDev === "all" || getAssignedDevNames(t).includes(colFilterDev)
     const matchesTester = colFilterTester === "all" || (t.tester?.fullName || "Unassigned") === colFilterTester
     const taskBugCount = bugs.filter(b => b.crTaskId === t.id).length
     const matchesHasBugs = colFilterHasBugs === "all" || (colFilterHasBugs === "yes" ? taskBugCount > 0 : taskBugCount === 0)
@@ -234,10 +239,10 @@ export default function CrManagement() {
   })
 
   // Unique values for column filter dropdowns
-  const allDevNames = Array.from(new Set(tasks.map(t => t.assignedDeveloper?.fullName || "Unassigned"))).sort()
+  const allDevNames = Array.from(new Set(tasks.map(t => getAssignedDevNames(t)))).sort()
   const allTesterNames = Array.from(new Set(tasks.map(t => t.tester?.fullName || "Unassigned"))).sort()
   const allStatuses = Array.from(new Set(tasks.map(t => t.status))).sort()
-  const allDevNamesForExport = Array.from(new Set(tasks.map(t => t.assignedDeveloper?.fullName || "Unassigned"))).sort()
+  const allDevNamesForExport = Array.from(new Set(tasks.map(t => getAssignedDevNames(t)))).sort()
 
   const activeFilterCount = [colFilterPriority, colFilterStatus, colFilterDev, colFilterTester, colFilterHasBugs].filter(f => f !== "all").length + 
     (filterCategory !== "all" ? 1 : 0)
@@ -706,27 +711,9 @@ export default function CrManagement() {
                             return (
                               <div className="flex flex-wrap gap-1.5 items-center">
                                  {!(task.status === "CHANGES_REQUESTED" && latestReject) && (
-                                   <span className={`text-[10px] font-bold px-2 py-0.5 rounded-lg uppercase tracking-wider ${
-                                    task.status === "OPEN" ? "bg-slate-500/10 text-slate-400 border border-slate-500/20" :
-                                    task.status === "IN_PROGRESS" ? "bg-sky-500/10 text-sky-400 border border-sky-500/20" :
-                                    task.status === "CHANGES_REQUESTED" ? "bg-rose-500/15 text-rose-300 border border-rose-500/30 shadow-[0_0_12px_rgba(239,68,68,0.15)]" :
-                                    task.status === "SIT_DEPLOYED" ? "bg-indigo-500/15 text-indigo-300 border border-indigo-500/30 shadow-[0_0_12px_rgba(99,102,241,0.15)]" :
-                                    task.status === "SIT_TESTING" ? "bg-amber-500/15 text-amber-300 border border-amber-500/30" :
-                                    task.status === "SIT_COMPLETED" ? "bg-emerald-500/15 text-emerald-300 border border-emerald-500/30" :
-                                    task.status === "CODE_REVIEW" ? "bg-purple-500/15 text-purple-300 border border-purple-500/30" :
-                                    task.status === "CODE_REVIEW_DONE" ? "bg-pink-500/15 text-pink-300 border border-pink-500/30" :
-                                    task.status === "MOVE_TO_UAT" ? "bg-teal-500/15 text-teal-300 border border-teal-500/30" :
-                                    task.status === "TESTING_POOL" ? "bg-amber-500/15 text-amber-300 border border-amber-500/30" :
-                                    task.status === "TESTING_IN_PROGRESS" ? "bg-cyan-500/15 text-cyan-300 border border-cyan-500/30" :
-                                    task.status === "TESTING_COMPLETED" ? "bg-emerald-600/15 text-emerald-300 border border-emerald-600/30" :
-                                    task.status === "UAT_TESTING" ? "bg-cyan-500/15 text-cyan-300 border border-cyan-500/30" :
-                                    task.status === "UAT_COMPLETED" ? "bg-emerald-600/15 text-emerald-300 border border-emerald-600/30" :
-                                    task.status === "PROD_DEPLOYED" ? "bg-rose-500/15 text-rose-300 border border-rose-500/30" :
-                                    task.status === "BUG_FOUND" ? "bg-rose-500/10 text-rose-400 border border-rose-500/20" :
-                                    "bg-zinc-600/10 text-zinc-400 border border-zinc-600/20"
-                                  }`}>
-                                    {task.status === "BUG_FOUND" ? "OPEN" : task.status.replace(/_/g, " ")}
-                                  </span>
+                                   <span className={`text-[10px] font-bold px-2 py-0.5 rounded-lg uppercase tracking-wider border ${getCRStatusBadgeClass(task.status)}`}>
+                                     {task.status === "BUG_FOUND" ? "OPEN" : task.status.replace(/_/g, " ")}
+                                   </span>
                                  )}
                                 {latestReject && (task.status === "IN_PROGRESS" || task.status === "CHANGES_REQUESTED") && (
                                   <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-amber-500/15 border border-amber-500/30 text-amber-400 text-[9px] font-bold tracking-wider animate-pulse">
@@ -815,7 +802,7 @@ export default function CrManagement() {
                           })()}
                         </td>
                         <td className="p-4 font-semibold text-slate-300">
-                          {task.assignedDeveloper ? task.assignedDeveloper.fullName : <span className="text-slate-500 text-[10px] italic">Unassigned</span>}
+                          {getAssignedDevNames(task)}
                         </td>
                         <td className="p-4 font-semibold">
                           {task.tester
@@ -1173,7 +1160,7 @@ export default function CrManagement() {
                         <div className="p-2 rounded-lg bg-muted/40 border border-border/40">
                           <span className="text-muted-foreground block">Testing Start</span>
                           <span className="font-bold text-foreground">
-                            {new Date(selectedTask.testingStartedDate!).toLocaleDateString()}
+                            {fmtDate(selectedTask.testingStartedDate)}
                           </span>
                         </div>
                       )}
@@ -1181,7 +1168,7 @@ export default function CrManagement() {
                         <div className="p-2 rounded-lg bg-muted/40 border border-border/40">
                           <span className="text-muted-foreground block">Testing End</span>
                           <span className="font-bold text-foreground">
-                            {new Date(selectedTask.testingCompletedDate!).toLocaleDateString()}
+                            {fmtDate(selectedTask.testingCompletedDate)}
                           </span>
                         </div>
                       )}
@@ -1216,7 +1203,7 @@ export default function CrManagement() {
                             <div className="flex justify-between text-[9px]">
                               <span className="text-muted-foreground">Date:</span>
                               <span className="text-foreground">
-                                {new Date(selectedTask.reassignmentDate).toLocaleDateString()}
+                                {fmtDate(selectedTask.reassignmentDate)}
                               </span>
                             </div>
                           )}
@@ -1380,7 +1367,7 @@ export default function CrManagement() {
                         <p className="text-[10px] text-foreground font-semibold truncate">{bug.title}</p>
                         <div className="flex justify-between text-[9px] text-muted-foreground">
                           <span>By {bug.raisedBy?.fullName || "—"}</span>
-                          <span>{bug.createdDate ? new Date(bug.createdDate).toLocaleDateString() : "—"}</span>
+                          <span>{bug.createdDate ? fmtDate(bug.createdDate) : "—"}</span>
                         </div>
                       </div>
                     ))}
@@ -1458,6 +1445,7 @@ export default function CrManagement() {
                       <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Start Date</label>
                       <input
                         type="date"
+                        lang="en-GB"
                         value={exportStartDate}
                         onChange={(e) => setExportStartDate(e.target.value)}
                         onClick={(e) => { try { e.currentTarget.showPicker(); } catch (err) {} }}
@@ -1468,6 +1456,7 @@ export default function CrManagement() {
                       <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">End Date</label>
                       <input
                         type="date"
+                        lang="en-GB"
                         value={exportEndDate}
                         onChange={(e) => setExportEndDate(e.target.value)}
                         onClick={(e) => { try { e.currentTarget.showPicker(); } catch (err) {} }}

@@ -189,6 +189,23 @@ export const useTaskStore = create<TaskState>((set, get) => ({
     if (get().isFetching) return
     if (!force && lastFetched > 0 && now - lastFetched < 10000) return
 
+    // ── Instant cold-start: load sessionStorage cache immediately ──────────
+    // This eliminates the 8-10 second blank state on first login.
+    const CACHE_KEY = "devtrack_core_cache"
+    const CACHE_TTL = 5 * 60 * 1000 // 5 minutes
+    if (get().tasks.length === 0) {
+      try {
+        const cached = sessionStorage.getItem(CACHE_KEY)
+        if (cached) {
+          const { tasks, bugs, configs, users, timestamp } = JSON.parse(cached)
+          const age = now - (timestamp || 0)
+          if (tasks?.length > 0 && age < CACHE_TTL) {
+            set({ tasks, bugs: bugs || [], configs: configs || [], users: users || [], loading: false })
+          }
+        }
+      } catch { /* ignore cache read errors */ }
+    }
+
     if (get().tasks.length === 0) {
       set({ loading: true })
     }
@@ -231,6 +248,27 @@ export const useTaskStore = create<TaskState>((set, get) => ({
         users: normalizedUsers,
         loading: false,
       });
+
+      try {
+        sessionStorage.setItem("devtrack_core_cache", JSON.stringify({
+          tasks: tasksRes || [],
+          bugs: bugsRes || [],
+          configs: configsRes || [],
+          users: normalizedUsers,
+          timestamp: now
+        }))
+      } catch {}
+
+      // ── Persist to sessionStorage cache ────────────────────────────────────
+      try {
+        sessionStorage.setItem(CACHE_KEY, JSON.stringify({
+          tasks: tasksRes || [],
+          bugs: bugsRes || [],
+          configs: configsRes || [],
+          users: normalizedUsers,
+          timestamp: Date.now()
+        }))
+      } catch { /* ignore quota errors */ }
 
       // 2. Secondary Batch: Fetch supplementary metadata asynchronously
       const [auditRes, testCasesRes, notificationsRes, bugReviewsRes, sprintTasksRes] = await Promise.all([
@@ -298,9 +336,36 @@ export const useTaskStore = create<TaskState>((set, get) => ({
       body: JSON.stringify({ ...taskData, remarks, changedBy })
     })
 
+    // Re-fetch the full task entity to preserve developers[] and all relations
+    // The PUT response may omit nested collections; a fresh GET guarantees complete data
+    let freshTask: Task = updatedTask
+    try {
+      const reFetched = await apiClient(`/api/tasks/${taskId}`)
+      if (reFetched && reFetched.id) {
+        freshTask = reFetched
+      }
+    } catch (err) {
+      console.warn("Could not re-fetch task after update, using PUT response:", err)
+    }
+
+    // Safely preserve developers collection if empty in the update response
+    const currentDevs = currentTask?.developers || []
+    const updatedDevs = (freshTask.developers && freshTask.developers.length > 0)
+      ? freshTask.developers
+      : currentDevs
+
+    const mergedTask: Task = {
+      ...freshTask,
+      developers: updatedDevs
+    }
+
     set(state => ({
-      tasks: state.tasks.map(t => t.id === taskId ? updatedTask : t)
+      tasks: state.tasks.map(t => t.id === taskId ? mergedTask : t)
     }))
+
+    try {
+      sessionStorage.removeItem("devtrack_core_cache")
+    } catch {}
 
     try {
       const auditRes = await apiClient("/api/audit")

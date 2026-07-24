@@ -13,6 +13,7 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import APP_CONFIG from '@/config/appConfig';
+import { getCRStatusBadgeClass } from '@/utils/statusColors';
 
 interface SearchResult {
   id: number;
@@ -26,7 +27,7 @@ interface SearchResult {
 interface CommandPaletteProps {
   open: boolean;
   onClose: () => void;
-  onSelectCR?: (id: number) => void;
+  onSelectCR?: (id: number, type?: 'CR' | 'BUG') => void;
 }
 
 const RECENT_KEY = 'devtrack_recent_searches';
@@ -48,16 +49,6 @@ function saveRecentSearch(query: string) {
   } catch { /* ignore */ }
 }
 
-const STATUS_PILL_COLORS: Record<string, string> = {
-  OPEN: 'bg-zinc-500/20 text-zinc-400',
-  IN_PROGRESS: 'bg-blue-500/20 text-blue-400',
-  CHANGES_REQUESTED: 'bg-rose-500/20 text-rose-400',
-  SIT_DEPLOYED: 'bg-indigo-500/20 text-indigo-400',
-  SIT_TESTING: 'bg-violet-500/20 text-violet-400',
-  CODE_REVIEW: 'bg-amber-500/20 text-amber-400',
-  CLOSED: 'bg-emerald-600/20 text-emerald-300',
-};
-
 function highlightMatch(text: string, query: string): React.ReactNode {
   if (!query.trim()) return text;
   try {
@@ -65,7 +56,7 @@ function highlightMatch(text: string, query: string): React.ReactNode {
     const parts = text.split(regex);
     return parts.map((part, i) =>
       regex.test(part) ? (
-        <mark key={i} className="bg-sky-500/30 text-sky-200 rounded px-0.5">
+        <mark key={i} className="bg-primary/20 text-primary dark:bg-sky-500/30 dark:text-sky-200 rounded px-0.5 font-bold">
           {part}
         </mark>
       ) : (
@@ -216,9 +207,7 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({ open, onClose, o
   const handleSelect = useCallback(
     (result: SearchResult) => {
       saveRecentSearch(query || result.jtrackId);
-      if (result.type === 'CR') {
-        onSelectCR?.(result.id);
-      }
+      onSelectCR?.(result.id, result.type);
       onClose();
     },
     [query, onSelectCR, onClose]
@@ -237,28 +226,28 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({ open, onClose, o
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-black/60 backdrop-blur-md z-50"
+            className="fixed inset-0 bg-slate-950/60 dark:bg-black/80 backdrop-blur-md z-50"
             onClick={onClose}
           />
 
-          {/* Palette */}
+          {/* Palette Container */}
           <motion.div
             initial={{ opacity: 0, scale: 0.95, y: -20 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.95, y: -20 }}
             transition={{ type: 'spring', stiffness: 400, damping: 30 }}
-            className="fixed top-[15%] left-1/2 -translate-x-1/2 w-full max-w-[600px] bg-[#0f172a] border border-slate-700/80 rounded-2xl shadow-2xl z-50 overflow-hidden"
+            className="fixed top-[15%] left-1/2 -translate-x-1/2 w-full max-w-[600px] bg-white dark:bg-[#0f172a] text-slate-900 dark:text-slate-100 border border-slate-200 dark:border-slate-700/80 rounded-2xl shadow-2xl z-50 overflow-hidden"
           >
-            {/* Search Input */}
-            <div className="flex items-center gap-3 px-5 py-4 border-b border-slate-700/80 bg-slate-900/60">
-              <span className="text-sky-400 text-lg font-bold shrink-0">🔍</span>
+            {/* Search Input Bar */}
+            <div className="flex items-center gap-3 px-5 py-4 border-b border-slate-200 dark:border-slate-700/80 bg-slate-50/90 dark:bg-slate-900/60">
+              <span className="text-primary dark:text-sky-400 text-lg font-bold shrink-0">🔍</span>
               <input
                 ref={inputRef}
                 value={query}
                 onChange={(e) => handleQueryChange(e.target.value)}
                 onKeyDown={handleKeyDown}
                 placeholder="Search CRs, bugs, developers..."
-                className="flex-1 bg-transparent text-slate-100 placeholder:text-slate-300 dark:placeholder:text-slate-400 text-sm font-semibold outline-none"
+                className="flex-1 bg-transparent text-slate-900 dark:text-slate-100 placeholder:text-slate-500 dark:placeholder:text-slate-400 text-sm font-semibold outline-none"
                 autoComplete="off"
                 spellCheck={false}
               />
@@ -266,10 +255,10 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({ open, onClose, o
                 <motion.div
                   animate={{ rotate: 360 }}
                   transition={{ repeat: Infinity, duration: 0.8, ease: 'linear' }}
-                  className="w-4 h-4 border-2 border-sky-400 border-t-transparent rounded-full shrink-0"
+                  className="w-4 h-4 border-2 border-primary dark:border-sky-400 border-t-transparent rounded-full shrink-0"
                 />
               )}
-              <kbd className="text-xs text-slate-200 bg-slate-800 px-2 py-0.5 rounded border border-slate-600 font-mono font-bold shrink-0">
+              <kbd className="text-xs text-slate-700 dark:text-slate-200 bg-slate-200 dark:bg-slate-800 px-2 py-0.5 rounded border border-slate-300 dark:border-slate-600 font-mono font-bold shrink-0">
                 ESC
               </kbd>
             </div>
@@ -278,17 +267,17 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({ open, onClose, o
             <div className="max-h-[400px] overflow-y-auto">
               {showRecent && (
                 <div className="p-3">
-                  <p className="text-xs text-sky-400 uppercase tracking-wider font-extrabold px-2 mb-2">
+                  <p className="text-xs text-primary dark:text-sky-400 uppercase tracking-wider font-extrabold px-2 mb-2">
                     Recent Searches
                   </p>
                   {recentSearches.map((term, i) => (
                     <button
                       key={i}
                       onClick={() => handleQueryChange(term)}
-                      className="w-full flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-slate-800/60 text-left transition-colors"
+                      className="w-full flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800/60 text-left transition-colors"
                     >
-                      <span className="text-sky-400 text-sm font-bold">🕐</span>
-                      <span className="text-sm text-slate-200 font-medium">{term}</span>
+                      <span className="text-primary dark:text-sky-400 text-sm font-bold">🕐</span>
+                      <span className="text-sm text-slate-800 dark:text-slate-200 font-medium">{term}</span>
                     </button>
                   ))}
                 </div>
@@ -322,17 +311,17 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({ open, onClose, o
               {query.trim() && !loading && results.length === 0 && (
                 <div className="py-12 text-center">
                   <span className="text-3xl">🔍</span>
-                  <p className="text-slate-200 text-sm font-semibold mt-2">No results for "{query}"</p>
-                  <p className="text-slate-400 text-xs font-medium mt-1">Try a different keyword or CR ID</p>
+                  <p className="text-slate-800 dark:text-slate-200 text-sm font-semibold mt-2">No results for "{query}"</p>
+                  <p className="text-slate-500 dark:text-slate-400 text-xs font-medium mt-1">Try a different keyword or CR ID</p>
                 </div>
               )}
             </div>
 
             {/* Footer */}
-            <div className="px-5 py-3 border-t border-slate-700/80 bg-slate-900/90 flex items-center gap-5 text-xs font-semibold text-slate-200">
-              <span><kbd className="bg-slate-800 text-slate-100 px-2 py-0.5 rounded border border-slate-600 font-mono font-black shadow-sm mr-1.5">↑↓</kbd> navigate</span>
-              <span><kbd className="bg-slate-800 text-slate-100 px-2 py-0.5 rounded border border-slate-600 font-mono font-black shadow-sm mr-1.5">↵</kbd> open</span>
-              <span><kbd className="bg-slate-800 text-slate-100 px-2 py-0.5 rounded border border-slate-600 font-mono font-black shadow-sm mr-1.5">ESC</kbd> close</span>
+            <div className="px-5 py-3 border-t border-slate-200 dark:border-slate-700/80 bg-slate-50/90 dark:bg-slate-900/90 flex items-center gap-5 text-xs font-semibold text-slate-600 dark:text-slate-300">
+              <span><kbd className="bg-slate-200 dark:bg-slate-800 text-slate-800 dark:text-slate-100 px-2 py-0.5 rounded border border-slate-300 dark:border-slate-600 font-mono font-black shadow-sm mr-1.5">↑↓</kbd> navigate</span>
+              <span><kbd className="bg-slate-200 dark:bg-slate-800 text-slate-800 dark:text-slate-100 px-2 py-0.5 rounded border border-slate-300 dark:border-slate-600 font-mono font-black shadow-sm mr-1.5">↵</kbd> open</span>
+              <span><kbd className="bg-slate-200 dark:bg-slate-800 text-slate-800 dark:text-slate-100 px-2 py-0.5 rounded border border-slate-300 dark:border-slate-600 font-mono font-black shadow-sm mr-1.5">ESC</kbd> close</span>
             </div>
           </motion.div>
         </>
@@ -354,29 +343,32 @@ const ResultGroup: React.FC<ResultGroupProps> = ({
   title, results, query, allResults, selectedIndex, onSelect,
 }) => (
   <div>
-    <p className="text-xs text-sky-400 uppercase tracking-wider font-extrabold px-2 mb-1.5">{title}</p>
+    <p className="text-xs text-primary dark:text-sky-400 uppercase tracking-wider font-extrabold px-2 mb-1.5">{title}</p>
     {results.map((result) => {
       const globalIndex = allResults.indexOf(result);
       const isSelected = globalIndex === selectedIndex;
       return (
         <button
           key={`${result.type}-${result.id}`}
-          onClick={() => onSelect(result)}
+          onClick={(e) => {
+            e.stopPropagation();
+            onSelect(result);
+          }}
           className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all text-left ${
-            isSelected ? 'bg-sky-500/20 border border-sky-400/40 shadow-sm' : 'hover:bg-slate-800/60 border border-transparent'
+            isSelected ? 'bg-primary/10 border border-primary/30 shadow-sm' : 'hover:bg-slate-100 dark:hover:bg-slate-800/60 border border-transparent'
           }`}
         >
-          <span className="font-mono text-xs font-bold text-sky-400 shrink-0 w-20 truncate">
+          <span className="font-mono text-xs font-bold text-primary dark:text-sky-400 shrink-0 w-20 truncate">
             {result.jtrackId}
           </span>
-          <span className="flex-1 text-sm text-slate-100 font-semibold truncate">
+          <span className="flex-1 text-sm text-slate-900 dark:text-slate-100 font-semibold truncate">
             {highlightMatch(result.title, query)}
           </span>
-          <span className={`text-xs px-2.5 py-0.5 rounded-full font-bold uppercase shrink-0 ${STATUS_PILL_COLORS[result.status] ?? 'bg-slate-700 text-slate-300'}`}>
+          <span className={`text-xs px-2.5 py-0.5 rounded-full font-bold border uppercase shrink-0 ${getCRStatusBadgeClass(result.status)}`}>
             {result.status.replace(/_/g, ' ')}
           </span>
           {result.priority && (
-            <span className="text-xs text-slate-300 font-medium shrink-0">{result.priority}</span>
+            <span className="text-xs text-slate-500 dark:text-slate-400 font-medium shrink-0">{result.priority}</span>
           )}
         </button>
       );

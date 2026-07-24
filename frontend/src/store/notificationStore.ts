@@ -304,9 +304,9 @@ export const useNotificationStore = create<NotificationState>((set, get) => ({
               // (prevents connection pool exhaustion from 9 parallel requests per message)
               if (fetchDataDebounceTimer) clearTimeout(fetchDataDebounceTimer);
               fetchDataDebounceTimer = setTimeout(() => {
-                useTaskStore.getState().fetchData();
+                useTaskStore.getState().fetchData(true);
                 fetchDataDebounceTimer = null;
-              }, 2000);
+              }, 500);
             }
           } catch { /* malformed message */ }
         };

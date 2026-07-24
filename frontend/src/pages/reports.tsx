@@ -2,6 +2,7 @@ import { useEffect, useState } from "react"
 import { useTaskStore } from "@/store/taskStore"
 import { useAuthStore } from "@/store/authStore"
 import { apiClient } from "@/utils/apiClient"
+import { getAssignedDevNames } from "@/utils/devUtils"
 import APP_CONFIG from "@/config/appConfig"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -62,12 +63,12 @@ export default function Reports() {
   // Group efforts by developer
   const devProductivity: Record<string, { name: string; efforts: number; tasks: number }> = {}
   tasks.forEach(t => {
-    if (t.assignedDeveloper) {
-      const devName = t.assignedDeveloper.fullName
+    const devName = getAssignedDevNames(t)
+    if (devName && devName !== "Unassigned") {
       if (!devProductivity[devName]) {
         devProductivity[devName] = { name: devName, efforts: 0, tasks: 0 }
       }
-      devProductivity[devName].efforts += t.efforts
+      devProductivity[devName].efforts += (t.efforts || 0)
       devProductivity[devName].tasks += 1
     }
   })
@@ -76,8 +77,8 @@ export default function Reports() {
   // 2. Testing report: Bugs against Developer vs Solved
   const devBugs: Record<string, { name: string; raised: number; solved: number }> = {}
   bugs.forEach(b => {
-    if (b.assignedDeveloper) {
-      const devName = b.assignedDeveloper.fullName
+    const devName = getAssignedDevNames(b.bugTask || b)
+    if (devName && devName !== "Unassigned") {
       if (!devBugs[devName]) {
         devBugs[devName] = { name: devName, raised: 0, solved: 0 }
       }

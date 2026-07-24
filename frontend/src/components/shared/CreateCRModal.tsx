@@ -393,6 +393,7 @@ export const CreateCRModal: React.FC<CreateCRModalProps> = ({ isOpen, onClose, o
               <div className="relative">
                 <input
                   type="date"
+                  lang="en-GB"
                   value={expectedSitDeploymentDate}
                   onChange={(e) => setExpectedSitDeploymentDate(e.target.value)}
                   onClick={(e) => e.currentTarget.showPicker?.()}
@@ -409,6 +410,7 @@ export const CreateCRModal: React.FC<CreateCRModalProps> = ({ isOpen, onClose, o
               <div className="relative">
                 <input
                   type="date"
+                  lang="en-GB"
                   value={expectedUatDeploymentDate}
                   onChange={(e) => setExpectedUatDeploymentDate(e.target.value)}
                   onClick={(e) => e.currentTarget.showPicker?.()}
@@ -465,49 +467,51 @@ export const CreateCRModal: React.FC<CreateCRModalProps> = ({ isOpen, onClose, o
             </div>
           </div>
 
-          {/* Linked Sprint Tasks Glass Box */}
-          <div className="space-y-2.5 pt-2">
-            <label className="text-[11px] font-bold tracking-wider text-slate-400 uppercase flex items-center gap-2">
-              <Cpu className="h-4 w-4 text-violet-400" /> Link Sprint Tasks
-            </label>
-            {sprintTasks.length === 0 ? (
-              <div className="p-4 rounded-2xl bg-white/[0.01] border border-white/5 text-center text-xs text-slate-500">
-                No Sprint Tasks available in the system.
-              </div>
-            ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-2.5 p-4 rounded-2xl bg-white/[0.02] border border-white/10 backdrop-blur-md max-h-48 overflow-y-auto scrollbar-thin">
-                {sprintTasks.map((st) => {
-                  const isSelected = selectedSprintTaskIds.includes(st.id);
-                  return (
-                    <button
-                      key={st.id}
-                      type="button"
-                      onClick={() => {
-                        setSelectedSprintTaskIds(prev =>
-                          prev.includes(st.id) ? prev.filter(id => id !== st.id) : [...prev, st.id]
-                        );
-                      }}
-                      className={`flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-semibold transition-all text-left border ${
-                        isSelected
-                          ? "bg-gradient-to-r from-violet-600/30 to-indigo-600/30 border-violet-500/50 text-white shadow-md shadow-violet-950/30"
-                          : "bg-slate-900/40 border-white/5 text-slate-400 hover:text-slate-200 hover:bg-slate-900/80 hover:border-white/10"
-                      }`}
-                    >
-                      <div className={`w-4 h-4 rounded-md border flex items-center justify-center transition-all shrink-0 ${
-                        isSelected ? "bg-violet-500 border-violet-400 text-white" : "border-slate-700 bg-slate-900"
-                      }`}>
-                        {isSelected && <CheckCircle2 className="h-3 w-3" />}
-                      </div>
-                      <div className="truncate">
-                        <span className="font-mono text-[9px] text-sky-400 block">{st.taskCode}</span>
-                        <span className="truncate block font-medium">{st.title}</span>
-                      </div>
-                    </button>
-                  );
-                })}
-              </div>
-            )}
-          </div>
+          {/* Linked Sprint Tasks Glass Box — Only rendered when an active sprint exists */}
+          {Boolean(sprints && sprints.some(s => s.status === "ACTIVE")) && (
+            <div className="space-y-2.5 pt-2">
+              <label className="text-[11px] font-bold tracking-wider text-slate-400 uppercase flex items-center gap-2">
+                <Cpu className="h-4 w-4 text-violet-400" /> Link Sprint Tasks
+              </label>
+              {sprintTasks.length === 0 ? (
+                <div className="p-4 rounded-2xl bg-white/[0.01] border border-white/5 text-center text-xs text-slate-500">
+                  No Sprint Tasks available in the system.
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-2.5 p-4 rounded-2xl bg-white/[0.02] border border-white/10 backdrop-blur-md max-h-48 overflow-y-auto scrollbar-thin">
+                  {sprintTasks.map((st) => {
+                    const isSelected = selectedSprintTaskIds.includes(st.id);
+                    return (
+                      <button
+                        key={st.id}
+                        type="button"
+                        onClick={() => {
+                          setSelectedSprintTaskIds(prev =>
+                            prev.includes(st.id) ? prev.filter(id => id !== st.id) : [...prev, st.id]
+                          );
+                        }}
+                        className={`flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-semibold transition-all text-left border ${
+                          isSelected
+                            ? "bg-gradient-to-r from-violet-600/30 to-indigo-600/30 border-violet-500/50 text-white shadow-md shadow-violet-950/30"
+                            : "bg-slate-900/40 border-white/5 text-slate-400 hover:text-slate-200 hover:bg-slate-900/80 hover:border-white/10"
+                        }`}
+                      >
+                        <div className={`w-4 h-4 rounded-md border flex items-center justify-center transition-all shrink-0 ${
+                          isSelected ? "bg-violet-500 border-violet-400 text-white" : "border-slate-700 bg-slate-900"
+                        }`}>
+                          {isSelected && <CheckCircle2 className="h-3 w-3" />}
+                        </div>
+                        <div className="truncate">
+                          <span className="font-mono text-[9px] text-sky-400 block">{st.taskCode}</span>
+                          <span className="truncate block font-medium">{st.title}</span>
+                        </div>
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          )}
 
           {/* BRD Attachment Box */}
           <div className="space-y-2.5 pt-2">

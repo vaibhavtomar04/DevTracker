@@ -1,4 +1,6 @@
 import React, { useEffect, useState } from "react"
+import { fmtDate } from "@/utils/dateFormat"
+import { getAssignedDevNames } from "@/utils/devUtils"
 import { useTaskStore } from "@/store/taskStore"
 import { useAuthStore } from "@/store/authStore"
 import { Button } from "@/components/ui/button"
@@ -432,7 +434,7 @@ export default function TesterDashboard() {
                       <div className="grid grid-cols-2 gap-2 text-[10px] text-slate-400 border-t border-white/[0.06] pt-3 mb-4">
                         <div>
                           <span className="text-slate-500">Developer:</span>{" "}
-                          <span className="text-slate-300 font-semibold">{task.assignedDeveloper?.fullName || "Unassigned"}</span>
+                          <span className="text-slate-300 font-semibold">{getAssignedDevNames(task)}</span>
                         </div>
                         <div>
                           <span className="text-slate-500">Priority:</span>{" "}
@@ -453,7 +455,7 @@ export default function TesterDashboard() {
                         <div>
                           <span className="text-slate-500">Sent Date:</span>{" "}
                           <span className="text-slate-300 font-semibold">
-                            {task.inPoolDate ? new Date(task.inPoolDate).toLocaleDateString() : new Date(task.createdDate).toLocaleDateString()}
+                            {task.inPoolDate ? fmtDate(task.inPoolDate) : fmtDate(task.createdDate)}
                           </span>
                         </div>
                         <div>
@@ -541,7 +543,7 @@ export default function TesterDashboard() {
                         </div>
                         <div>
                           <span className="text-slate-500">Developer:</span>{" "}
-                          <span className="text-slate-300 font-semibold">{task.assignedDeveloper?.fullName || "Unassigned"}</span>
+                          <span className="text-slate-300 font-semibold">{getAssignedDevNames(task)}</span>
                         </div>
                         <div>
                           <span className="text-slate-500">Priority:</span>{" "}
@@ -724,7 +726,7 @@ export default function TesterDashboard() {
                       <div className="grid grid-cols-2 gap-2 text-[10px] text-slate-400 border-t border-white/[0.06] pt-3">
                         <div>
                           <span className="text-slate-500">Developer:</span>{" "}
-                          <span className="text-slate-300 font-semibold">{task.assignedDeveloper?.fullName || "Unassigned"}</span>
+                          <span className="text-slate-300 font-semibold">{getAssignedDevNames(task)}</span>
                         </div>
                         <div>
                           <span className="text-slate-500">Priority:</span>{" "}
@@ -1126,7 +1128,7 @@ export default function TesterDashboard() {
                           <p className="text-[10px] text-slate-300 font-semibold truncate">{bug.title}</p>
                           <div className="flex justify-between text-[9px] text-slate-500">
                             <span>By {bug.raisedBy?.fullName || "—"}</span>
-                            <span>{bug.createdDate ? new Date(bug.createdDate).toLocaleDateString() : "—"}</span>
+                            <span>{bug.createdDate ? fmtDate(bug.createdDate) : "—"}</span>
                           </div>
                         </div>
                       ))}

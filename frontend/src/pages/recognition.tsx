@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { fmtDate } from "@/utils/dateFormat";
 import { motion } from "framer-motion";
 import {
   Trophy,
@@ -313,7 +314,7 @@ export default function RecognitionPage() {
                       </p>
 
                       <div className="mt-4 pt-3 border-t border-border flex items-center justify-between text-[11px] text-muted-foreground">
-                        <span>Unlocked {new Date(item.unlockDate).toLocaleDateString()}</span>
+                        <span>Unlocked {fmtDate(item.unlockDate)}</span>
                         <CheckCircle2 className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
                       </div>
                     </motion.div>

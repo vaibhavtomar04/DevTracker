@@ -1,4 +1,6 @@
 import React, { useEffect, useState, useMemo, useCallback } from "react"
+import { fmtDate } from "@/utils/dateFormat"
+import { getAssignedDevNames } from "@/utils/devUtils"
 import { useTaskStore } from "@/store/taskStore"
 import { useAuthStore } from "@/store/authStore"
 import { useSprintStore } from "@/store/sprintStore"
@@ -8,6 +10,7 @@ import { listDocuments, downloadDocument, uploadDocument } from "@/services/docu
 import BugDetailModal from "@/components/shared/BugDetailModal"
 import DevOpsDeploymentModal from "@/components/shared/DevOpsDeploymentModal"
 import type { DevOpsDeploymentFields } from "@/components/shared/DevOpsDeploymentModal"
+import { getCRStatusBadgeClass, getHealthBadgeClass } from "@/utils/statusColors"
 import {
   GitPullRequest,
   CheckCircle,
@@ -93,6 +96,7 @@ export default function DeveloperDashboard() {
     tasks,
     bugs,
     auditLogs,
+    loading,
     fetchData,
     updateTask,
     searchQuery,
@@ -265,11 +269,16 @@ export default function DeveloperDashboard() {
     return log?.changedDate ? new Date(log.changedDate).toISOString().split('T')[0] : "—"
   }
 
-  // Fetch initial data
+  // Fetch initial data & start periodic polling (every 5s) so co-developer workflow updates sync live
   useEffect(() => {
-    fetchData()
+    fetchData(true)
     fetchSprints()
     fetchBugReviews()
+
+    const interval = setInterval(() => {
+      fetchData(true)
+    }, 5000)
+    return () => clearInterval(interval)
   }, [])
 
   // Ctrl + K Global Search shortcut listener
@@ -506,7 +515,7 @@ export default function DeveloperDashboard() {
     }
     if (diffDays === 1) return "Yesterday"
     if (diffDays < 7) return `${diffDays} days ago`
-    return date.toLocaleDateString()
+    return fmtDate(date)
   }
 
   const formatLogText = (log: AuditLog) => {
@@ -1026,16 +1035,20 @@ export default function DeveloperDashboard() {
 
                                 <div className="relative z-10 p-4 pr-8">
                                   <span className="block text-[10px] font-bold uppercase tracking-wider transition-colors duration-300" style={{ color: currentLabelColor }}>{card.label}</span>
-                                  <motion.span
-                                    key={card.value}
-                                    initial={{ opacity: 0, scale: 0.6 }}
-                                    animate={{ opacity: 1, scale: 1 }}
-                                    transition={{ type: "spring", damping: 12, stiffness: 200 }}
-                                    className="block text-2xl font-black mt-1.5 tracking-tight transition-colors duration-300"
-                                    style={{ color: currentTextColor }}
-                                  >
-                                    {card.value}
-                                  </motion.span>
+                                  {loading ? (
+                                    <div className="mt-2 h-7 w-12 rounded-lg bg-white/10 animate-pulse" />
+                                  ) : (
+                                    <motion.span
+                                      key={card.value}
+                                      initial={{ opacity: 0, scale: 0.6 }}
+                                      animate={{ opacity: 1, scale: 1 }}
+                                      transition={{ type: "spring", damping: 12, stiffness: 200 }}
+                                      className="block text-2xl font-black mt-1.5 tracking-tight transition-colors duration-300"
+                                      style={{ color: currentTextColor }}
+                                    >
+                                      {card.value}
+                                    </motion.span>
+                                  )}
                                 </div>
 
                                 {/* Bottom accent bar */}
@@ -1120,7 +1133,7 @@ export default function DeveloperDashboard() {
                                       <div className="flex justify-between">
                                         <span>SIT Expected:</span>
                                         <span className="font-semibold text-zinc-300">
-                                          {new Date(t.expectedSitDeploymentDate).toLocaleDateString('en-GB', { day: '2-digit', month: 'short' })}
+                                          {fmtDate(t.expectedSitDeploymentDate)}
                                           {t.sitDate ? (
                                             <span className="text-emerald-400 ml-1"> (Met)</span>
                                           ) : sla.sitStatus === 'Missed' ? (
@@ -1136,7 +1149,7 @@ export default function DeveloperDashboard() {
                                       <div className="flex justify-between">
                                         <span>UAT Expected:</span>
                                         <span className="font-semibold text-zinc-300">
-                                          {new Date(t.expectedUatDeploymentDate).toLocaleDateString('en-GB', { day: '2-digit', month: 'short' })}
+                                          {fmtDate(t.expectedUatDeploymentDate)}
                                           {t.uatDate ? (
                                             <span className="text-emerald-400 ml-1"> (Met)</span>
                                           ) : sla.uatStatus === 'Missed' ? (
@@ -1235,11 +1248,7 @@ export default function DeveloperDashboard() {
                                         </div>
                                         <div className="flex items-center space-x-2">
                                           {/* Smart Deadline Badge */}
-                                          <span className={`text-[9px] font-bold px-2 py-0.5 rounded border ${
-                                            details.status === "On Track" ? "bg-[#10b981]/15 text-[#10b981] border-[#10b981]/20" :
-                                            details.status === "Bug Found" ? "bg-red-500/10 text-red-400 border-red-500/20" :
-                                            "bg-cyan-500/15 text-cyan-400 border-cyan-500/20"
-                                          }`}>
+                                          <span className={`text-[9px] font-bold px-2 py-0.5 rounded border ${getHealthBadgeClass(details.status)}`}>
                                             {details.status}
                                           </span>
                                           {(() => {
@@ -1263,25 +1272,7 @@ export default function DeveloperDashboard() {
                                             return (
                                               <>
                                                 {!hideStatusBadge && (
-                                                  <span className={`text-[10px] font-bold px-2 py-0.5 rounded uppercase tracking-wider border ${
-                                                    task.status === "OPEN" ? "bg-slate-500/10 text-slate-400 border-slate-500/20" :
-                                                    task.status === "IN_PROGRESS" ? "bg-sky-500/10 text-sky-400 border-sky-500/20" :
-                                                    task.status === "CHANGES_REQUESTED" ? "bg-rose-500/15 text-rose-300 border border-rose-500/30 shadow-[0_0_12px_rgba(239,68,68,0.15)]" :
-                                                    task.status === "SIT_DEPLOYED" ? "bg-indigo-500/15 text-indigo-300 border border-indigo-500/30 shadow-[0_0_12px_rgba(99,102,241,0.15)]" :
-                                                    task.status === "SIT_TESTING" ? "bg-amber-500/15 text-amber-300 border border-amber-500/30" :
-                                                    task.status === "SIT_COMPLETED" ? "bg-emerald-500/15 text-emerald-300 border border-emerald-500/30" :
-                                                    task.status === "CODE_REVIEW" ? "bg-purple-500/25 text-purple-300 border border-purple-500/50" :
-                                                    task.status === "CODE_REVIEW_DONE" ? "bg-pink-500/25 text-pink-300 border border-pink-500/50" :
-                                                    task.status === "MOVE_TO_UAT" ? "bg-teal-500/15 text-teal-300 border border-teal-500/30" :
-                                                    task.status === "TESTING_POOL" ? "bg-amber-500/15 text-amber-300 border border-amber-500/30" :
-                                                    task.status === "TESTING_IN_PROGRESS" ? "bg-cyan-500/15 text-cyan-300 border border-cyan-500/30" :
-                                                    task.status === "TESTING_COMPLETED" ? "bg-emerald-600/15 text-emerald-300 border border-emerald-600/30" :
-                                                    task.status === "UAT_TESTING" ? "bg-cyan-500/15 text-cyan-300 border border-cyan-500/30" :
-                                                    task.status === "UAT_COMPLETED" ? "bg-emerald-600/15 text-emerald-300 border border-emerald-600/30" :
-                                                    task.status === "PROD_DEPLOYED" ? "bg-rose-500/15 text-rose-300 border border-rose-500/30" :
-                                                    task.status === "BUG_FOUND" ? "bg-rose-500/10 text-rose-400 border border-rose-500/20" :
-                                                    "bg-zinc-850 text-zinc-300 border border-zinc-700"
-                                                  }`}>
+                                                  <span className={`text-[10px] font-bold px-2 py-0.5 rounded uppercase tracking-wider border ${getCRStatusBadgeClass(task.status)}`}>
                                                     {task.status === "BUG_FOUND" ? "OPEN" : task.status.replace(/_/g, " ")}
                                                   </span>
                                                 )}
@@ -1371,25 +1362,7 @@ export default function DeveloperDashboard() {
                                               return (
                                                 <>
                                                   {!hideStatusBadge && (
-                                                    <span className={`text-[10px] font-bold px-2 py-0.5 rounded uppercase tracking-wider border ${
-                                                      task.status === "OPEN" ? "bg-slate-500/10 text-slate-400 border-slate-500/20" :
-                                                      task.status === "IN_PROGRESS" ? "bg-sky-500/10 text-sky-400 border-sky-500/20" :
-                                                      task.status === "CHANGES_REQUESTED" ? "bg-rose-500/15 text-rose-300 border border-rose-500/30 shadow-[0_0_12px_rgba(239,68,68,0.15)]" :
-                                                      task.status === "SIT_DEPLOYED" ? "bg-indigo-500/15 text-indigo-300 border border-indigo-500/30 shadow-[0_0_12px_rgba(99,102,241,0.15)]" :
-                                                      task.status === "SIT_TESTING" ? "bg-amber-500/15 text-amber-300 border border-amber-500/30" :
-                                                      task.status === "SIT_COMPLETED" ? "bg-emerald-500/15 text-emerald-300 border border-emerald-500/30" :
-                                                      task.status === "CODE_REVIEW" ? "bg-purple-500/25 text-purple-300 border border-purple-500/50" :
-                                                      task.status === "CODE_REVIEW_DONE" ? "bg-pink-500/25 text-pink-300 border border-pink-500/50" :
-                                                      task.status === "MOVE_TO_UAT" ? "bg-teal-500/15 text-teal-300 border border-teal-500/30" :
-                                                      task.status === "TESTING_POOL" ? "bg-amber-500/15 text-amber-300 border border-amber-500/30" :
-                                                      task.status === "TESTING_IN_PROGRESS" ? "bg-cyan-500/15 text-cyan-300 border border-cyan-500/30" :
-                                                      task.status === "TESTING_COMPLETED" ? "bg-emerald-600/15 text-emerald-300 border border-emerald-600/30" :
-                                                      task.status === "UAT_TESTING" ? "bg-cyan-500/15 text-cyan-300 border border-cyan-500/30" :
-                                                      task.status === "UAT_COMPLETED" ? "bg-emerald-600/15 text-emerald-300 border border-emerald-600/30" :
-                                                      task.status === "PROD_DEPLOYED" ? "bg-rose-500/15 text-rose-300 border border-rose-500/30" :
-                                                      task.status === "BUG_FOUND" ? "bg-rose-500/10 text-rose-400 border border-rose-500/20" :
-                                                      "bg-zinc-850 text-zinc-400 border border-zinc-700"
-                                                    }`}>
+                                                    <span className={`text-[10px] font-bold px-2 py-0.5 rounded uppercase tracking-wider border ${getCRStatusBadgeClass(task.status)}`}>
                                                       {task.status === "BUG_FOUND" ? "OPEN" : task.status.replace(/_/g, " ")}
                                                     </span>
                                                   )}
@@ -1406,9 +1379,7 @@ export default function DeveloperDashboard() {
                                         </td>
                                         <td className="p-3 text-zinc-300 font-bold">{task.efforts || 0} SP</td>
                                         <td className="p-3">
-                                          <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded ${
-                                            details.status === "On Track" ? "text-[#10b981] bg-[#10b981]/10" : "text-cyan-400 bg-cyan-500/10"
-                                          }`}>
+                                          <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded border ${getHealthBadgeClass(details.status)}`}>
                                             {details.status}
                                           </span>
                                         </td>
@@ -1470,9 +1441,9 @@ export default function DeveloperDashboard() {
                                    >
                                      <td className="py-2.5 font-mono font-bold text-cyan-400">{t.jtrackId}</td>
                                      <td className="py-2.5 font-semibold text-zinc-200">{t.title}</td>
-                                     <td className="py-2.5 text-zinc-400">{t.assignedDeveloper?.fullName || t.createdBy?.fullName || "Developer"}</td>
+                                     <td className="py-2.5 text-zinc-400">{getAssignedDevNames(t)}</td>
                                      <td className="py-2.5 text-zinc-400">
-                                       {t.createdDate ? new Date(t.createdDate).toLocaleDateString() : "Just now"}
+                                       {t.createdDate ? fmtDate(t.createdDate) : "Just now"}
                                      </td>
                                      <td className="py-2.5">
                                        <span className="text-[9px] font-bold text-cyan-400 bg-cyan-500/10 px-1.5 py-0.5 rounded border border-cyan-500/20">
@@ -1881,11 +1852,11 @@ export default function DeveloperDashboard() {
                                       {sla.sitStatus}
                                     </span>
                                     <span className="text-[9.5px] text-zinc-400 block">
-                                      Expected: {new Date(selectedTask.expectedSitDeploymentDate).toLocaleDateString('en-GB', { day: '2-digit', month: 'short' })}
+                                      Expected: {fmtDate(selectedTask.expectedSitDeploymentDate)}
                                     </span>
                                     {selectedTask.sitDate ? (
                                       <span className="text-[9.5px] text-zinc-400 block">
-                                        Actual: {new Date(selectedTask.sitDate).toLocaleDateString('en-GB', { day: '2-digit', month: 'short' })}
+                                        Actual: {fmtDate(selectedTask.sitDate)}
                                       </span>
                                     ) : (
                                       <span className="text-[9.5px] text-zinc-400 block">
@@ -1905,11 +1876,11 @@ export default function DeveloperDashboard() {
                                       {sla.uatStatus}
                                     </span>
                                     <span className="text-[9.5px] text-zinc-400 block">
-                                      Expected: {new Date(selectedTask.expectedUatDeploymentDate).toLocaleDateString('en-GB', { day: '2-digit', month: 'short' })}
+                                      Expected: {fmtDate(selectedTask.expectedUatDeploymentDate)}
                                     </span>
                                     {selectedTask.uatDate ? (
                                       <span className="text-[9.5px] text-zinc-400 block">
-                                        Actual: {new Date(selectedTask.uatDate).toLocaleDateString('en-GB', { day: '2-digit', month: 'short' })}
+                                        Actual: {fmtDate(selectedTask.uatDate)}
                                       </span>
                                     ) : (
                                       <span className="text-[9.5px] text-zinc-400 block">
@@ -2139,7 +2110,7 @@ export default function DeveloperDashboard() {
                                   <span className="text-zinc-500 text-[9px] uppercase tracking-wider block font-bold">Assigned Tester</span>
                                   <div className="flex justify-between items-center font-semibold">
                                     <span>{selectedTask.tester.fullName}</span>
-                                    <span className="text-zinc-500 text-[10px]">{selectedTask.testingStartedDate ? `Started: ${new Date(selectedTask.testingStartedDate).toLocaleDateString()}` : ""}</span>
+                                    <span className="text-zinc-500 text-[10px]">{selectedTask.testingStartedDate ? `Started: ${fmtDate(selectedTask.testingStartedDate)}` : ""}</span>
                                   </div>
                                 </div>
                               )}

@@ -9,6 +9,8 @@ import { X, CheckCircle2, Clock, AlertCircle } from 'lucide-react';
 import { useAuthStore } from '@/store/authStore';
 import { useTaskStore } from '@/store/taskStore';
 import type { Task } from '@/services/mockData';
+import { fmtDate } from '@/utils/dateFormat';
+import { getAssignedDevNames } from '@/utils/devUtils';
 
 /* ─── Workflow stage definitions ───────────────────────────────────── */
 interface StageDef {
@@ -297,7 +299,7 @@ export const CRTimelinePopup: React.FC<CRTimelinePopupProps> = ({ task, onClose 
                   {currentTask.title}
                 </h2>
                 <p className="text-[10px] text-slate-500 dark:text-zinc-500 mt-0.5">
-                  CR Workflow Timeline · {currentTask.type?.name}
+                  CR Workflow Timeline · {currentTask.type?.name} · Dev: {getAssignedDevNames(currentTask)}
                 </p>
               </div>
             </div>
@@ -317,10 +319,10 @@ export const CRTimelinePopup: React.FC<CRTimelinePopupProps> = ({ task, onClose 
                   <div className="flex items-center gap-2 text-xs flex-wrap">
                     <span className="font-bold text-slate-700 dark:text-zinc-300">📅 Expected Dates:</span>
                     <span className="text-[10px] font-mono font-semibold bg-violet-100 dark:bg-violet-500/15 text-violet-700 dark:text-violet-300 px-2 py-0.5 rounded-md border border-violet-200 dark:border-violet-500/25">
-                      SIT: {currentTask.expectedSitDeploymentDate ? new Date(currentTask.expectedSitDeploymentDate).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : 'Not set'}
+                      SIT: {fmtDate(currentTask.expectedSitDeploymentDate) || 'Not set'}
                     </span>
                     <span className="text-[10px] font-mono font-semibold bg-violet-100 dark:bg-violet-500/15 text-violet-700 dark:text-violet-300 px-2 py-0.5 rounded-md border border-violet-200 dark:border-violet-500/25">
-                      UAT: {currentTask.expectedUatDeploymentDate ? new Date(currentTask.expectedUatDeploymentDate).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : 'Not set'}
+                      UAT: {fmtDate(currentTask.expectedUatDeploymentDate) || 'Not set'}
                     </span>
                   </div>
                   <button
@@ -352,6 +354,7 @@ export const CRTimelinePopup: React.FC<CRTimelinePopupProps> = ({ task, onClose 
                       </label>
                       <input
                         type="date"
+                        lang="en-GB"
                         value={expSitDate}
                         onChange={(e) => setExpSitDate(e.target.value)}
                         className="w-full h-8 bg-slate-50 dark:bg-black/40 border border-slate-300 dark:border-white/10 rounded-lg px-2.5 text-xs text-slate-800 dark:text-zinc-200 focus:border-violet-500 focus:outline-none"
@@ -363,6 +366,7 @@ export const CRTimelinePopup: React.FC<CRTimelinePopupProps> = ({ task, onClose 
                       </label>
                       <input
                         type="date"
+                        lang="en-GB"
                         value={expUatDate}
                         onChange={(e) => setExpUatDate(e.target.value)}
                         className="w-full h-8 bg-slate-50 dark:bg-black/40 border border-slate-300 dark:border-white/10 rounded-lg px-2.5 text-xs text-slate-800 dark:text-zinc-200 focus:border-violet-500 focus:outline-none"
@@ -490,7 +494,7 @@ export const CRTimelinePopup: React.FC<CRTimelinePopupProps> = ({ task, onClose 
                         <div className="flex items-center gap-1 text-[10px] text-slate-600 dark:text-zinc-400">
                           <span className="text-slate-400 dark:text-zinc-600">🕐</span>
                           <span className="font-semibold">
-                            {new Date(entry.date).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}
+                            {fmtDate(entry.date)}
                           </span>
                         </div>
                       )}
@@ -554,10 +558,10 @@ export const CRTimelinePopup: React.FC<CRTimelinePopupProps> = ({ task, onClose 
                           </div>
                           <div className="grid grid-cols-2 gap-1 text-[9px] text-slate-600 dark:text-zinc-400">
                             <div>Expected: <span className="font-semibold text-slate-800 dark:text-zinc-200">
-                              {new Date(expectedDate).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}
+                              {fmtDate(expectedDate)}
                             </span></div>
                             <div>Actual: <span className="font-semibold text-slate-800 dark:text-zinc-200">
-                              {actualDate ? new Date(actualDate).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : '—'}
+                              {actualDate ? fmtDate(actualDate) : '—'}
                             </span></div>
                           </div>
                         </div>

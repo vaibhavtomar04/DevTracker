@@ -188,7 +188,7 @@ public class TaskController {
 
     @GetMapping("/{id}")
     public ResponseEntity<Task> getTaskById(@PathVariable Long id) {
-        return taskRepository.findById(id)
+        return taskRepository.findByIdOptimized(id)
                 .map(ResponseEntity::ok)
                 .orElse(ResponseEntity.notFound().build());
     }
@@ -325,7 +325,7 @@ public class TaskController {
     @org.springframework.cache.annotation.CacheEvict(value = "dashboardSummary", allEntries = true)
     public ResponseEntity<?> updateTask(@PathVariable Long id, @RequestBody Task taskDetails) {
     	log.info("Inside Update task");
-        return taskRepository.findById(id)
+        return taskRepository.findByIdOptimized(id)
                 .map(task -> {
                     String username = SecurityContextHolder.getContext().getAuthentication().getName();
                     User currentUser = userRepository.findByUsername(username).orElseThrow();
@@ -711,7 +711,8 @@ public class TaskController {
                         });
                     }
 
-                    return ResponseEntity.ok(saved);
+                    Task reloaded = taskRepository.findByIdOptimized(saved.getId()).orElse(saved);
+                    return ResponseEntity.ok(reloaded);
                 })
                 .orElse(ResponseEntity.notFound().build());
     }

@@ -13,6 +13,7 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Trash2, Download } from 'lucide-react';
+import { fmtDate } from '@/utils/dateFormat';
 import {
   type DocumentDto,
   type DocType,
@@ -56,13 +57,7 @@ function getIcon(filename: string): string {
 }
 
 function formatDate(iso: string): string {
-  return new Date(iso).toLocaleDateString('en-GB', {
-    day: '2-digit',
-    month: 'short',
-    year: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
-  });
+  return fmtDate(iso);
 }
 
 export const DocumentList: React.FC<DocumentListProps> = ({

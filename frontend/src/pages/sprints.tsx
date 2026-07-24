@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from "react"
+import { getAssignedDevNames } from "@/utils/devUtils"
 import { motion, AnimatePresence } from "framer-motion"
 import { useSprintStore } from "@/store/sprintStore"
 import type { Sprint } from "@/store/sprintStore"
@@ -6,6 +7,7 @@ import { useTaskStore } from "@/store/taskStore"
 import { useAuthStore } from "@/store/authStore"
 import type { Task, User } from "@/services/mockData"
 import { QualityRiskBadge } from "@/components/shared/QualityRiskBadge"
+import { getCRStatusBadgeClass } from "@/utils/statusColors"
 import {
   Zap, Plus, Play, CheckCircle2, Trash2, ChevronDown, ChevronUp,
   Calendar, Target, LayoutGrid, List, AlertTriangle,
@@ -271,11 +273,11 @@ function UpdateTaskModal({ task, sprints, users, onClose, onSave }: UpdateTaskMo
           <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground block mb-1.5">Expected SIT Deployment Date</label>
-              <input type="date" className={`${inputCls} hide-calendar-picker`} value={expectedSitDeploymentDate} onChange={e => setExpectedSitDeploymentDate(e.target.value)} />
+              <input type="date" lang="en-GB" className={`${inputCls} hide-calendar-picker`} value={expectedSitDeploymentDate} onChange={e => setExpectedSitDeploymentDate(e.target.value)} />
             </div>
             <div>
               <label className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground block mb-1.5">Expected UAT Deployment Date</label>
-              <input type="date" className={`${inputCls} hide-calendar-picker`} value={expectedUatDeploymentDate} onChange={e => setExpectedUatDeploymentDate(e.target.value)} />
+              <input type="date" lang="en-GB" className={`${inputCls} hide-calendar-picker`} value={expectedUatDeploymentDate} onChange={e => setExpectedUatDeploymentDate(e.target.value)} />
             </div>
           </div>
         </div>
@@ -332,22 +334,7 @@ function TaskDetailsModal({ task, onClose }: { task: Task | null; onClose: () =>
           <div className="grid grid-cols-2 gap-4">
             <div>
               <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground block mb-1">Status</span>
-              <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold border ${
-                task.status === "OPEN" ? "bg-slate-500/10 text-slate-400 border-slate-500/20" :
-                task.status === "IN_PROGRESS" ? "bg-sky-500/10 text-sky-400 border-sky-500/20" :
-                task.status === "CHANGES_REQUESTED" ? "bg-rose-500/15 text-rose-300 border-rose-500/30 shadow-[0_0_12px_rgba(239,68,68,0.15)]" :
-                task.status === "SIT_DEPLOYED" ? "bg-indigo-500/15 text-indigo-300 border-indigo-500/30 shadow-[0_0_12px_rgba(99,102,241,0.15)]" :
-                task.status === "SIT_TESTING" ? "bg-amber-500/15 text-amber-300 border-amber-500/30" :
-                task.status === "SIT_COMPLETED" ? "bg-emerald-500/15 text-emerald-300 border-emerald-500/30" :
-                task.status === "CODE_REVIEW" ? "bg-purple-500/15 text-purple-300 border-purple-500/30" :
-                task.status === "CODE_REVIEW_DONE" ? "bg-pink-500/15 text-pink-300 border-pink-500/30" :
-                task.status === "MOVE_TO_UAT" ? "bg-teal-500/15 text-teal-300 border-teal-500/30" :
-                task.status === "UAT_TESTING" ? "bg-cyan-500/15 text-cyan-300 border-cyan-500/30" :
-                task.status === "UAT_COMPLETED" ? "bg-emerald-600/15 text-emerald-300 border-emerald-600/30" :
-                task.status === "PROD_DEPLOYED" ? "bg-rose-500/15 text-rose-300 border-rose-500/30" :
-                task.status === "BUG_FOUND" ? "bg-rose-500/10 text-rose-400 border-rose-500/20" :
-                "bg-zinc-600/10 text-zinc-400 border-zinc-600/20"
-              }`}>
+              <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold border ${getCRStatusBadgeClass(task.status)}`}>
                 {task.status === "BUG_FOUND" ? "Bug Found" : task.status.replace(/_/g, " ")}
               </span>
             </div>
@@ -364,17 +351,13 @@ function TaskDetailsModal({ task, onClose }: { task: Task | null; onClose: () =>
               <span className="text-xs text-foreground/90 font-medium">{task.efforts || 0} pts</span>
             </div>
             <div>
-              <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground block mb-1">Assigned Developer</span>
-              {task.assignedDeveloper ? (
-                <div className="flex items-center gap-1.5 pt-0.5">
-                  <div className="h-5 w-5 rounded-full bg-sky-500/20 border border-sky-500/30 flex items-center justify-center text-[9px] font-bold text-sky-400">
-                    {task.assignedDeveloper.fullName?.charAt(0)}
-                  </div>
-                  <span className="text-xs text-foreground/90 truncate">{task.assignedDeveloper.fullName}</span>
+              <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground block mb-1">Assigned Developer(s)</span>
+              <div className="flex items-center gap-1.5 pt-0.5">
+                <div className="h-5 w-5 rounded-full bg-sky-500/20 border border-sky-500/30 flex items-center justify-center text-[9px] font-bold text-sky-400">
+                  {(getAssignedDevNames(task)[0] || 'D').toUpperCase()}
                 </div>
-              ) : (
-                <span className="text-xs text-muted-foreground">Unassigned</span>
-              )}
+                <span className="text-xs text-foreground/90 truncate">{getAssignedDevNames(task)}</span>
+              </div>
             </div>
           </div>
           {task.branchName && (
@@ -1220,7 +1203,7 @@ function exportCSV(tasks: Task[], filename: string, setDownloadTarget: (target: 
     t.status,
     t.priority,
     t.efforts,
-    t.assignedDeveloper?.fullName || "Unassigned",
+    getAssignedDevNames(t),
     t.sprintId || "",
     t.createdDate?.split("T")[0] || "",
   ])
@@ -1654,21 +1637,7 @@ export default function SprintsPage() {
                             <span>{task.assignedDeveloper.fullName}</span>
                           </div>
                         )}
-                        <span className={`text-[9px] font-bold px-2 py-0.5 rounded-full border ${
-                          task.status === "OPEN" ? "bg-slate-500/10 text-slate-400 border-slate-500/20" :
-                          task.status === "IN_PROGRESS" ? "bg-sky-500/10 text-sky-400 border-sky-500/20" :
-                          task.status === "SIT_DEPLOYED" ? "bg-indigo-500/15 text-indigo-300 border-indigo-500/30" :
-                          task.status === "SIT_TESTING" ? "bg-amber-500/15 text-amber-300 border-amber-500/30" :
-                          task.status === "SIT_COMPLETED" ? "bg-emerald-500/15 text-emerald-300 border-emerald-500/30" :
-                          task.status === "CODE_REVIEW" ? "bg-purple-500/15 text-purple-300 border-purple-500/30" :
-                          task.status === "CODE_REVIEW_DONE" ? "bg-pink-500/15 text-pink-300 border-pink-500/30" :
-                          task.status === "MOVE_TO_UAT" ? "bg-teal-500/15 text-teal-300 border-teal-500/30" :
-                          task.status === "UAT_TESTING" ? "bg-cyan-500/15 text-cyan-300 border-cyan-500/30" :
-                          task.status === "UAT_COMPLETED" ? "bg-emerald-600/15 text-emerald-300 border-emerald-600/30" :
-                          task.status === "PROD_DEPLOYED" ? "bg-rose-500/15 text-rose-300 border-rose-500/30" :
-                          task.status === "BUG_FOUND" ? "bg-rose-500/10 text-rose-400 border-rose-500/20" :
-                          "bg-zinc-600/10 text-zinc-400 border-zinc-600/20"
-                        }`}>{task.status.replace(/_/g, " ")}</span>
+                        <span className={`text-[9px] font-bold px-2 py-0.5 rounded-full border ${getCRStatusBadgeClass(task.status)}`}>{task.status.replace(/_/g, " ")}</span>
                         <button
                           id={`edit-task-${task.id}`}
                           onClick={() => setEditTask(task)}
@@ -1794,21 +1763,7 @@ export default function SprintsPage() {
                       >
                         <Edit3 className="h-3 w-3" /> Edit
                       </button>
-                      <span className={`text-[9px] font-bold px-2 py-0.5 rounded-full border ${
-                        task.status === "OPEN" ? "bg-slate-500/10 text-slate-400 border-slate-500/20" :
-                        task.status === "IN_PROGRESS" ? "bg-sky-500/10 text-sky-400 border-sky-500/20" :
-                        task.status === "SIT_DEPLOYED" ? "bg-indigo-500/15 text-indigo-300 border-indigo-500/30" :
-                        task.status === "SIT_TESTING" ? "bg-amber-500/15 text-amber-300 border-amber-500/30" :
-                        task.status === "SIT_COMPLETED" ? "bg-emerald-500/15 text-emerald-300 border-emerald-500/30" :
-                        task.status === "CODE_REVIEW" ? "bg-purple-500/15 text-purple-300 border-purple-500/30" :
-                        task.status === "CODE_REVIEW_DONE" ? "bg-pink-500/15 text-pink-300 border-pink-500/30" :
-                        task.status === "MOVE_TO_UAT" ? "bg-teal-500/15 text-teal-300 border-teal-500/30" :
-                        task.status === "UAT_TESTING" ? "bg-cyan-500/15 text-cyan-300 border-cyan-500/30" :
-                        task.status === "UAT_COMPLETED" ? "bg-emerald-600/15 text-emerald-300 border-emerald-600/30" :
-                        task.status === "PROD_DEPLOYED" ? "bg-rose-500/15 text-rose-300 border-rose-500/30" :
-                        task.status === "BUG_FOUND" ? "bg-rose-500/10 text-rose-400 border-rose-500/20" :
-                        "bg-zinc-600/10 text-zinc-400 border-zinc-600/20"
-                      }`}>{task.status.replace(/_/g, " ")}</span>
+                      <span className={`text-[9px] font-bold px-2 py-0.5 rounded-full border ${getCRStatusBadgeClass(task.status)}`}>{task.status.replace(/_/g, " ")}</span>
                     </div>
                   </motion.div>
                 ))}

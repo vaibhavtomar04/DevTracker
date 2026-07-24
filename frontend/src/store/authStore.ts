@@ -72,9 +72,11 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     try {
       await authService.logout()
       localStorage.removeItem("token");
+      sessionStorage.removeItem("devtrack_core_cache");
       set({ user: null, token: null, loggingOut: false, initialized: true })
     } catch (err) {
       localStorage.removeItem("token");
+      sessionStorage.removeItem("devtrack_core_cache");
       set({ user: null, token: null, loggingOut: false, initialized: true })
     }
   },

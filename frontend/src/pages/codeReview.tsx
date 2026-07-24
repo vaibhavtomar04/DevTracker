@@ -2,6 +2,7 @@ import { useState } from "react"
 import { motion, AnimatePresence } from "framer-motion"
 import { useTaskStore } from "@/store/taskStore"
 import { useAuthStore } from "@/store/authStore"
+import { getAssignedDevNames } from "@/utils/devUtils"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import {
@@ -64,7 +65,7 @@ export default function CodeReviewPage() {
     return (
       t.jtrackId.toLowerCase().includes(query) ||
       t.title.toLowerCase().includes(query) ||
-      t.assignedDeveloper?.fullName.toLowerCase().includes(query) ||
+      getAssignedDevNames(t).toLowerCase().includes(query) ||
       (t.branchName && t.branchName.toLowerCase().includes(query))
     )
   })
@@ -183,11 +184,11 @@ export default function CodeReviewPage() {
                       <td className="p-4">
                         <div className="flex items-center space-x-2">
                           <div className="h-7 w-7 rounded-full bg-gradient-to-tr from-violet-600 to-cyan-500 flex items-center justify-center text-white font-bold text-[10px] shadow-sm">
-                            {task.assignedDeveloper?.fullName ? task.assignedDeveloper.fullName.split(" ").map((n: string) => n[0]).join("") : "DV"}
+                            {(getAssignedDevNames(task)[0] || 'D').toUpperCase()}
                           </div>
                           <div>
-                            <span className="font-semibold text-white block">{task.assignedDeveloper?.fullName}</span>
-                            <span className="text-[10px] text-muted-foreground/75">Contributor</span>
+                            <span className="font-semibold text-white block">{getAssignedDevNames(task)}</span>
+                            <span className="text-[10px] text-muted-foreground/75">Contributor(s)</span>
                           </div>
                         </div>
                       </td>
@@ -298,7 +299,7 @@ export default function CodeReviewPage() {
                     <span className="text-muted-foreground block text-[10px] font-semibold uppercase tracking-wider">Developer</span>
                     <span className="font-semibold text-xs text-white mt-0.5 block flex items-center space-x-1">
                       <User className="h-3 w-3 text-violet-400" />
-                      <span>{selectedTask.assignedDeveloper?.fullName}</span>
+                      <span>{getAssignedDevNames(selectedTask)}</span>
                     </span>
                   </div>
                   <div>

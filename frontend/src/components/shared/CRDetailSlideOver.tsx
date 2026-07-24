@@ -17,6 +17,9 @@ import { DocumentUpload } from './DocumentUpload';
 import { useTaskStore } from '../../store/taskStore';
 import BugDetailModal from './BugDetailModal';
 import { APP_CONFIG } from '@/config/appConfig';
+import { getCRStatusBadgeClass } from '@/utils/statusColors';
+import { fmtDate } from '@/utils/dateFormat';
+import { getAssignedDevNames } from '@/utils/devUtils';
 
 
 
@@ -67,24 +70,6 @@ const PRIORITY_COLORS: Record<string, string> = {
   LOW: 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20',
 };
 
-const STATUS_COLORS: Record<string, string> = {
-  OPEN: 'bg-zinc-100 dark:bg-zinc-500/10 text-zinc-700 dark:text-zinc-400 border border-zinc-200 dark:border-zinc-500/30',
-  IN_PROGRESS: 'bg-blue-50 dark:bg-blue-500/10 text-blue-700 dark:text-blue-400 border border-blue-200 dark:border-blue-500/30',
-  CHANGES_REQUESTED: 'bg-rose-50 dark:bg-rose-500/10 text-rose-700 dark:text-rose-400 border border-rose-200 dark:border-rose-500/30',
-  SIT_DEPLOYED: 'bg-indigo-50 dark:bg-indigo-500/10 text-indigo-700 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-500/30',
-  SIT_TESTING: 'bg-violet-50 dark:bg-violet-500/10 text-violet-700 dark:text-violet-400 border border-violet-200 dark:border-violet-500/30',
-  SIT_COMPLETED: 'bg-emerald-50 dark:bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-500/30',
-  CODE_REVIEW: 'bg-amber-50 dark:bg-amber-500/10 text-amber-700 dark:text-amber-400 border border-amber-200 dark:border-amber-500/30',
-  CODE_REVIEW_DONE: 'bg-yellow-50 dark:bg-yellow-500/10 text-yellow-700 dark:text-yellow-400 border border-yellow-200 dark:border-yellow-500/30',
-  MOVE_TO_UAT: 'bg-teal-50 dark:bg-teal-500/10 text-teal-700 dark:text-teal-400 border border-teal-200 dark:border-teal-500/30',
-  UAT_TESTING: 'bg-cyan-50 dark:bg-cyan-500/10 text-cyan-700 dark:text-cyan-400 border border-cyan-200 dark:border-cyan-500/30',
-  UAT_COMPLETED: 'bg-sky-50 dark:bg-sky-500/10 text-sky-700 dark:text-sky-400 border border-sky-200 dark:border-sky-500/30',
-  TESTING_COMPLETED: 'bg-emerald-50 dark:bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-500/30',
-  PROD_DEPLOYED: 'bg-purple-50 dark:bg-purple-500/10 text-purple-700 dark:text-purple-400 border border-purple-200 dark:border-purple-500/30',
-  PROD_COMPLETED: 'bg-lime-50 dark:bg-lime-500/10 text-lime-700 dark:text-lime-400 border border-lime-200 dark:border-lime-500/30',
-  CLOSED: 'bg-emerald-100 dark:bg-emerald-600/20 text-emerald-800 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-600/30',
-};
-
 const TABS: { key: Tab; label: string; icon: string }[] = [
   { key: 'overview', label: 'Overview', icon: '📋' },
   { key: 'timeline', label: 'Timeline', icon: '📅' },
@@ -95,16 +80,8 @@ const TABS: { key: Tab; label: string; icon: string }[] = [
   { key: 'approval', label: 'Approval', icon: '✅' },
 ];
 
-function formatDate(dateStr?: string): string {
-  if (!dateStr) return '—';
-  try {
-    return new Date(dateStr).toLocaleDateString('en-GB', {
-      day: '2-digit', month: 'short', year: 'numeric',
-    });
-  } catch {
-    return dateStr;
-  }
-}
+// Using shared fmtDate from dateFormat.ts — DD/MM/YYYY
+const formatDate = (dateStr?: string | null) => fmtDate(dateStr);
 
 export const CRDetailSlideOver: React.FC<CRDetailSlideOverProps> = ({
   crId,
@@ -227,7 +204,7 @@ export const CRDetailSlideOver: React.FC<CRDetailSlideOverProps> = ({
                     <span className="font-mono text-xs text-zinc-500 bg-white/5 px-2 py-0.5 rounded">
                       {task.jtrackId}
                     </span>
-                    <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${STATUS_COLORS[task.status] ?? 'bg-zinc-700 text-zinc-300'}`}>
+                    <span className={`text-xs px-2 py-0.5 rounded-full font-medium border ${getCRStatusBadgeClass(task.status)}`}>
                       {task.status.replace(/_/g, ' ')}
                     </span>
                     <span className={`text-xs px-2 py-0.5 rounded-full border font-medium ${PRIORITY_COLORS[task.priority] ?? ''}`}>
@@ -392,6 +369,13 @@ function OverviewTab({ task, currentUser }: { task: Task; currentUser?: User | n
 
   const displayRemarks = rejectLog?.remarks || task.remarks;
 
+  // Last status change — for multi-developer "Who moved this CR" display
+  const lastStatusLog = auditLogs
+    ?.filter((l: any) => l.entityType === 'TASK' && l.entityId === task.id && l.fieldName === 'status')
+    ?.sort((a: any, b: any) => new Date(b.changedDate || 0).getTime() - new Date(a.changedDate || 0).getTime())[0];
+  const lastMovedByName = lastStatusLog?.changedBy?.fullName || lastStatusLog?.changedBy || null;
+  const lastMovedToStatus = lastStatusLog?.newValue?.replace(/_/g, ' ') || null;
+
   return (
     <div className="space-y-6">
       {/* Code Review Rejection & Required Changes Alert Card */}
@@ -462,6 +446,7 @@ function OverviewTab({ task, currentUser }: { task: Task; currentUser?: User | n
                 </label>
                 <input
                   type="date"
+                  lang="en-GB"
                   value={expSitDate}
                   onChange={(e) => setExpSitDate(e.target.value)}
                   className="w-full h-8 bg-black/40 border border-white/10 rounded-lg px-2 text-xs text-zinc-200 focus:border-violet-500 focus:outline-none hide-calendar-picker"
@@ -473,6 +458,7 @@ function OverviewTab({ task, currentUser }: { task: Task; currentUser?: User | n
                 </label>
                 <input
                   type="date"
+                  lang="en-GB"
                   value={expUatDate}
                   onChange={(e) => setExpUatDate(e.target.value)}
                   className="w-full h-8 bg-black/40 border border-white/10 rounded-lg px-2 text-xs text-zinc-200 focus:border-violet-500 focus:outline-none hide-calendar-picker"
@@ -502,12 +488,15 @@ function OverviewTab({ task, currentUser }: { task: Task; currentUser?: User | n
         <div className="grid grid-cols-2 gap-4 p-4 rounded-xl border border-white/[0.06] bg-white/[0.02]">
           <InfoRow label="CR Type" value={task.type?.name} />
           <InfoRow label="Priority" value={task.priority} />
-          <InfoRow label="Assigned Developer" value={task.assignedDeveloper?.fullName} />
+          <InfoRow label={task.developers && task.developers.length > 1 ? "Assigned Developers" : "Assigned Developer"} value={getAssignedDevNames(task)} />
           <InfoRow label="Code Reviewer / Approver" value={task.codeReviewer?.fullName || reviewerName} />
           <InfoRow label="Tester" value={task.tester?.fullName} />
           <InfoRow label="Efforts" value={task.efforts ? `${task.efforts}h` : undefined} />
           <InfoRow label="Branch" value={task.branchName} />
           <InfoRow label="Dev Start" value={formatDate(task.devStartDate)} />
+          {lastMovedByName && (
+            <InfoRow label="Last Status Change By" value={`${lastMovedByName}${lastMovedToStatus ? ` → ${lastMovedToStatus}` : ''}`} />
+          )}
           <InfoRow label="Expected SIT Deployment" value={formatDate(task.expectedSitDeploymentDate)} />
           <InfoRow label="Actual SIT Deployment" value={formatDate(task.sitDate)} />
           <InfoRow label="Expected UAT Deployment" value={formatDate(task.expectedUatDeploymentDate)} />
@@ -516,6 +505,38 @@ function OverviewTab({ task, currentUser }: { task: Task; currentUser?: User | n
           <InfoRow label="Created" value={formatDate(task.createdDate)} />
           <InfoRow label="Updated" value={formatDate(task.updatedDate)} />
         </div>
+
+        {/* Multi-Developer Section */}
+        {task.developers && task.developers.length > 0 && (
+          <div className="p-4 rounded-xl border border-violet-500/20 bg-violet-500/5">
+            <h4 className="text-[11px] font-bold uppercase tracking-wider text-violet-400 mb-3 flex items-center gap-1.5">
+              <span>👥</span> All Assigned Developers ({task.developers.length})
+            </h4>
+            <div className="space-y-2">
+              {(task.developers as any[]).map((td: any, idx: number) => (
+                <div key={idx} className="flex items-center justify-between bg-white/[0.03] rounded-lg px-3 py-2">
+                  <div className="flex items-center gap-2">
+                    <div className="w-6 h-6 rounded-full bg-violet-600 flex items-center justify-center text-[10px] font-bold text-white">
+                      {(td.developer?.fullName || 'D')[0].toUpperCase()}
+                    </div>
+                    <div>
+                      <p className="text-xs font-medium text-zinc-200">{td.developer?.fullName || '—'}</p>
+                      {td.branchName && <p className="text-[10px] text-zinc-500 font-mono">{td.branchName}</p>}
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    {typeof td.progress === 'number' && (
+                      <p className="text-[10px] font-semibold text-emerald-400">{td.progress}%</p>
+                    )}
+                    {td.devStartDate && (
+                      <p className="text-[10px] text-zinc-500">Started: {formatDate(td.devStartDate)}</p>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Deployment SLA status cards */}

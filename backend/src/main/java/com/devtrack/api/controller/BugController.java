@@ -320,11 +320,22 @@ public class BugController {
             bugWorkflowMapRepository.saveAll(wmaps);
         }
 
-        if (savedBug.getAssignedDeveloper() != null) {
+        java.util.Set<Long> notifiedDevIds = new java.util.HashSet<>();
+        if (savedBug.getBugTask() != null && savedBug.getBugTask().getDevelopers() != null && !savedBug.getBugTask().getDevelopers().isEmpty()) {
+            for (com.devtrack.api.model.TaskDeveloper td : savedBug.getBugTask().getDevelopers()) {
+                if (td.getDeveloper() != null && !notifiedDevIds.contains(td.getDeveloper().getId())) {
+                    notifiedDevIds.add(td.getDeveloper().getId());
+                    createAndPushNotification(td.getDeveloper().getId(), "New Bug Assigned: " + savedBug.getJtrackId(),
+                        "Bug '" + savedBug.getTitle() + "' has been assigned to you by " + currentUser.getFullName() + ". Status: " + savedBug.getStatus());
+                }
+            }
+        }
+        if (savedBug.getAssignedDeveloper() != null && !notifiedDevIds.contains(savedBug.getAssignedDeveloper().getId())) {
+            notifiedDevIds.add(savedBug.getAssignedDeveloper().getId());
             createAndPushNotification(savedBug.getAssignedDeveloper().getId(), "New Bug Assigned: " + savedBug.getJtrackId(),
                 "Bug '" + savedBug.getTitle() + "' has been assigned to you by " + currentUser.getFullName() + ". Status: " + savedBug.getStatus());
         }
-        if (savedBug.getRaisedBy() != null && (savedBug.getAssignedDeveloper() == null || !savedBug.getRaisedBy().getId().equals(savedBug.getAssignedDeveloper().getId()))) {
+        if (savedBug.getRaisedBy() != null && !notifiedDevIds.contains(savedBug.getRaisedBy().getId())) {
             createAndPushNotification(savedBug.getRaisedBy().getId(), "Bug Created: " + savedBug.getJtrackId(),
                 "You have raised a Bug: '" + savedBug.getTitle() + "'.");
         }
