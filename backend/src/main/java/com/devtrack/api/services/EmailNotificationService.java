@@ -6,6 +6,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.HashMap;
 import java.util.ArrayList;
+import java.util.Base64;
 
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpEntity;
@@ -31,6 +32,8 @@ import com.devtrack.api.repository.BugTaskRepository;
 import com.devtrack.api.repository.TaskRepository;
 import com.devtrack.api.repository.UserRepository;
 import com.devtrack.api.repository.DocumentRepository;
+import com.devtrack.api.repository.DocumentContentRepository;
+import com.devtrack.api.model.DocumentContent;
 import com.devtrack.api.model.Document;
 import com.devtrack.api.model.Role;
 
@@ -91,11 +94,46 @@ public class EmailNotificationService {
 		return base + cp + path;
 	}
 
+	/**
+	 * Hybrid Document Delivery:
+	 * If doc size <= maxAttachmentSizeMb (default 10MB): attaches Base64 encoded file data directly to EmailRequestVo.
+	 * If doc size > maxAttachmentSizeMb: falls back to setting the context-path aware download URL.
+	 */
+	public void processDocumentAttachment(EmailRequestVo requestMap, Document doc) {
+		if (requestMap == null || doc == null) return;
+		long maxBytes = maxAttachmentSizeMb * 1024 * 1024;
+
+		if (doc.getSizeBytes() != null && doc.getSizeBytes() <= maxBytes) {
+			documentContentRepository.findById(doc.getId()).ifPresentOrElse(content -> {
+				if (content.getData() != null && content.getData().length <= maxBytes) {
+					String base64Data = Base64.getEncoder().encodeToString(content.getData());
+					requestMap.setAttachmentData("data:" + (doc.getContentType() != null ? doc.getContentType() : "application/octet-stream") + ";base64," + base64Data);
+					requestMap.setAttachmentName(doc.getFilename());
+					log.info("Attached document {} directly to email (size: {} bytes)", doc.getFilename(), content.getData().length);
+				} else {
+					setDownloadUrlFallback(requestMap, doc);
+				}
+			}, () -> setDownloadUrlFallback(requestMap, doc));
+		} else {
+			setDownloadUrlFallback(requestMap, doc);
+		}
+	}
+
+	private void setDownloadUrlFallback(EmailRequestVo requestMap, Document doc) {
+		String downloadUrl = buildBackendUrl("/api/auth/documents/" + doc.getId() + "/download");
+		requestMap.setAttachmentData(downloadUrl);
+		requestMap.setAttachmentName(doc.getFilename());
+		log.info("Document {} exceeds max attachment limit of {} MB — using download URL link", doc.getFilename(), maxAttachmentSizeMb);
+	}
+
 	@Value("${mail.devops:}")
 	private String devopsMail;
 
 	@Value("${mail.devops.cc:}")
 	private String devopsCc;
+
+	@Value("${devtrack.mail.max-attachment-size-mb:10}")
+	private long maxAttachmentSizeMb;
 
 	private final UserRepository userRepository;
 	private final BugTaskRepository bugTaskRepository;
@@ -103,6 +141,7 @@ public class EmailNotificationService {
 	private final BugMailThreadRepo mailThreadRepo;
 	private final TemplateEngine templateEngine;
 	private final DocumentRepository documentRepository;
+	private final DocumentContentRepository documentContentRepository;
 
 	@Async
 	public void sendNotificationOnCreation(Bug bug) {
@@ -428,6 +467,15 @@ public class EmailNotificationService {
 			}
 
 			EmailRequestVo requestMap = createEmailRequestMap(renderedHtml, subject, developer.getEmail(), originalMessageId, testingSender, testingCc);
+
+			if (requestMap != null && activeDocs != null) {
+				for (Document doc : activeDocs) {
+					if (doc.getDocType() == Document.DocType.SUPPORT) {
+						processDocumentAttachment(requestMap, doc);
+						break;
+					}
+				}
+			}
 
 			if (requestMap != null) {
 				ResponseVo response = callSendNotificationApi(requestMap);
