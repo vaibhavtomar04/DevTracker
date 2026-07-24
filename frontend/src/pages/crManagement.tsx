@@ -973,23 +973,23 @@ export default function CrManagement() {
                 const displayRemarks = rejectLog?.remarks || selectedTask.remarks;
 
                 return (rejectLog || selectedTask.status === "CHANGES_REQUESTED") && (selectedTask.status === "IN_PROGRESS" || selectedTask.status === "CHANGES_REQUESTED") ? (
-                  <div className="rounded-2xl border border-pink-400/25 bg-pink-950/25 backdrop-blur-md p-4 shadow-[0_4px_20px_rgba(244,114,182,0.08)] space-y-3 text-left">
+                  <div className="rounded-2xl border border-rose-500/40 bg-gradient-to-r from-rose-950/90 via-rose-900/60 to-amber-950/40 backdrop-blur-md p-4.5 shadow-lg shadow-rose-950/50 space-y-3.5 text-left">
                     {/* Header */}
-                    <div className="flex items-center gap-2.5">
-                      <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-pink-500/20 border border-pink-400/30 text-pink-300 shadow-sm">
-                        <AlertTriangle className="h-4 w-4" />
+                    <div className="flex items-center gap-3">
+                      <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-rose-500/30 border border-rose-400/50 text-rose-200 shadow-md">
+                        <AlertTriangle className="h-5 w-5 text-rose-300" />
                       </div>
                       <div>
-                        <p className="text-sm font-black text-pink-100 uppercase tracking-wide leading-none">Change Requested</p>
-                        <p className="text-[10px] text-pink-300/80 mt-0.5">Sent back by <strong className="text-pink-100">{reviewerName}</strong></p>
+                        <p className="text-sm font-extrabold text-white uppercase tracking-wider leading-tight">Change Requested</p>
+                        <p className="text-xs text-rose-200/90 mt-0.5 font-medium">Sent back by <strong className="text-white font-bold">{reviewerName}</strong></p>
                       </div>
-                      <span className="ml-auto text-[9px] font-bold bg-pink-500/20 text-pink-200 border border-pink-400/30 px-2.5 py-0.5 rounded-full uppercase tracking-widest animate-pulse">Action Required</span>
+                      <span className="ml-auto text-[10px] font-black bg-rose-500 text-white border border-rose-400/60 px-3 py-1 rounded-full uppercase tracking-widest shadow-md animate-pulse">Action Required</span>
                     </div>
                     {/* Remarks */}
-                    <div className="space-y-1">
-                      <span className="text-[10px] font-bold text-pink-300/90 uppercase tracking-widest block">Admin Remarks:</span>
-                      <div className="bg-pink-950/20 border border-pink-400/20 p-3.5 rounded-xl">
-                        <p className="text-xs font-semibold text-pink-100 leading-relaxed whitespace-pre-wrap">
+                    <div className="space-y-1.5">
+                      <span className="text-[10px] font-extrabold text-rose-200 uppercase tracking-widest block">Admin Remarks:</span>
+                      <div className="bg-slate-950/90 border border-rose-500/35 p-4 rounded-xl shadow-inner">
+                        <p className="text-xs font-semibold text-rose-50 leading-relaxed whitespace-pre-wrap">
                           {displayRemarks || "Changes requested. Please review and resubmit."}
                         </p>
                       </div>

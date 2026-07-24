@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { X, Upload, Users, FileText, CheckCircle2, Sparkles, Code2, Layers, Cpu, Clock, Trash2, Calendar } from "lucide-react";
+import { X, Upload, Users, FileText, CheckCircle2, Sparkles, Code2, Layers, Cpu, Clock, Trash2, Calendar, Search } from "lucide-react";
 import { useTaskStore } from "@/store/taskStore";
 import { useSprintStore } from "@/store/sprintStore";
 import { useAuthStore } from "@/store/authStore";
@@ -36,6 +36,7 @@ export const CreateCRModal: React.FC<CreateCRModalProps> = ({ isOpen, onClose, o
   const [expectedUatDeploymentDate, setExpectedUatDeploymentDate] = useState("");
 
   const [availableDevelopers, setAvailableDevelopers] = useState<any[]>([]);
+  const [devSearch, setDevSearch] = useState("");
   const [selectedWorkflowId, setSelectedWorkflowId] = useState<number | null>(null);
 
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -51,7 +52,10 @@ export const CreateCRModal: React.FC<CreateCRModalProps> = ({ isOpen, onClose, o
       setJtrackId(String(maxNum + 1))
       fetchSprints();
       fetchSprintTasks();
+      setDevSearch("");
       loadFormData();
+    } else {
+      setDevSearch("");
     }
   }, [isOpen]);
 
@@ -439,31 +443,45 @@ export const CreateCRModal: React.FC<CreateCRModalProps> = ({ isOpen, onClose, o
           {/* Multi-developer Allocation Glass Box */}
           <div className="space-y-2.5 pt-2">
             <label className="text-[11px] font-bold tracking-wider text-slate-400 uppercase flex items-center gap-2">
-              <Users className="h-4 w-4 text-violet-400" /> Assign Engineering Owners
+              <Users className="h-4 w-4 text-violet-400" /> Developers Pool
             </label>
-            <div className="grid grid-cols-2 md:grid-cols-3 gap-2.5 p-4 rounded-2xl bg-white/[0.02] border border-white/10 backdrop-blur-md">
-              {availableDevelopers.map((dev) => {
-                const isSelected = selectedDeveloperIds.includes(dev.id);
-                return (
-                  <button
-                    key={dev.id}
-                    type="button"
-                    onClick={() => toggleDeveloperSelection(dev.id)}
-                    className={`flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-semibold transition-all text-left border ${
-                      isSelected 
-                        ? "bg-gradient-to-r from-violet-600/30 to-indigo-600/30 border-violet-500/50 text-white shadow-md shadow-violet-950/30"
-                        : "bg-slate-900/40 border-white/5 text-slate-400 hover:text-slate-200 hover:bg-slate-900/80 hover:border-white/10"
-                    }`}
-                  >
-                    <div className={`w-4 h-4 rounded-md border flex items-center justify-center transition-all shrink-0 ${
-                      isSelected ? "bg-violet-500 border-violet-400 text-white" : "border-slate-700 bg-slate-900"
-                    }`}>
-                      {isSelected && <CheckCircle2 className="h-3 w-3" />}
-                    </div>
-                    <span className="truncate">{dev.fullName || dev.username}</span>
-                  </button>
-                );
-              })}
+            <div className="p-4 rounded-2xl bg-white/[0.02] border border-white/10 backdrop-blur-md space-y-2.5">
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-slate-400" />
+                <input
+                  type="text"
+                  placeholder="Search developers..."
+                  value={devSearch}
+                  onChange={(e) => setDevSearch(e.target.value)}
+                  className="w-full bg-slate-900/60 border border-white/10 rounded-xl pl-9 pr-3 py-1.5 text-xs text-slate-200 outline-none focus:border-violet-500/60 transition-all placeholder:text-slate-500"
+                />
+              </div>
+              <div className="grid grid-cols-2 md:grid-cols-3 gap-2.5 max-h-48 overflow-y-auto pr-1 custom-scrollbar">
+                {availableDevelopers
+                  .filter((d) => (d.fullName || d.username || "").toLowerCase().includes(devSearch.toLowerCase()))
+                  .map((dev) => {
+                    const isSelected = selectedDeveloperIds.includes(dev.id);
+                    return (
+                      <button
+                        key={dev.id}
+                        type="button"
+                        onClick={() => toggleDeveloperSelection(dev.id)}
+                        className={`flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-semibold transition-all text-left border ${
+                          isSelected 
+                            ? "bg-gradient-to-r from-violet-600/30 to-indigo-600/30 border-violet-500/50 text-white shadow-md shadow-violet-950/30"
+                            : "bg-slate-900/40 border-white/5 text-slate-400 hover:text-slate-200 hover:bg-slate-900/80 hover:border-white/10"
+                        }`}
+                      >
+                        <div className={`w-4 h-4 rounded-md border flex items-center justify-center transition-all shrink-0 ${
+                          isSelected ? "bg-violet-500 border-violet-400 text-white" : "border-slate-700 bg-slate-900"
+                        }`}>
+                          {isSelected && <CheckCircle2 className="h-3 w-3" />}
+                        </div>
+                        <span className="truncate">{dev.fullName || dev.username}</span>
+                      </button>
+                    );
+                  })}
+              </div>
             </div>
           </div>
 

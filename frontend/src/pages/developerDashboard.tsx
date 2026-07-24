@@ -27,6 +27,7 @@ import {
   Download
 } from "lucide-react"
 import { motion, AnimatePresence } from "framer-motion"
+import { Pagination } from "@/components/shared/Pagination"
 import type { Task, Bug, AuditLog } from "@/services/mockData"
 
 export function getDeploymentSlaDetails(task: Task) {
@@ -158,6 +159,9 @@ export default function DeveloperDashboard() {
   // DevOps Deployment Modal state
   const [devOpsModalOpen, setDevOpsModalOpen] = useState(false)
   const [pendingSubmitReviewTask, setPendingSubmitReviewTask] = useState<Task | null>(null)
+
+  // Deployment Deadlines (SLA) pagination (5 items per page)
+  const [deadlineSlaPage, setDeadlineSlaPage] = useState(0)
 
   const activeSprint = useMemo(() => {
     return sprints.find(s => s.status === "ACTIVE") || sprints[0]
@@ -1112,93 +1116,108 @@ export default function DeveloperDashboard() {
                         </div>
 
                         {/* Deadlines list */}
-                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                          {(() => {
-                            const myCrs = tasks.filter(t => t.assignedDeveloper?.id === user?.id && t.status !== "CLOSED");
-                            const crsWithCommitments = myCrs.filter(t => t.expectedSitDeploymentDate || t.expectedUatDeploymentDate);
-                            
-                            if (crsWithCommitments.length === 0) {
-                              return <div className="col-span-full py-6 text-center text-xs text-zinc-500 italic">No active CRs with deployment deadline commitments.</div>;
-                            }
+                        {(() => {
+                          const taskList = Array.isArray(tasks) ? tasks : ((tasks as any)?.content || []);
+                          const myCrs = taskList.filter((t: any) => isAssignedToMe(t) && t.status !== "CLOSED");
+                          const crsWithCommitments = myCrs.filter((t: any) => t.expectedSitDeploymentDate || t.expectedUatDeploymentDate);
+                          
+                          if (crsWithCommitments.length === 0) {
+                            return <div className="py-6 text-center text-xs text-zinc-500 italic">No active CRs with deployment deadline commitments.</div>;
+                          }
 
-                            return crsWithCommitments.map(t => {
-                              const sla = getDeploymentSlaDetails(t);
-                              
-                              // Risk levels
-                              let riskLevel = 'None';
-                              let riskColor = 'text-emerald-400 border-emerald-500/20 bg-emerald-500/10';
-                              if (sla.isMissed) {
-                                riskLevel = 'High (Overdue)';
-                                riskColor = 'text-rose-400 border-rose-500/20 bg-rose-500/10';
-                              } else {
-                                const minRemaining = Math.min(
-                                  t.expectedSitDeploymentDate && !t.sitDate ? sla.sitRemaining : Infinity,
-                                  t.expectedUatDeploymentDate && !t.uatDate ? sla.uatRemaining : Infinity
-                                );
-                                if (minRemaining !== Infinity) {
-                                  if (minRemaining <= 2) {
-                                    riskLevel = 'Medium (At Risk)';
-                                    riskColor = 'text-amber-400 border-amber-500/20 bg-amber-500/10';
-                                  } else {
-                                    riskLevel = 'Low (On Track)';
-                                    riskColor = 'text-sky-400 border-sky-500/20 bg-sky-500/10';
-                                  }
-                                }
-                              }
+                          const pagedCrs = crsWithCommitments.slice(deadlineSlaPage * 5, (deadlineSlaPage + 1) * 5);
 
-                              return (
-                                <div 
-                                  key={t.id} 
-                                  onClick={() => { setSelectedTask(t); setSelectedBug(null); }}
-                                  className="p-4 bg-[#0f0f11] border border-white/[0.04] rounded-2xl hover:border-cyan-500/30 cursor-pointer space-y-3.5 transition-all text-left"
-                                >
-                                  <div className="flex justify-between items-center">
-                                    <span className="font-mono text-xs font-bold text-cyan-400">{t.jtrackId}</span>
-                                    <span className={`text-[9px] font-black uppercase px-2 py-0.5 rounded border ${riskColor}`}>
-                                      {riskLevel}
-                                    </span>
-                                  </div>
+                          return (
+                            <div className="space-y-4">
+                              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                                {pagedCrs.map((t: any) => {
+                                  const sla = getDeploymentSlaDetails(t);
                                   
-                                  <h5 className="font-bold text-xs text-zinc-200 line-clamp-1">{t.title}</h5>
+                                  // Risk levels
+                                  let riskLevel = 'None';
+                                  let riskColor = 'text-emerald-400 border-emerald-500/20 bg-emerald-500/10';
+                                  if (sla.isMissed) {
+                                    riskLevel = 'High (Overdue)';
+                                    riskColor = 'text-rose-400 border-rose-500/20 bg-rose-500/10';
+                                  } else {
+                                    const minRemaining = Math.min(
+                                      t.expectedSitDeploymentDate && !t.sitDate ? sla.sitRemaining : Infinity,
+                                      t.expectedUatDeploymentDate && !t.uatDate ? sla.uatRemaining : Infinity
+                                    );
+                                    if (minRemaining !== Infinity) {
+                                      if (minRemaining <= 2) {
+                                        riskLevel = 'Medium (At Risk)';
+                                        riskColor = 'text-amber-400 border-amber-500/20 bg-amber-500/10';
+                                      } else {
+                                        riskLevel = 'Low (On Track)';
+                                        riskColor = 'text-sky-400 border-sky-500/20 bg-sky-500/10';
+                                      }
+                                    }
+                                  }
 
-                                  <div className="space-y-1.5 text-[10px] text-zinc-400 pt-2 border-t border-white/[0.04]">
-                                    {t.expectedSitDeploymentDate && (
-                                      <div className="flex justify-between">
-                                        <span>SIT Expected:</span>
-                                        <span className="font-semibold text-zinc-300">
-                                          {fmtDate(t.expectedSitDeploymentDate)}
-                                          {t.sitDate ? (
-                                            <span className="text-emerald-400 ml-1"> (Met)</span>
-                                          ) : sla.sitStatus === 'Missed' ? (
-                                            <span className="text-rose-400 ml-1"> (Overdue {sla.sitDelay}d)</span>
-                                          ) : (
-                                            <span className="text-sky-400 ml-1"> ({sla.sitRemaining}d left)</span>
-                                          )}
+                                  return (
+                                    <div 
+                                      key={t.id} 
+                                      onClick={() => { setSelectedTask(t); setSelectedBug(null); }}
+                                      className="p-4 bg-[#0f0f11] border border-white/[0.04] rounded-2xl hover:border-cyan-500/30 cursor-pointer space-y-3.5 transition-all text-left"
+                                    >
+                                      <div className="flex justify-between items-center">
+                                        <span className="font-mono text-xs font-bold text-cyan-400">{t.jtrackId}</span>
+                                        <span className={`text-[9px] font-black uppercase px-2 py-0.5 rounded border ${riskColor}`}>
+                                          {riskLevel}
                                         </span>
                                       </div>
-                                    )}
+                                      
+                                      <h5 className="font-bold text-xs text-zinc-200 line-clamp-1">{t.title}</h5>
 
-                                    {t.expectedUatDeploymentDate && (
-                                      <div className="flex justify-between">
-                                        <span>UAT Expected:</span>
-                                        <span className="font-semibold text-zinc-300">
-                                          {fmtDate(t.expectedUatDeploymentDate)}
-                                          {t.uatDate ? (
-                                            <span className="text-emerald-400 ml-1"> (Met)</span>
-                                          ) : sla.uatStatus === 'Missed' ? (
-                                            <span className="text-rose-400 ml-1"> (Overdue {sla.uatDelay}d)</span>
-                                          ) : (
-                                            <span className="text-sky-400 ml-1"> ({sla.uatRemaining}d left)</span>
-                                          )}
-                                        </span>
+                                      <div className="space-y-1.5 text-[10px] text-zinc-400 pt-2 border-t border-white/[0.04]">
+                                        {t.expectedSitDeploymentDate && (
+                                          <div className="flex justify-between">
+                                            <span>SIT Expected:</span>
+                                            <span className="font-semibold text-zinc-300">
+                                              {fmtDate(t.expectedSitDeploymentDate)}
+                                              {t.sitDate ? (
+                                                <span className="text-emerald-400 ml-1"> (Met)</span>
+                                              ) : sla.sitStatus === 'Missed' ? (
+                                                <span className="text-rose-400 ml-1"> (Overdue {sla.sitDelay}d)</span>
+                                              ) : (
+                                                <span className="text-sky-400 ml-1"> ({sla.sitRemaining}d left)</span>
+                                              )}
+                                            </span>
+                                          </div>
+                                        )}
+
+                                        {t.expectedUatDeploymentDate && (
+                                          <div className="flex justify-between">
+                                            <span>UAT Expected:</span>
+                                            <span className="font-semibold text-zinc-300">
+                                              {fmtDate(t.expectedUatDeploymentDate)}
+                                              {t.uatDate ? (
+                                                <span className="text-emerald-400 ml-1"> (Met)</span>
+                                              ) : sla.uatStatus === 'Missed' ? (
+                                                <span className="text-rose-400 ml-1"> (Overdue {sla.uatDelay}d)</span>
+                                              ) : (
+                                                <span className="text-sky-400 ml-1"> ({sla.uatRemaining}d left)</span>
+                                              )}
+                                            </span>
+                                          </div>
+                                        )}
                                       </div>
-                                    )}
-                                  </div>
-                                </div>
-                              );
-                            });
-                          })()}
-                        </div>
+                                    </div>
+                                  );
+                                })}
+                              </div>
+
+                              <Pagination
+                                currentPage={deadlineSlaPage}
+                                totalItems={crsWithCommitments.length}
+                                pageSize={5}
+                                onPageChange={setDeadlineSlaPage}
+                                className="border border-white/[0.06] bg-white/[0.02] rounded-2xl mt-3"
+                              />
+                            </div>
+                          );
+                        })()}
                       </div>
                     );
                   }
@@ -1809,23 +1828,23 @@ export default function DeveloperDashboard() {
                           const displayRemarks = rejectLog?.remarks || selectedTask.remarks;
 
                           return (rejectLog || selectedTask.status === "CHANGES_REQUESTED") && (selectedTask.status === "IN_PROGRESS" || selectedTask.status === "CHANGES_REQUESTED") ? (
-                            <div className="rounded-2xl border border-pink-400/25 bg-pink-950/25 backdrop-blur-md p-4 shadow-[0_4px_20px_rgba(244,114,182,0.08)] space-y-3 text-left">
+                            <div className="rounded-2xl border border-rose-500/40 bg-gradient-to-r from-rose-950/90 via-rose-900/60 to-amber-950/40 backdrop-blur-md p-4.5 shadow-lg shadow-rose-950/50 space-y-3.5 text-left">
                               {/* Header */}
-                              <div className="flex items-center gap-2.5">
-                                <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-pink-500/20 border border-pink-400/30 text-pink-300 shadow-sm">
-                                  <AlertTriangle className="h-4 w-4" />
+                              <div className="flex items-center gap-3">
+                                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-rose-500/30 border border-rose-400/50 text-rose-200 shadow-md">
+                                  <AlertTriangle className="h-5 w-5 text-rose-300" />
                                 </div>
                                 <div>
-                                  <p className="text-sm font-black text-pink-100 uppercase tracking-wide leading-none">Change Requested</p>
-                                  <p className="text-[10px] text-pink-300/80 mt-0.5">Sent back by <strong className="text-pink-100">{reviewerName}</strong></p>
+                                  <p className="text-sm font-extrabold text-white uppercase tracking-wider leading-tight">Change Requested</p>
+                                  <p className="text-xs text-rose-200/90 mt-0.5 font-medium">Sent back by <strong className="text-white font-bold">{reviewerName}</strong></p>
                                 </div>
-                                <span className="ml-auto text-[9px] font-bold bg-pink-500/20 text-pink-200 border border-pink-400/30 px-2.5 py-0.5 rounded-full uppercase tracking-widest animate-pulse">Action Required</span>
+                                <span className="ml-auto text-[10px] font-black bg-rose-500 text-white border border-rose-400/60 px-3 py-1 rounded-full uppercase tracking-widest shadow-md animate-pulse">Action Required</span>
                               </div>
                               {/* Remarks */}
-                              <div className="space-y-1">
-                                <span className="text-[10px] font-bold text-pink-300/90 uppercase tracking-widest block">Admin Remarks:</span>
-                                <div className="bg-pink-950/20 border border-pink-400/20 p-3.5 rounded-xl">
-                                  <p className="text-xs font-semibold text-pink-100 leading-relaxed whitespace-pre-wrap">
+                              <div className="space-y-1.5">
+                                <span className="text-[10px] font-extrabold text-rose-200 uppercase tracking-widest block">Admin Remarks:</span>
+                                <div className="bg-slate-950/90 border border-rose-500/35 p-4 rounded-xl shadow-inner">
+                                  <p className="text-xs font-semibold text-rose-50 leading-relaxed whitespace-pre-wrap">
                                     {displayRemarks || "Changes requested. Please review and resubmit."}
                                   </p>
                                 </div>
@@ -2564,8 +2583,9 @@ export default function DeveloperDashboard() {
                 <div className="flex justify-end space-x-3 pt-3 border-t border-[#242427]">
                   <Button 
                     type="button" 
+                    variant="outline"
                     onClick={() => setIsSubmitOpen(false)}
-                    className="h-9 rounded-xl px-4 bg-zinc-800 hover:bg-zinc-700 text-zinc-100 border border-zinc-700 font-bold transition-colors"
+                    className="h-9 rounded-xl px-5 border border-slate-600 bg-slate-800 hover:bg-slate-700 text-white font-bold transition-colors shadow-sm"
                   >
                     Cancel
                   </Button>

@@ -139,7 +139,7 @@ export default function Sidebar({ collapsed, setCollapsed }: SidebarProps) {
         "relative flex h-16 items-center border-b border-white/[0.06] shrink-0",
         collapsed ? "justify-center px-2" : "justify-between px-4"
       )}>
-        <div className="flex items-center space-x-2.5 overflow-hidden min-w-0">
+        <div className="flex items-center space-x-2.5 overflow-hidden min-w-0 select-none" onContextMenu={(e) => e.preventDefault()}>
           {/* Gradient icon */}
           <div className="flex h-9 w-9 items-center justify-center rounded-xl shrink-0" style={{ background: 'var(--linearPrimaryAccent)', boxShadow: '0 0 18px rgba(var(--primary-rgb),0.5)' }}>
             <Terminal className="h-4 w-4 text-white" strokeWidth={2.5} />
@@ -151,7 +151,7 @@ export default function Sidebar({ collapsed, setCollapsed }: SidebarProps) {
                 animate={{ opacity: 1, x: 0 }}
                 exit={{ opacity: 0, x: -8 }}
                 transition={{ duration: 0.18 }}
-                className="font-extrabold tracking-tight text-gradient truncate text-sm"
+                className="font-extrabold tracking-tight text-gradient truncate text-sm select-none"
               >
                 DevTrack
               </motion.span>

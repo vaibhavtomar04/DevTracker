@@ -310,6 +310,14 @@ public class TaskController {
                 td.setTask(task);
             }
         }
+        
+        // Sentinel fallback: if assignedDeveloper is null but developers pool exists, pick the first
+        if (task.getAssignedDeveloper() == null && task.getDevelopers() != null && !task.getDevelopers().isEmpty()) {
+            TaskDeveloper firstTd = task.getDevelopers().get(0);
+            if (firstTd.getDeveloper() != null) {
+                task.setAssignedDeveloper(firstTd.getDeveloper());
+            }
+        }
 
         Task savedTask;
         if (task.getWorkflow() != null) {
@@ -673,48 +681,77 @@ public class TaskController {
                             }
 
                             // ── Recognition hook — fire via ApplicationEventPublisher ──
-                            // Each event type maps to a point delta in RecognitionEventListener.
+                            // Multi-developer support: EQUAL point distribution strategy across all co-developers
                             try {
-                                Long devId = savedFinal.getAssignedDeveloper() != null
-                                        ? savedFinal.getAssignedDeveloper().getId() 
-                                        : (savedFinal.getCreatedBy() != null ? savedFinal.getCreatedBy().getId() : currentUserFinal.getId());
+                                java.util.Set<Long> devIdSet = new java.util.TreeSet<>();
+                                if (savedFinal.getAssignedDeveloper() != null) {
+                                    devIdSet.add(savedFinal.getAssignedDeveloper().getId());
+                                }
+                                if (savedFinal.getDevelopers() != null) {
+                                    savedFinal.getDevelopers().forEach(td -> {
+                                        if (td.getDeveloper() != null) devIdSet.add(td.getDeveloper().getId());
+                                    });
+                                }
+                                if (devIdSet.isEmpty() && savedFinal.getCreatedBy() != null) {
+                                    devIdSet.add(savedFinal.getCreatedBy().getId());
+                                }
+                                if (devIdSet.isEmpty()) {
+                                    devIdSet.add(currentUserFinal.getId());
+                                }
+                                java.util.List<Long> allDevIds = new java.util.ArrayList<>(devIdSet);
+                                int numDevs = allDevIds.size();
+
                                 Long testerId = savedFinal.getTester() != null
                                         ? savedFinal.getTester().getId() 
                                         : currentUserFinal.getId();
                                 String newSt = savedFinal.getStatus();
-                                java.util.Map<String, Object> meta = java.util.Map.of(
-                                    "jtrackId", savedFinal.getJtrackId() != null ? savedFinal.getJtrackId() : "",
-                                    "priority", savedFinal.getPriority() != null ? savedFinal.getPriority() : ""
-                                );
-                                if (("PROD_COMPLETED".equalsIgnoreCase(newSt) || "CLOSED".equalsIgnoreCase(newSt)) && devId != null) {
-                                    applicationEventPublisher.publishEvent(new RecognitionTriggerEvent(
-                                        savedFinal, "CR_COMPLETED", devId, "TASK", savedFinal.getId(),
-                                        currentUserFinal.getUsername(), meta));
+
+                                java.util.function.BiConsumer<String, Integer> publishForDevs = (eventType, basePoints) -> {
+                                    int base = basePoints / numDevs;
+                                    int rem = Math.abs(basePoints % numDevs);
+                                    int step = basePoints < 0 ? -1 : 1;
+
+                                    for (int i = 0; i < numDevs; i++) {
+                                        Long dId = allDevIds.get(i);
+                                        int pointsForThisDev = base + (i < rem ? step : 0);
+                                        java.util.Map<String, Object> meta = new java.util.HashMap<>();
+                                        meta.put("jtrackId", savedFinal.getJtrackId() != null ? savedFinal.getJtrackId() : "");
+                                        meta.put("priority", savedFinal.getPriority() != null ? savedFinal.getPriority() : "");
+                                        meta.put("pointsOverride", pointsForThisDev);
+                                        meta.put("strategy", "EQUAL");
+                                        meta.put("poolSize", numDevs);
+
+                                        applicationEventPublisher.publishEvent(new RecognitionTriggerEvent(
+                                            savedFinal, eventType, dId, "TASK", savedFinal.getId(),
+                                            currentUserFinal.getUsername(), meta));
+                                    }
+                                };
+
+                                if ("PROD_COMPLETED".equalsIgnoreCase(newSt) || "CLOSED".equalsIgnoreCase(newSt)) {
+                                    publishForDevs.accept("CR_COMPLETED", 50);
                                 }
-                                if ("PROD_DEPLOYED".equalsIgnoreCase(newSt) && devId != null) {
-                                    applicationEventPublisher.publishEvent(new RecognitionTriggerEvent(
-                                        savedFinal, "DEPLOYMENT_SUCCESS", devId, "TASK", savedFinal.getId(),
-                                        currentUserFinal.getUsername(), meta));
+                                if ("PROD_DEPLOYED".equalsIgnoreCase(newSt)) {
+                                    publishForDevs.accept("DEPLOYMENT_SUCCESS", 30);
                                 }
-                                if (("CODE_REVIEW_DONE".equalsIgnoreCase(newSt) || "MOVE_TO_UAT".equalsIgnoreCase(newSt)) && devId != null) {
-                                    applicationEventPublisher.publishEvent(new RecognitionTriggerEvent(
-                                        savedFinal, "CODE_APPROVED", devId, "TASK", savedFinal.getId(),
-                                        currentUserFinal.getUsername(), meta));
+                                if ("CODE_REVIEW_DONE".equalsIgnoreCase(newSt) || "MOVE_TO_UAT".equalsIgnoreCase(newSt)) {
+                                    publishForDevs.accept("CODE_APPROVED", 15);
                                 }
-                                if ("CHANGES_REQUESTED".equalsIgnoreCase(newSt) && devId != null) {
-                                    applicationEventPublisher.publishEvent(new RecognitionTriggerEvent(
-                                        savedFinal, "CODE_CHANGES_REQUESTED", devId, "TASK", savedFinal.getId(),
-                                        currentUserFinal.getUsername(), meta));
+                                if ("CHANGES_REQUESTED".equalsIgnoreCase(newSt)) {
+                                    publishForDevs.accept("CODE_CHANGES_REQUESTED", -10);
                                 }
                                 if (("TESTING_COMPLETED".equalsIgnoreCase(newSt) || "UAT_COMPLETED".equalsIgnoreCase(newSt) || "SIT_COMPLETED".equalsIgnoreCase(newSt)) && testerId != null) {
                                     applicationEventPublisher.publishEvent(new RecognitionTriggerEvent(
                                         savedFinal, "TESTING_COMPLETED", testerId, "TASK", savedFinal.getId(),
-                                        currentUserFinal.getUsername(), meta));
+                                        currentUserFinal.getUsername(), java.util.Map.of(
+                                            "jtrackId", savedFinal.getJtrackId() != null ? savedFinal.getJtrackId() : "",
+                                            "priority", savedFinal.getPriority() != null ? savedFinal.getPriority() : ""
+                                        )));
                                 }
                             } catch (Exception e) {
                                 log.error("Failed to publish recognition trigger for task {}: {}",
                                         savedFinal.getId(), e.getMessage());
                             }
+
                         });
                     }
 
@@ -1321,11 +1358,14 @@ public class TaskController {
                 if ("TESTING".equals(currentStep.getStepType()) && !roles.contains("ROLE_TESTER")) {
                     return ResponseEntity.status(403).body("Only Testers can approve this step.");
                 }
-                if ("TASK".equals(currentStep.getStepType()) && task.getAssignedDeveloper() != null) {
-                    if (!task.getAssignedDeveloper().getUsername().equals(username)) {
-                        return ResponseEntity.status(403).body("Only the assigned developer can approve this task step.");
+                if ("TASK".equals(currentStep.getStepType())) {
+                    boolean isPrimaryDev = task.getAssignedDeveloper() != null && task.getAssignedDeveloper().getUsername().equals(username);
+                    boolean isPoolDev = task.getDevelopers() != null && task.getDevelopers().stream().anyMatch(td -> td.getDeveloper() != null && username.equals(td.getDeveloper().getUsername()));
+                    if (!isPrimaryDev && !isPoolDev) {
+                        return ResponseEntity.status(403).body("Only an assigned developer can approve this task step.");
                     }
                 }
+
             }
 
             // Date validation for the NEXT status

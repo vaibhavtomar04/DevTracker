@@ -169,6 +169,10 @@ public class RecognitionEventListener {
     private int resolvePoints(RecognitionTriggerEvent trigger) {
         Map<String, Object> meta = trigger.getMetadata();
 
+        if (meta.containsKey("pointsOverride")) {
+            Object p = meta.get("pointsOverride");
+            return p instanceof Number n ? n.intValue() : 0;
+        }
         if ("ADMIN_SCORE_ADJUSTMENT".equals(trigger.getEventType())) {
             Object p = meta.get("points");
             return p instanceof Number n ? n.intValue() : 0;

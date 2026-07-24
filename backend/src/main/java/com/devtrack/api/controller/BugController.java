@@ -37,6 +37,7 @@ import com.devtrack.api.repository.UserRepository;
 import com.devtrack.api.repository.WorkflowRepository;
 import com.devtrack.api.services.EmailNotificationService;
 import java.time.LocalDateTime;
+import com.devtrack.api.model.BugDeveloper;
 import com.devtrack.api.model.BugDeveloperFixSummary;
 import com.devtrack.api.event.RecognitionTriggerEvent;
 import com.devtrack.api.dto.BugDeveloperFixSummaryDto;
@@ -89,6 +90,9 @@ public class BugController {
 
     @Autowired
     private org.springframework.context.ApplicationEventPublisher applicationEventPublisher;
+
+    @Autowired
+    private com.devtrack.api.repository.BugDeveloperRepository bugDeveloperRepository;
 
     @GetMapping
     public ResponseEntity<?> getAllBugs(
@@ -207,10 +211,42 @@ public class BugController {
             taskRepository.findById(bug.getCrTaskId()).ifPresent(bug::setBugTask);
         }
 
-        if (bug.getAssignedDeveloper() == null && bug.getBugTask() != null) {
-            bug.setAssignedDeveloper(bug.getBugTask().getAssignedDeveloper());
-        }
+        // ── Multi-developer assignment ─────────────────────────────────────────────
+        // A Bug inherits its developer pool from the parent CR at creation time.
+        // All developers in the parent CR's pool are assigned to this bug.
+        // The legacy assignedDeveloper field is kept as the PRIMARY SENTINEL (first/primary dev).
+        if (bug.getBugTask() != null) {
+            Task parentTask = bug.getBugTask();
 
+            // Build the full pool from parent CR
+            java.util.List<User> poolFromCr = new java.util.ArrayList<>();
+            if (parentTask.getDevelopers() != null) {
+                parentTask.getDevelopers().forEach(td -> {
+                    if (td.getDeveloper() != null) poolFromCr.add(td.getDeveloper());
+                });
+            }
+            // Include parent's assignedDeveloper if not already in pool
+            if (parentTask.getAssignedDeveloper() != null) {
+                boolean alreadyInPool = poolFromCr.stream()
+                    .anyMatch(u -> u.getId().equals(parentTask.getAssignedDeveloper().getId()));
+                if (!alreadyInPool) {
+                    poolFromCr.add(0, parentTask.getAssignedDeveloper());
+                }
+            }
+
+            // Populate the bug's in-memory developers list for cascade-save
+            for (User dev : poolFromCr) {
+                BugDeveloper bd = new BugDeveloper();
+                bd.setBug(bug);
+                bd.setDeveloper(dev);
+                bug.getDevelopers().add(bd);
+            }
+
+            // Set sentinel from pool if not explicitly provided
+            if (bug.getAssignedDeveloper() == null && !poolFromCr.isEmpty()) {
+                bug.setAssignedDeveloper(poolFromCr.get(0));
+            }
+        }
         if (bug.getAssignedDeveloper() == null) {
             throw new RuntimeException("Assignee is mandatory for Bugs.");
         }
@@ -320,16 +356,18 @@ public class BugController {
             bugWorkflowMapRepository.saveAll(wmaps);
         }
 
+        // Notify all developers in the bug's pool (inherited from parent CR)
         java.util.Set<Long> notifiedDevIds = new java.util.HashSet<>();
-        if (savedBug.getBugTask() != null && savedBug.getBugTask().getDevelopers() != null && !savedBug.getBugTask().getDevelopers().isEmpty()) {
-            for (com.devtrack.api.model.TaskDeveloper td : savedBug.getBugTask().getDevelopers()) {
-                if (td.getDeveloper() != null && !notifiedDevIds.contains(td.getDeveloper().getId())) {
-                    notifiedDevIds.add(td.getDeveloper().getId());
-                    createAndPushNotification(td.getDeveloper().getId(), "New Bug Assigned: " + savedBug.getJtrackId(),
+        if (savedBug.getDevelopers() != null) {
+            for (BugDeveloper bd : savedBug.getDevelopers()) {
+                if (bd.getDeveloper() != null && !notifiedDevIds.contains(bd.getDeveloper().getId())) {
+                    notifiedDevIds.add(bd.getDeveloper().getId());
+                    createAndPushNotification(bd.getDeveloper().getId(), "New Bug Assigned: " + savedBug.getJtrackId(),
                         "Bug '" + savedBug.getTitle() + "' has been assigned to you by " + currentUser.getFullName() + ". Status: " + savedBug.getStatus());
                 }
             }
         }
+        // Also notify the sentinel if not already in the pool
         if (savedBug.getAssignedDeveloper() != null && !notifiedDevIds.contains(savedBug.getAssignedDeveloper().getId())) {
             notifiedDevIds.add(savedBug.getAssignedDeveloper().getId());
             createAndPushNotification(savedBug.getAssignedDeveloper().getId(), "New Bug Assigned: " + savedBug.getJtrackId(),
@@ -339,6 +377,7 @@ public class BugController {
             createAndPushNotification(savedBug.getRaisedBy().getId(), "Bug Created: " + savedBug.getJtrackId(),
                 "You have raised a Bug: '" + savedBug.getTitle() + "'.");
         }
+
 
         return savedBug;
     }

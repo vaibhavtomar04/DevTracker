@@ -57,7 +57,8 @@ export default function CodeReviewPage() {
   }
 
   // Filter Code Review tasks using status and global searchQuery
-  const reviewTasks = tasks.filter(t => {
+  const taskList = Array.isArray(tasks) ? tasks : ((tasks as any)?.content || [])
+  const reviewTasks = taskList.filter((t: any) => {
     if (t.status !== "CODE_REVIEW") return false
     if (!searchQuery) return true
     
@@ -167,7 +168,7 @@ export default function CodeReviewPage() {
                     </td>
                   </tr>
                 ) : (
-                  reviewTasks.map((task) => (
+                  reviewTasks.map((task: any) => (
                     <motion.tr 
                       key={task.id} 
                       variants={rowVariants}

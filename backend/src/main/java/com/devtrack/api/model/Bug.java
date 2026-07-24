@@ -1,6 +1,8 @@
 package com.devtrack.api.model;
 
 import jakarta.persistence.*;
+import java.util.ArrayList;
+import java.util.List;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -118,6 +120,22 @@ public class Bug {
     
     @Column(name = "in_pool_date")
     private LocalDateTime inPoolDate;
+
+    /**
+     * Optimistic locking — guards concurrent workflow transitions on the same Bug.
+     * Any concurrent update that reads a stale version will receive a 409 from the
+     * global OptimisticLockingFailureException handler.
+     */
+    @Version
+    private Long version;
+
+    /**
+     * Multi-developer pool: all developers assigned to this bug.
+     * The legacy {@code assignedDeveloper} FK is preserved as the primary sentinel.
+     * All pool members — including the sentinel — are also stored here.
+     */
+    @OneToMany(mappedBy = "bug", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.EAGER)
+    private List<com.devtrack.api.model.BugDeveloper> developers = new ArrayList<>();
 
     @PrePersist
     protected void onCreate() {

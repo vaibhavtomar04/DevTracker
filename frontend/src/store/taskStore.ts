@@ -508,10 +508,11 @@ export const useTaskStore = create<TaskState>((set, get) => ({
 
     // Refresh tasks and audit logs after approval in the background
     Promise.all([
-      apiClient("/api/tasks"),
+      apiClient("/api/tasks?page=0&size=100"),
       apiClient("/api/audit")
     ]).then(([tasksRes, auditRes]) => {
-      set({ tasks: tasksRes, auditLogs: auditRes })
+      const rawTasks = tasksRes && tasksRes.content ? tasksRes.content : (Array.isArray(tasksRes) ? tasksRes : []);
+      set({ tasks: rawTasks, auditLogs: auditRes })
     }).catch(err => {
       console.error("Failed to refresh data after approve:", err)
     })
@@ -528,10 +529,11 @@ export const useTaskStore = create<TaskState>((set, get) => ({
 
     // Refresh tasks and audit logs after rejection so "Sent Back By Admin" tag appears
     Promise.all([
-      apiClient("/api/tasks"),
+      apiClient("/api/tasks?page=0&size=100"),
       apiClient("/api/audit")
     ]).then(([tasksRes, auditRes]) => {
-      set({ tasks: tasksRes, auditLogs: auditRes })
+      const rawTasks = tasksRes && tasksRes.content ? tasksRes.content : (Array.isArray(tasksRes) ? tasksRes : []);
+      set({ tasks: rawTasks, auditLogs: auditRes })
     }).catch(err => {
       console.error("Failed to refresh data after reject:", err)
     })

@@ -72,6 +72,25 @@ public class EmailNotificationService {
 	@Value("${devtrack.backend.base-url:http://localhost:8080}")
 	private String backendBaseUrl;
 
+	@Value("${server.servlet.context-path:}")
+	private String contextPath;
+
+	public String buildBackendUrl(String relativePath) {
+		String base = (backendBaseUrl != null ? backendBaseUrl : "").replaceAll("/+$", "");
+		String cp = (contextPath != null ? contextPath : "").trim().replaceAll("/+$", "");
+		if (!cp.isEmpty() && !cp.startsWith("/")) {
+			cp = "/" + cp;
+		}
+		if ("/".equals(cp)) {
+			cp = "";
+		}
+		String path = (relativePath != null ? relativePath : "").trim();
+		if (!path.startsWith("/")) {
+			path = "/" + path;
+		}
+		return base + cp + path;
+	}
+
 	@Value("${mail.devops:}")
 	private String devopsMail;
 
@@ -310,7 +329,7 @@ public class EmailNotificationService {
 			testMap.put("url", baseUrl + "/dashboard/testing");
 			testMap.put("remarks", remarks);
 			if (task.getUnitTestDocUrl() != null) {
-				testMap.put("unitTestDocUrl", backendBaseUrl + "/api/tasks/" + task.getId() + "/download-unit-test-doc");
+				testMap.put("unitTestDocUrl", buildBackendUrl("/api/tasks/" + task.getId() + "/download-unit-test-doc"));
 			} else {
 				testMap.put("unitTestDocUrl", null);
 			}
@@ -375,7 +394,7 @@ public class EmailNotificationService {
 					if (doc.getDocType() == Document.DocType.SUPPORT) {
 						Map<String, String> artifactMap = new HashMap<>();
 						artifactMap.put("filename", doc.getFilename());
-						artifactMap.put("downloadUrl", backendBaseUrl + "/api/auth/documents/" + doc.getId() + "/download");
+						artifactMap.put("downloadUrl", buildBackendUrl("/api/auth/documents/" + doc.getId() + "/download"));
 						artifacts.add(artifactMap);
 					}
 				}

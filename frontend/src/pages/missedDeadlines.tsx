@@ -37,9 +37,9 @@ export default function MissedDeadlinesPage() {
   const [priority, setPriority] = useState("")
   const [milestoneType, setMilestoneType] = useState<"ALL" | "SIT" | "UAT">("ALL")
 
-  // Pagination
+  // Pagination: 5 requests per page
   const [missedPage, setMissedPage] = useState(0)
-  const MISSED_PAGE_SIZE = 20
+  const MISSED_PAGE_SIZE = 5
 
   // Load deadline analytics for KPIs
   const loadAnalytics = async () => {
@@ -348,13 +348,19 @@ export default function MissedDeadlinesPage() {
 
                       {/* Priority */}
                       <td className="px-4 py-3 text-xs">
-                        <span className={`text-[9px] font-black px-2 py-0.5 rounded-full border ${
-                          t.priority === "High" ? "bg-rose-500/10 text-rose-400 border-rose-500/20" :
-                          t.priority === "Medium" ? "bg-amber-500/10 text-amber-400 border-amber-500/20" :
-                          "bg-zinc-800 text-zinc-400 border-zinc-700/50"
-                        }`}>
-                          {t.priority}
-                        </span>
+                        {(() => {
+                          const prioUpper = (t.priority || "").toUpperCase();
+                          const prioStyle = prioUpper.includes("HIGH")
+                            ? "bg-rose-500/20 text-rose-300 border-rose-500/40"
+                            : prioUpper.includes("MEDIUM") || prioUpper.includes("MED")
+                            ? "bg-amber-500/25 text-amber-300 border-amber-500/40"
+                            : "bg-sky-500/20 text-sky-300 border-sky-500/40";
+                          return (
+                            <span className={`text-[10px] font-black px-2.5 py-0.5 rounded-full border shadow-sm uppercase tracking-wide ${prioStyle}`}>
+                              {t.priority}
+                            </span>
+                          );
+                        })()}
                       </td>
 
                       {/* Milestone */}
