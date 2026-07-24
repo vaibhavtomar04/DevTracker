@@ -2,6 +2,7 @@ import React, { useEffect, useState, useMemo, useCallback } from "react"
 import { fmtDate } from "@/utils/dateFormat"
 import { getAssignedDevNames } from "@/utils/devUtils"
 import { useTaskStore } from "@/store/taskStore"
+import { useDashboardStore } from "@/store/dashboardStore"
 import { useAuthStore } from "@/store/authStore"
 import { useSprintStore } from "@/store/sprintStore"
 import { useThemeStore } from "@/store/themeStore"
@@ -96,7 +97,6 @@ export default function DeveloperDashboard() {
     tasks,
     bugs,
     auditLogs,
-    loading,
     fetchData,
     updateTask,
     searchQuery,
@@ -109,6 +109,7 @@ export default function DeveloperDashboard() {
     configs
   } = useTaskStore()
   
+  const { fetchSummary, summary: dashSummary, loading: dashLoading } = useDashboardStore()
   const { sprints, fetchSprints } = useSprintStore()
   const { user } = useAuthStore()
 
@@ -271,6 +272,9 @@ export default function DeveloperDashboard() {
 
   // Fetch initial data & start periodic polling (every 5s) so co-developer workflow updates sync live
   useEffect(() => {
+    // fetchSummary fires first — backend runs all KPI queries in parallel
+    // dashboard KPI cards will render within ~1-2s from this call
+    fetchSummary()
     fetchData(true)
     fetchSprints()
     fetchBugReviews()
@@ -910,12 +914,41 @@ export default function DeveloperDashboard() {
 
                         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3.5">
                           {[
-                            { id: "active_crs", label: "Active CRs", value: tasks.filter(t => isAssignedToMe(t) && t.status !== "CLOSED" && t.status !== "PROD_DEPLOYED").length, type: "cyan", icon: "⚡" },
-                            { id: "pending_approvals", label: "Approvals", value: tasks.filter(t => t.status === "CODE_REVIEW").length, type: "emerald", icon: "✓" },
-                            { id: "proposed_bug_reviews", label: "Proposed Bug Reviews", value: pendingReviews.length, type: "rose", icon: "🔎" },
-                            { id: "assigned_bugs", label: "Assigned Bugs", value: bugFoundCrs.length, type: "rose", icon: "🐛" },
-                            { id: "pending_deployments", label: "Deployments", value: tasks.filter(t => isAssignedToMe(t) && (t.status === "MOVE_TO_UAT" || t.status === "SIT_DEPLOYED")).length, type: "cyan", icon: "🚀" },
-                            { id: "closed_crs", label: "Closed CRs", value: tasks.filter(t => isAssignedToMe(t) && (t.status === "CLOSED" || t.status === "PROD_DEPLOYED")).length, type: "emerald", icon: "✅" },
+                            {
+                              id: "active_crs",
+                              label: "Active CRs",
+                              // Use server-side MINE-scope count while available; fall back to local calc once taskStore loads
+                              value: dashSummary ? dashSummary.stats.totalCrs : tasks.filter(t => isAssignedToMe(t) && t.status !== "CLOSED" && t.status !== "PROD_DEPLOYED").length,
+                              loading: dashLoading && !dashSummary,
+                              type: "cyan",
+                              icon: "⚡"
+                            },
+                            {
+                              id: "pending_approvals",
+                              label: "Approvals",
+                              value: dashSummary ? dashSummary.stats.pendingApprovals : tasks.filter(t => t.status === "CODE_REVIEW").length,
+                              loading: dashLoading && !dashSummary,
+                              type: "emerald",
+                              icon: "✓"
+                            },
+                            { id: "proposed_bug_reviews", label: "Proposed Bug Reviews", value: pendingReviews.length, loading: false, type: "rose", icon: "🔎" },
+                            {
+                              id: "assigned_bugs",
+                              label: "Assigned Bugs",
+                              value: dashSummary ? dashSummary.stats.activeBugs : bugFoundCrs.length,
+                              loading: dashLoading && !dashSummary,
+                              type: "rose",
+                              icon: "🐛"
+                            },
+                            { id: "pending_deployments", label: "Deployments", value: tasks.filter(t => isAssignedToMe(t) && (t.status === "MOVE_TO_UAT" || t.status === "SIT_DEPLOYED")).length, loading: false, type: "cyan", icon: "🚀" },
+                            {
+                              id: "closed_crs",
+                              label: "Closed CRs",
+                              value: dashSummary ? dashSummary.stats.completedUat : tasks.filter(t => isAssignedToMe(t) && (t.status === "CLOSED" || t.status === "PROD_DEPLOYED")).length,
+                              loading: dashLoading && !dashSummary,
+                              type: "emerald",
+                              icon: "✅"
+                            },
                           ].map((card, i) => {
                             const isSelected = filterCard === card.id
                             const isDark = theme === "dark"
@@ -1035,7 +1068,7 @@ export default function DeveloperDashboard() {
 
                                 <div className="relative z-10 p-4 pr-8">
                                   <span className="block text-[10px] font-bold uppercase tracking-wider transition-colors duration-300" style={{ color: currentLabelColor }}>{card.label}</span>
-                                  {loading ? (
+                                  {card.loading ? (
                                     <div className="mt-2 h-7 w-12 rounded-lg bg-white/10 animate-pulse" />
                                   ) : (
                                     <motion.span

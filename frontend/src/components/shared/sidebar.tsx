@@ -61,6 +61,32 @@ export default function Sidebar({ collapsed, setCollapsed }: SidebarProps) {
     { name: "Settings",       path: "/dashboard/settings",     icon: Settings,        roles: ["DEVADMIN", "TESTADMIN", "DEVELOPER", "TESTER"] },
   ]
 
+  const routeMap: Record<string, () => Promise<any>> = {
+    "/dashboard": () => import("@/pages/developerDashboard"),
+    "/dashboard/crs": () => import("@/pages/crManagement"),
+    "/dashboard/sprints": () => import("@/pages/sprints"),
+    "/dashboard/sprint-tasks": () => import("@/pages/sprintTasks"),
+    "/dashboard/tested-crs": () => import("@/pages/testedCrs"),
+    "/dashboard/code-review": () => import("@/pages/codeReview"),
+    "/dashboard/developers": () => import("@/pages/developers"),
+    "/dashboard/testing": () => import("@/pages/testerDashboard"),
+    "/dashboard/deployments": () => import("@/pages/deployments"),
+    "/dashboard/missed-deadlines": () => import("@/pages/missedDeadlines"),
+    "/dashboard/recognition": () => import("@/pages/recognition"),
+    "/dashboard/leaderboard": () => import("@/pages/leaderboard"),
+    "/dashboard/reports": () => import("@/pages/reports"),
+    "/dashboard/users": () => import("@/pages/users"),
+    "/dashboard/audits": () => import("@/pages/audits"),
+    "/dashboard/settings": () => import("@/pages/settings"),
+  }
+
+  const prefetchRoute = (path: string) => {
+    const loader = routeMap[path]
+    if (loader) {
+      loader().catch(() => {})
+    }
+  }
+
   // Normalize user roles by stripping 'ROLE_' prefix if present from backend
   const normalizedUserRoles = (user?.roles || []).map((role) => role.replace(/^ROLE_/, ""))
 
@@ -171,6 +197,7 @@ export default function Sidebar({ collapsed, setCollapsed }: SidebarProps) {
               key={item.name}
               disabled={isDisabled}
               onClick={() => !isDisabled && navigate(item.path)}
+              onMouseEnter={() => !isDisabled && prefetchRoute(item.path)}
               title={isDisabled ? "Accessible only to Testers and Admins" : (collapsed ? item.name : undefined)}
               className={cn(
                 "group relative flex w-full items-center rounded-lg px-3 py-2.5 text-xs font-semibold tracking-wide transition-all duration-200 outline-none",

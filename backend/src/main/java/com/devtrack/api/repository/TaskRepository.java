@@ -227,8 +227,93 @@ public interface TaskRepository extends JpaRepository<Task, Long>, org.springfra
 
     boolean existsByJtrackId(String jtrackId);
 
+    long countByStatusIn(List<String> statuses);
+
     @Query("SELECT t.jtrackId FROM Task t WHERE t.jtrackId LIKE CONCAT(:prefix, '%')")
     List<String> findJtrackIdsByPrefix(@Param("prefix") String prefix);
+
+    // ── Dashboard Aggregate Count Queries (native SQL for speed) ──────────────────
+
+    /**
+     * Count tasks in a given sprint — replaces full entity load for sprint summary.
+     */
+    @Query(value = "SELECT COUNT(*) FROM tasks WHERE sprint_id = :sprintId", nativeQuery = true)
+    int countBySprintIdNative(@Param("sprintId") Long sprintId);
+
+    /**
+     * Count completed tasks in a given sprint — terminal statuses only.
+     */
+    @Query(value = "SELECT COUNT(*) FROM tasks WHERE sprint_id = :sprintId AND status IN ('CLOSED','PROD_DEPLOYED','PROD_COMPLETED')", nativeQuery = true)
+    int countCompletedBySprintIdNative(@Param("sprintId") Long sprintId);
+
+    /**
+     * Scope=MINE: count active (non-terminal) tasks assigned to a specific user.
+     */
+    @Query(value = """
+        SELECT COUNT(DISTINCT t.id) FROM tasks t
+        WHERE (t.assigned_developer_id = :userId
+               OR t.tester_id = :userId
+               OR EXISTS (SELECT 1 FROM task_developers td WHERE td.task_id = t.id AND td.developer_id = :userId))
+          AND t.status NOT IN ('CLOSED', 'PROD_COMPLETED')
+        """, nativeQuery = true)
+    long countActiveCrsForUser(@Param("userId") Long userId);
+
+    /**
+     * Scope=MINE: count tasks pending approval (CODE_REVIEW or PENDING_APPROVAL) for a user.
+     */
+    @Query(value = """
+        SELECT COUNT(DISTINCT t.id) FROM tasks t
+        WHERE (t.assigned_developer_id = :userId
+               OR EXISTS (SELECT 1 FROM task_developers td WHERE td.task_id = t.id AND td.developer_id = :userId))
+          AND t.status IN ('PENDING_APPROVAL','CODE_REVIEW')
+        """, nativeQuery = true)
+    long countPendingApprovalCrsForUser(@Param("userId") Long userId);
+
+    /**
+     * Scope=MINE: count completed/closed tasks for a user (UAT_TESTING or PROD_DEPLOYED or beyond).
+     */
+    @Query(value = """
+        SELECT COUNT(DISTINCT t.id) FROM tasks t
+        WHERE (t.assigned_developer_id = :userId
+               OR EXISTS (SELECT 1 FROM task_developers td WHERE td.task_id = t.id AND td.developer_id = :userId))
+          AND t.status IN ('UAT_TESTING','PROD_DEPLOYED','PROD_COMPLETED','CLOSED')
+        """, nativeQuery = true)
+    long countCompletedUatCrsForUser(@Param("userId") Long userId);
+
+    /**
+     * Dashboard "Recent CRs" projection — 7 columns, no entity hydration.
+     * Avoids loading 50+ columns and 7 JOINs just for the dashboard recent list.
+     * Returns: id, jtrack_id, title, priority, status, updated_date, assigned_developer_name
+     */
+    @Query(value = """
+        SELECT t.id, t.jtrack_id, t.title, t.priority, t.status, t.updated_date,
+               u.full_name AS assigned_developer_name
+        FROM tasks t
+        LEFT JOIN users u ON t.assigned_developer_id = u.id
+        ORDER BY t.id DESC
+        LIMIT :lim
+        """, nativeQuery = true)
+    List<Object[]> findRecentTaskProjections(@Param("lim") int limit);
+
+    /**
+     * Dashboard "Pending Tasks for user" projection — 6 columns, no entity hydration.
+     * Returns: id, jtrack_id, title, priority, status, due_date
+     */
+    @Query(value = """
+        SELECT t.id, t.jtrack_id, t.title, t.priority, t.status, t.due_date
+        FROM tasks t
+        WHERE (t.assigned_developer_id = :userId
+               OR t.tester_id = :userId
+               OR EXISTS (SELECT 1 FROM task_developers td WHERE td.task_id = t.id AND td.developer_id = :userId))
+          AND t.status NOT IN (:excluded1, :excluded2)
+        ORDER BY t.id DESC
+        LIMIT 5
+        """, nativeQuery = true)
+    List<Object[]> findPendingTaskProjectionsForUser(
+        @Param("userId") Long userId,
+        @Param("excluded1") String excluded1,
+        @Param("excluded2") String excluded2
+    );
 
     // ── Recognition Score metric queries ─────────────────────────────────
     // All use native SQL for aggregate performance.

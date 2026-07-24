@@ -9,18 +9,21 @@ public class DashboardSummaryDTO {
     private long unreadNotificationCount;
     private List<RecentCrSummary> recentCrs;
     private List<PendingTaskSummary> pendingTasks;
+    /** Server-resolved scope: ALL (admin) or MINE (developer/tester). Never trust from client. */
+    private String scope;
 
     public DashboardSummaryDTO() {}
 
     public DashboardSummaryDTO(StatsSummary stats, UserSummary user, ActiveSprintSummary activeSprint,
                                long unreadNotificationCount, List<RecentCrSummary> recentCrs,
-                               List<PendingTaskSummary> pendingTasks) {
+                               List<PendingTaskSummary> pendingTasks, String scope) {
         this.stats = stats;
         this.user = user;
         this.activeSprint = activeSprint;
         this.unreadNotificationCount = unreadNotificationCount;
         this.recentCrs = recentCrs;
         this.pendingTasks = pendingTasks;
+        this.scope = scope;
     }
 
     public StatsSummary getStats() { return stats; }
@@ -40,6 +43,9 @@ public class DashboardSummaryDTO {
 
     public List<PendingTaskSummary> getPendingTasks() { return pendingTasks; }
     public void setPendingTasks(List<PendingTaskSummary> pendingTasks) { this.pendingTasks = pendingTasks; }
+
+    public String getScope() { return scope; }
+    public void setScope(String scope) { this.scope = scope; }
 
     public static class StatsSummary {
         private long totalCrs;

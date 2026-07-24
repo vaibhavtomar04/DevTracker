@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom"
 import { createPortal } from "react-dom"
 import { motion, AnimatePresence } from "framer-motion"
 import { useTaskStore } from "@/store/taskStore"
+import { useDashboardStore } from "@/store/dashboardStore"
 import { getAssignedDevNames } from "@/utils/devUtils"
 import { performanceMonitor } from "@/utils/PerformanceMonitor"
 import {
@@ -147,6 +148,7 @@ function KpiDetailPopup({ title, subtitle, iconBg, iconColor, Icon, items, empty
 export default function AdminDashboard() {
   const navigate = useNavigate()
   const { tasks, bugs, fetchData, deleteTask, addToast } = useTaskStore()
+  const { fetchSummary, summary: dashSummary, loading: dashLoading } = useDashboardStore()
   const [selectedBugDetailId, setSelectedBugDetailId] = useState<number | null>(null)
   const [analytics, setAnalytics] = useState<any>(null)
   const [deadlineAnalytics, setDeadlineAnalytics] = useState<any>(null)
@@ -177,6 +179,9 @@ export default function AdminDashboard() {
   })
 
   useEffect(() => {
+    // fetchSummary fires first — backend resolves ALL-scope KPIs in parallel
+    // admin KPI cards populate within 1-2s before full task list arrives
+    fetchSummary()
     fetchData()
     fetch(`${APP_CONFIG.apiUrl}/api/analytics/dashboard`, {
       headers: { Authorization: `Bearer ${localStorage.getItem("token")}` }
@@ -232,6 +237,7 @@ export default function AdminDashboard() {
     key: KpiKey
     title: string
     count: string | number
+    loading?: boolean
     icon: React.ElementType
     iconBg: string
     iconColor: string
@@ -244,7 +250,9 @@ export default function AdminDashboard() {
     {
       key: "total",
       title: "Total Tasks / CRs",
-      count: analytics?.totalCRs ?? totalTasksCount,
+      // Use server-side ALL-scope count; fall back to local derived count until loaded
+      count: dashSummary ? dashSummary.stats.totalCrs : (analytics?.totalCRs ?? totalTasksCount),
+      loading: dashLoading && !dashSummary,
       icon: Users,
       iconBg: "bg-blue-500/15",
       iconColor: "text-blue-400",

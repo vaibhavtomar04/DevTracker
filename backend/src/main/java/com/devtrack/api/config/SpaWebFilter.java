@@ -1,8 +1,10 @@
 package com.devtrack.api.config;
 
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.core.io.Resource;
+import org.springframework.web.servlet.config.annotation.InterceptorRegistry;
 import org.springframework.web.servlet.config.annotation.ResourceHandlerRegistry;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 import org.springframework.web.servlet.resource.PathResourceResolver;
@@ -11,6 +13,16 @@ import java.io.IOException;
 
 @Configuration
 public class SpaWebFilter implements WebMvcConfigurer {
+
+    @Autowired
+    private PerformanceLoggingInterceptor performanceLoggingInterceptor;
+
+    @Override
+    public void addInterceptors(InterceptorRegistry registry) {
+        // Register performance interceptor for all /api/** paths
+        registry.addInterceptor(performanceLoggingInterceptor)
+                .addPathPatterns("/api/**");
+    }
 
     @Override
     public void addResourceHandlers(ResourceHandlerRegistry registry) {

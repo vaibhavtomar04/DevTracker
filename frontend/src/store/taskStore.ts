@@ -228,12 +228,16 @@ export const useTaskStore = create<TaskState>((set, get) => ({
 
     try {
       // 1. Core Batch: Fetch critical data first so UI renders immediately
+      // /api/tasks now returns paginated (page=0, size=100) by default — ~5x smaller payload
       const [tasksRes, bugsRes, configsRes, usersRes] = await Promise.all([
-        safeFetch("/api/tasks"),
+        safeFetch("/api/tasks?page=0&size=100"),
         safeFetch("/api/bugs"),
         safeFetch("/api/configs"),
         safeFetch("/api/users"),
       ]);
+
+      // Unwrap paginated tasks response (Page<Task> has a 'content' field)
+      const rawTasks = tasksRes && tasksRes.content ? tasksRes.content : (Array.isArray(tasksRes) ? tasksRes : []);
 
       const normalizedUsers = (usersRes || []).map((u: any) => ({
         ...u,
@@ -242,27 +246,17 @@ export const useTaskStore = create<TaskState>((set, get) => ({
 
       // Immediately display core UI
       set({
-        tasks: tasksRes || [],
+        tasks: rawTasks,
         bugs: bugsRes || [],
         configs: configsRes || [],
         users: normalizedUsers,
         loading: false,
       });
 
-      try {
-        sessionStorage.setItem("devtrack_core_cache", JSON.stringify({
-          tasks: tasksRes || [],
-          bugs: bugsRes || [],
-          configs: configsRes || [],
-          users: normalizedUsers,
-          timestamp: now
-        }))
-      } catch {}
-
-      // ── Persist to sessionStorage cache ────────────────────────────────────
+      // ── Persist to sessionStorage cache (single write, no duplicate) ────────
       try {
         sessionStorage.setItem(CACHE_KEY, JSON.stringify({
-          tasks: tasksRes || [],
+          tasks: rawTasks,
           bugs: bugsRes || [],
           configs: configsRes || [],
           users: normalizedUsers,
@@ -270,11 +264,11 @@ export const useTaskStore = create<TaskState>((set, get) => ({
         }))
       } catch { /* ignore quota errors */ }
 
-      // 2. Secondary Batch: Fetch supplementary metadata asynchronously
-      const [auditRes, testCasesRes, notificationsRes, bugReviewsRes, sprintTasksRes] = await Promise.all([
+      // 2. Secondary Batch: Supplementary metadata — notifications excluded
+      //    (notifications handled exclusively by notificationStore via WebSocket + REST)
+      const [auditRes, testCasesRes, bugReviewsRes, sprintTasksRes] = await Promise.all([
         safeFetch("/api/audit"),
         safeFetch("/api/test-cases"),
-        safeFetch("/api/notifications"),
         safeFetch("/api/bug-reviews"),
         safeFetch("/api/sprint-tasks")
       ]);
@@ -282,7 +276,6 @@ export const useTaskStore = create<TaskState>((set, get) => ({
       set({
         auditLogs: auditRes || [],
         testCases: testCasesRes || [],
-        notifications: notificationsRes || [],
         bugReviews: mapBugReviews(bugReviewsRes),
         sprintTasks: sprintTasksRes || [],
         isFetching: false
@@ -331,10 +324,59 @@ export const useTaskStore = create<TaskState>((set, get) => ({
     const oldStatus = currentTask?.status
     const statusChanged = taskData.status !== undefined && oldStatus !== taskData.status
 
-    const updatedTask: Task = await apiClient(`/api/tasks/${taskId}`, {
-      method: "PUT",
-      body: JSON.stringify({ ...taskData, remarks, changedBy })
-    })
+    // ── Optimistic UI: apply status change immediately ─────────────────────
+    if (taskData.status && statusChanged) {
+      set(state => ({
+        tasks: state.tasks.map(t => t.id === taskId ? { ...t, ...taskData } : t)
+      }))
+    }
+
+    let updatedTask: Task
+    try {
+      updatedTask = await apiClient(`/api/tasks/${taskId}`, {
+        method: "PUT",
+        body: JSON.stringify({ ...taskData, remarks, changedBy })
+      })
+    } catch (err: any) {
+      // ── Rollback optimistic update on failure ──────────────────────────────
+      if (taskData.status && statusChanged && currentTask) {
+        set(state => ({
+          tasks: state.tasks.map(t => t.id === taskId ? currentTask : t)
+        }))
+      }
+
+      // Smart error toast based on HTTP status
+      const status = err?.status || err?.response?.status || 0
+      if (status === 409) {
+        // Conflict: stale data — re-fetch to reconcile
+        get().addToast(
+          `⚠️ CR was updated by someone else. Refreshing to latest state...`,
+          "info"
+        )
+        // Re-fetch this task to reconcile conflict
+        apiClient(`/api/tasks/${taskId}`)
+          .then(freshTask => {
+            if (freshTask?.id) {
+              set(state => ({ tasks: state.tasks.map(t => t.id === taskId ? freshTask : t) }))
+            }
+          })
+          .catch(() => get().fetchData(true))
+      } else if (status >= 500) {
+        // Server error: show retry toast
+        get().addToast(
+          `❌ Server error while updating CR. Please retry the action.`,
+          "error"
+        )
+      } else if (status === 403) {
+        get().addToast(`🚫 You don't have permission to perform this action.`, "error")
+      } else {
+        get().addToast(
+          `❌ Failed to update CR: ${err?.message || "Unexpected error"}`,
+          "error"
+        )
+      }
+      throw err
+    }
 
     // Re-fetch the full task entity to preserve developers[] and all relations
     // The PUT response may omit nested collections; a fresh GET guarantees complete data
@@ -367,12 +409,10 @@ export const useTaskStore = create<TaskState>((set, get) => ({
       sessionStorage.removeItem("devtrack_core_cache")
     } catch {}
 
-    try {
-      const auditRes = await apiClient("/api/audit")
-      set({ auditLogs: auditRes })
-    } catch (err) {
-      console.error("Failed to update audit logs:", err)
-    }
+    // ── Fire-and-forget audit log refresh (non-blocking) ─────────────────────
+    apiClient("/api/audit")
+      .then(auditRes => set({ auditLogs: auditRes }))
+      .catch(err => console.warn("Audit log refresh failed (non-critical):", err))
 
     if (statusChanged && updatedTask.status === "CODE_REVIEW") {
       const admins = get().users.filter(u => u.roles?.includes("DEVADMIN") || u.roles?.includes("CODEREVIEWER"))
@@ -422,12 +462,9 @@ export const useTaskStore = create<TaskState>((set, get) => ({
     set(state => ({
       tasks: state.tasks.map(t => t.id === taskId ? updatedTask : t)
     }))
-    try {
-      const auditRes = await apiClient("/api/audit")
-      set({ auditLogs: auditRes })
-    } catch (err) {
-      console.error("Failed to update audit logs:", err)
-    }
+    apiClient("/api/audit")
+      .then(auditRes => set({ auditLogs: auditRes }))
+      .catch(err => console.warn("Audit refresh after assignTester failed:", err))
     return updatedTask
   },
 
@@ -439,12 +476,9 @@ export const useTaskStore = create<TaskState>((set, get) => ({
     set(state => ({
       tasks: state.tasks.map(t => t.id === taskId ? updatedTask : t)
     }))
-    try {
-      const auditRes = await apiClient("/api/audit")
-      set({ auditLogs: auditRes })
-    } catch (err) {
-      console.error("Failed to update audit logs:", err)
-    }
+    apiClient("/api/audit")
+      .then(auditRes => set({ auditLogs: auditRes }))
+      .catch(err => console.warn("Audit refresh after reassignTester failed:", err))
     return updatedTask
   },
 
@@ -534,12 +568,10 @@ export const useTaskStore = create<TaskState>((set, get) => ({
       bugs: state.bugs.map(b => b.id === bugId ? updatedBug : b)
     }))
 
-    try {
-      const auditRes = await apiClient("/api/audit")
-      set({ auditLogs: auditRes })
-    } catch (err) {
-      console.error("Failed to update audit logs:", err)
-    }
+    // Fire-and-forget audit refresh (non-blocking)
+    apiClient("/api/audit")
+      .then(auditRes => set({ auditLogs: auditRes }))
+      .catch(err => console.warn("Audit refresh after bug update failed:", err))
 
     return updatedBug
   },

@@ -126,7 +126,12 @@ public class TaskController {
         }
 
         if (page == null && size == null) {
-            return ResponseEntity.ok(taskRepository.findAllOptimized());
+            // Default: return first 50 active CRs (excludes terminal states) instead of
+            // loading the entire tasks table with 7-way JOINs (unbounded dump anti-pattern).
+            // Callers that genuinely need ALL records must explicitly pass ?page=0&size=N.
+            Pageable defaultPage = PageRequest.of(0, 50, Sort.by("id").descending());
+            return ResponseEntity.ok(taskRepository.findAllOptimizedByStatusNotIn(
+                    List.of("CLOSED", "PROD_COMPLETED"), defaultPage));
         }
 
         Pageable pageable = PageRequest.of(page != null ? page : 0, size != null ? size : 10, Sort.by("id").descending());

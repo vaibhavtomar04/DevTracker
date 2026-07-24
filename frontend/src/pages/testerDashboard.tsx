@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react"
 import { fmtDate } from "@/utils/dateFormat"
 import { getAssignedDevNames } from "@/utils/devUtils"
 import { useTaskStore } from "@/store/taskStore"
+import { useDashboardStore } from "@/store/dashboardStore"
 import { useAuthStore } from "@/store/authStore"
 import { Button } from "@/components/ui/button"
 import {
@@ -52,6 +53,7 @@ export default function TesterDashboard() {
   } = useTaskStore()
 
   const { user } = useAuthStore()
+  const { fetchSummary } = useDashboardStore()
 
   const normalizedUserRoles = (user?.roles || []).map((role) => role.replace(/^ROLE_/, ""))
   const isAdmin = normalizedUserRoles.some((role) => ["ADMIN", "DEVADMIN", "TESTADMIN"].includes(role))
@@ -98,6 +100,7 @@ export default function TesterDashboard() {
 
 
   useEffect(() => {
+    fetchSummary() // fires fast parallel backend KPI queries before full task load
     fetchData()
   }, [])
 

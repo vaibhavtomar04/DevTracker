@@ -130,4 +130,21 @@ public interface BugRepository extends JpaRepository<Bug, Long> {
 	    long countActiveBugs();
 
 	    List<Bug> findByBugTaskId(Long bugTaskId);
+
+	    /**
+	     * Count active bugs assigned to a specific developer (MINE scope).
+	     * Active = NOT in terminal states: CLOSED, VERIFIED, INVALID_BUG.
+	     */
+	    @Query(value = """
+	        SELECT COUNT(DISTINCT b.id) FROM bugs b
+	        WHERE b.status NOT IN ('CLOSED','VERIFIED','INVALID_BUG')
+	          AND (b.assigned_developer_id = :userId
+	               OR EXISTS (
+	                   SELECT 1 FROM task_developers td
+	                   JOIN tasks t ON td.task_id = t.id
+	                   WHERE t.id = b.bug_task_id
+	                     AND td.developer_id = :userId
+	               ))
+	        """, nativeQuery = true)
+	    long countActiveBugsForUser(@Param("userId") Long userId);
 }
