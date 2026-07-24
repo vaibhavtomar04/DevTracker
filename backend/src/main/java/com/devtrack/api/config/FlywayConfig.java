@@ -22,26 +22,26 @@ public class FlywayConfig {
                     int deleted = stmt.executeUpdate();
                     log.info("Cleaned up {} failed flyway_schema_history entries.", deleted);
                 }
+
+                log.info("Ensuring all DevOps columns exist on tasks table...");
+                String[] colDefs = {
+                    "deployment_note TEXT NULL",
+                    "server_path TEXT NULL",
+                    "items_to_deploy TEXT NULL",
+                    "expected_sit_deployment_date DATE NULL",
+                    "expected_uat_deployment_date DATE NULL",
+                    "rollback_count INT DEFAULT 0"
+                };
+                for (String colDef : colDefs) {
+                    String colName = colDef.split(" ")[0];
+                    try (PreparedStatement stmt = conn.prepareStatement("ALTER TABLE tasks ADD COLUMN " + colDef)) {
+                        stmt.executeUpdate();
+                        log.info("Successfully added missing column '{}' to tasks table.", colName);
+                    } catch (Exception e) {
+                        // Ignore if column already exists
+                    }
+                }
                 
-                log.info("Cleaning up any partially created tasks columns from the failed migration...");
-                try (PreparedStatement stmt = conn.prepareStatement("ALTER TABLE tasks DROP COLUMN deployment_note")) {
-                    stmt.executeUpdate();
-                    log.info("Dropped deployment_note column.");
-                } catch (Exception e) {
-                    // Ignore if it doesn't exist
-                }
-                try (PreparedStatement stmt = conn.prepareStatement("ALTER TABLE tasks DROP COLUMN server_path")) {
-                    stmt.executeUpdate();
-                    log.info("Dropped server_path column.");
-                } catch (Exception e) {
-                    // Ignore if it doesn't exist
-                }
-                try (PreparedStatement stmt = conn.prepareStatement("ALTER TABLE tasks DROP COLUMN items_to_deploy")) {
-                    stmt.executeUpdate();
-                    log.info("Dropped items_to_deploy column.");
-                } catch (Exception e) {
-                    // Ignore if it doesn't exist
-                }
             } catch (Exception e) {
                 log.warn("Could not complete Flyway cleanup strategy: {}", e.getMessage());
             }
