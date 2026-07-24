@@ -17,9 +17,10 @@ public class FlywayConfig {
         return flyway -> {
             log.info("Executing custom FlywayMigrationStrategy using raw DataSource connection...");
             try (Connection conn = dataSource.getConnection()) {
-                log.info("Cleaning up failed Flyway V23 schema history entry...");
-                try (PreparedStatement stmt = conn.prepareStatement("DELETE FROM flyway_schema_history WHERE version = '23'")) {
-                    stmt.executeUpdate();
+                log.info("Cleaning up any failed Flyway schema history entries...");
+                try (PreparedStatement stmt = conn.prepareStatement("DELETE FROM flyway_schema_history WHERE success = 0")) {
+                    int deleted = stmt.executeUpdate();
+                    log.info("Cleaned up {} failed flyway_schema_history entries.", deleted);
                 }
                 
                 log.info("Cleaning up any partially created tasks columns from the failed migration...");
