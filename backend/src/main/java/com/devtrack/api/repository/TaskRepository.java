@@ -199,13 +199,15 @@ public interface TaskRepository extends JpaRepository<Task, Long>, org.springfra
             "   OR LOWER(t.title) LIKE LOWER(CONCAT('%', :q, '%')) " +
             "   OR LOWER(t.description) LIKE LOWER(CONCAT('%', :q, '%')) " +
             "   OR LOWER(t.branchName) LIKE LOWER(CONCAT('%', :q, '%')) " +
-            "   OR LOWER(t.assignedDeveloper.fullName) LIKE LOWER(CONCAT('%', :q, '%'))",
+"   OR LOWER(t.assignedDeveloper.fullName) LIKE LOWER(CONCAT('%', :q, '%')) " +
+"   OR EXISTS (SELECT subTd FROM TaskDeveloper subTd WHERE subTd.task = t AND LOWER(subTd.developer.fullName) LIKE LOWER(CONCAT('%', :q, '%')))",
             countQuery = "SELECT COUNT(t) FROM Task t " +
             "WHERE LOWER(t.jtrackId) LIKE LOWER(CONCAT('%', :q, '%')) " +
             "   OR LOWER(t.title) LIKE LOWER(CONCAT('%', :q, '%')) " +
             "   OR LOWER(t.description) LIKE LOWER(CONCAT('%', :q, '%')) " +
             "   OR LOWER(t.branchName) LIKE LOWER(CONCAT('%', :q, '%')) " +
-            "   OR LOWER(t.assignedDeveloper.fullName) LIKE LOWER(CONCAT('%', :q, '%'))")
+"   OR LOWER(t.assignedDeveloper.fullName) LIKE LOWER(CONCAT('%', :q, '%')) " +
+"   OR EXISTS (SELECT subTd FROM TaskDeveloper subTd WHERE subTd.task = t AND LOWER(subTd.developer.fullName) LIKE LOWER(CONCAT('%', :q, '%')))")
     Page<Task> searchAll(@Param("q") String query, Pageable pageable);
 
     List<Task> findBySprintId(Long sprintId);
@@ -448,12 +450,12 @@ WHERE (t.assigned_developer_id = :userId
 int countBugsForUserCrs(@Param("userId") Long userId);
 
     /** Bugs that were reopened at least once. */
-    @Query(value = """
+   @Query(value = """
     SELECT COUNT(*) FROM bugs b
     JOIN tasks t ON b.bug_task_id = t.id
     WHERE (t.assigned_developer_id = :userId
            OR EXISTS (SELECT 1 FROM task_developers td WHERE td.task_id = t.id AND td.developer_id = :userId))
-      AND b.status NOT IN ('REJECTED','INVALID')
+      AND UPPER(b.status) = 'REOPENED'
     """, nativeQuery = true)
 int countReopenedBugsForUserCrs(@Param("userId") Long userId);
 
