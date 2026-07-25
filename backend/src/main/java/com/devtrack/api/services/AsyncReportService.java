@@ -82,8 +82,8 @@ public class AsyncReportService {
         reportJobRepository.save(job);
 
         try {
-            // Normalize the requested report type. The frontend sends "ANALYTICS",
-            // "DEADLINE" (no trailing S) and defaults to "TASKS"; we accept any
+            // Normalize the requested report type. The frontend sends \"ANALYTICS\",
+            // \"DEADLINE\" (no trailing S) and defaults to \"TASKS\"; we accept any
             // DEADLINE* spelling so the deadline export routes correctly.
             String rt = (job.getReportType() == null ? "TASKS" : job.getReportType().trim().toUpperCase());
             boolean isDeadline = rt.startsWith("DEADLINE");
@@ -374,6 +374,135 @@ public class AsyncReportService {
         if (pct >= 80) return s.good;
         if (pct >= 50) return s.warn;
         return s.bad;
+    }
+
+    // ==================================================================================
+    // Premium PDF styling toolkit (OpenPDF / com.lowagie.text) shared across PDF reports
+    // ==================================================================================
+
+    private static final java.awt.Color PDF_BRAND_DARK = new java.awt.Color(30, 41, 59);
+    private static final java.awt.Color PDF_BRAND = new java.awt.Color(79, 70, 229);
+    private static final java.awt.Color PDF_ZEBRA = new java.awt.Color(244, 246, 251);
+    private static final java.awt.Color PDF_BORDER = new java.awt.Color(203, 213, 225);
+    private static final java.awt.Color PDF_SUBTEXT = new java.awt.Color(203, 213, 225);
+    private static final java.awt.Color PDF_BODY_TEXT = new java.awt.Color(30, 41, 59);
+    private static final java.awt.Color PDF_FOOTER_TEXT = new java.awt.Color(148, 163, 184);
+    private static final java.awt.Color PDF_GOOD_BG = new java.awt.Color(209, 250, 229);
+    private static final java.awt.Color PDF_GOOD_FG = new java.awt.Color(6, 95, 70);
+    private static final java.awt.Color PDF_WARN_BG = new java.awt.Color(254, 243, 199);
+    private static final java.awt.Color PDF_WARN_FG = new java.awt.Color(146, 64, 14);
+    private static final java.awt.Color PDF_BAD_BG = new java.awt.Color(254, 226, 226);
+    private static final java.awt.Color PDF_BAD_FG = new java.awt.Color(153, 27, 27);
+    private static final java.awt.Color PDF_NEUTRAL_BG = new java.awt.Color(241, 245, 249);
+    private static final java.awt.Color PDF_NEUTRAL_FG = new java.awt.Color(71, 85, 105);
+
+    /** Draws a subtle footer (report label + page number) on every PDF page. */
+    private static class PdfFooter extends com.lowagie.text.pdf.PdfPageEventHelper {
+        private final String label;
+        PdfFooter(String label) { this.label = label; }
+        @Override
+        public void onEndPage(com.lowagie.text.pdf.PdfWriter writer, com.lowagie.text.Document document) {
+            com.lowagie.text.pdf.PdfContentByte cb = writer.getDirectContent();
+            com.lowagie.text.Font f = com.lowagie.text.FontFactory.getFont(
+                    com.lowagie.text.FontFactory.HELVETICA, 8, com.lowagie.text.Font.NORMAL, PDF_FOOTER_TEXT);
+            com.lowagie.text.Phrase left = new com.lowagie.text.Phrase(label, f);
+            com.lowagie.text.Phrase right = new com.lowagie.text.Phrase("Page " + writer.getPageNumber(), f);
+            float y = document.bottom() - 14;
+            com.lowagie.text.pdf.ColumnText.showTextAligned(
+                    cb, com.lowagie.text.Element.ALIGN_LEFT, left, document.left(), y, 0);
+            com.lowagie.text.pdf.ColumnText.showTextAligned(
+                    cb, com.lowagie.text.Element.ALIGN_RIGHT, right, document.right(), y, 0);
+        }
+    }
+
+    /** Full-width branded banner (title + subtitle) at the top of a PDF report. */
+    private void pdfBanner(com.lowagie.text.Document document, String title, String subtitle) throws com.lowagie.text.DocumentException {
+        com.lowagie.text.pdf.PdfPTable bannerTable = new com.lowagie.text.pdf.PdfPTable(1);
+        bannerTable.setWidthPercentage(100);
+        bannerTable.setSpacingAfter(14f);
+
+        com.lowagie.text.Font titleFont = com.lowagie.text.FontFactory.getFont(
+                com.lowagie.text.FontFactory.HELVETICA_BOLD, 16, com.lowagie.text.Font.NORMAL, java.awt.Color.WHITE);
+        com.lowagie.text.pdf.PdfPCell titleCell = new com.lowagie.text.pdf.PdfPCell(new com.lowagie.text.Phrase(title, titleFont));
+        titleCell.setBackgroundColor(PDF_BRAND_DARK);
+        titleCell.setBorder(com.lowagie.text.Rectangle.NO_BORDER);
+        titleCell.setPaddingTop(10f);
+        titleCell.setPaddingLeft(12f);
+        titleCell.setPaddingBottom(2f);
+        bannerTable.addCell(titleCell);
+
+        com.lowagie.text.Font subFont = com.lowagie.text.FontFactory.getFont(
+                com.lowagie.text.FontFactory.HELVETICA_OBLIQUE, 9, com.lowagie.text.Font.NORMAL, PDF_SUBTEXT);
+        com.lowagie.text.pdf.PdfPCell subCell = new com.lowagie.text.pdf.PdfPCell(new com.lowagie.text.Phrase(subtitle, subFont));
+        subCell.setBackgroundColor(PDF_BRAND_DARK);
+        subCell.setBorder(com.lowagie.text.Rectangle.NO_BORDER);
+        subCell.setPaddingLeft(12f);
+        subCell.setPaddingBottom(10f);
+        bannerTable.addCell(subCell);
+
+        document.add(bannerTable);
+    }
+
+    private com.lowagie.text.pdf.PdfPCell pdfHeaderCell(String text) {
+        com.lowagie.text.Font f = com.lowagie.text.FontFactory.getFont(
+                com.lowagie.text.FontFactory.HELVETICA_BOLD, 9, com.lowagie.text.Font.NORMAL, java.awt.Color.WHITE);
+        com.lowagie.text.pdf.PdfPCell cell = new com.lowagie.text.pdf.PdfPCell(new com.lowagie.text.Phrase(text, f));
+        cell.setBackgroundColor(PDF_BRAND);
+        cell.setHorizontalAlignment(com.lowagie.text.Element.ALIGN_CENTER);
+        cell.setVerticalAlignment(com.lowagie.text.Element.ALIGN_MIDDLE);
+        cell.setPadding(6f);
+        cell.setBorderColor(PDF_BRAND);
+        return cell;
+    }
+
+    private com.lowagie.text.pdf.PdfPCell pdfBodyCell(String text, boolean alt, int align) {
+        com.lowagie.text.Font f = com.lowagie.text.FontFactory.getFont(
+                com.lowagie.text.FontFactory.HELVETICA, 8.5f, com.lowagie.text.Font.NORMAL, PDF_BODY_TEXT);
+        com.lowagie.text.pdf.PdfPCell cell = new com.lowagie.text.pdf.PdfPCell(new com.lowagie.text.Phrase(text == null ? "" : text, f));
+        cell.setBackgroundColor(alt ? PDF_ZEBRA : java.awt.Color.WHITE);
+        cell.setHorizontalAlignment(align);
+        cell.setVerticalAlignment(com.lowagie.text.Element.ALIGN_MIDDLE);
+        cell.setPadding(5f);
+        cell.setBorderColor(PDF_BORDER);
+        cell.setBorderWidth(0.5f);
+        return cell;
+    }
+
+    private com.lowagie.text.pdf.PdfPCell pdfStatusCell(String text, java.awt.Color bg, java.awt.Color fg) {
+        com.lowagie.text.Font f = com.lowagie.text.FontFactory.getFont(
+                com.lowagie.text.FontFactory.HELVETICA_BOLD, 8.5f, com.lowagie.text.Font.NORMAL, fg);
+        com.lowagie.text.pdf.PdfPCell cell = new com.lowagie.text.pdf.PdfPCell(new com.lowagie.text.Phrase(text == null ? "" : text, f));
+        cell.setBackgroundColor(bg);
+        cell.setHorizontalAlignment(com.lowagie.text.Element.ALIGN_CENTER);
+        cell.setVerticalAlignment(com.lowagie.text.Element.ALIGN_MIDDLE);
+        cell.setPadding(5f);
+        cell.setBorderColor(PDF_BORDER);
+        cell.setBorderWidth(0.5f);
+        return cell;
+    }
+
+    private com.lowagie.text.pdf.PdfPCell pdfSlaStatusCell(String status) {
+        String label = humanize(status);
+        if (status == null) return pdfStatusCell(label, PDF_NEUTRAL_BG, PDF_NEUTRAL_FG);
+        switch (status) {
+            case "COMPLETED_ON_TIME":
+            case "ON_TRACK":
+                return pdfStatusCell(label, PDF_GOOD_BG, PDF_GOOD_FG);
+            case "AT_RISK":
+                return pdfStatusCell(label, PDF_WARN_BG, PDF_WARN_FG);
+            case "MISSED":
+            case "COMPLETED_DELAYED":
+                return pdfStatusCell(label, PDF_BAD_BG, PDF_BAD_FG);
+            default:
+                return pdfStatusCell(label, PDF_NEUTRAL_BG, PDF_NEUTRAL_FG);
+        }
+    }
+
+    private com.lowagie.text.pdf.PdfPCell pdfRiskCell(String risk) {
+        if ("High".equalsIgnoreCase(risk)) return pdfStatusCell(risk, PDF_BAD_BG, PDF_BAD_FG);
+        if ("Medium".equalsIgnoreCase(risk)) return pdfStatusCell(risk, PDF_WARN_BG, PDF_WARN_FG);
+        if ("Low".equalsIgnoreCase(risk)) return pdfStatusCell(risk, PDF_GOOD_BG, PDF_GOOD_FG);
+        return pdfStatusCell(risk, PDF_NEUTRAL_BG, PDF_NEUTRAL_FG);
     }
 
     // ==================================================================================
@@ -961,82 +1090,55 @@ public class AsyncReportService {
     }
 
     private void generateDeadlinesPdfReport(java.io.OutputStream out, List<Task> tasks) throws Exception {
-        com.lowagie.text.Document document = new com.lowagie.text.Document(com.lowagie.text.PageSize.A4.rotate());
-        com.lowagie.text.pdf.PdfWriter.getInstance(document, out);
+        com.lowagie.text.Document document = new com.lowagie.text.Document(com.lowagie.text.PageSize.A4.rotate(), 28, 28, 28, 36);
+        com.lowagie.text.pdf.PdfWriter writer = com.lowagie.text.pdf.PdfWriter.getInstance(document, out);
+        writer.setPageEvent(new PdfFooter("DevTrack 2.0  \u2014  Deployment Deadlines & SLA Report"));
         document.open();
 
-        com.lowagie.text.Font titleFont = com.lowagie.text.FontFactory.getFont(com.lowagie.text.FontFactory.HELVETICA_BOLD, 18);
-        com.lowagie.text.Paragraph title = new com.lowagie.text.Paragraph("DevTrack 2.0 - Change Request Deployment Deadlines SLA Report", titleFont);
-        title.setAlignment(com.lowagie.text.Paragraph.ALIGN_CENTER);
-        document.add(title);
+        pdfBanner(document,
+                "DevTrack 2.0  \u2014  Deployment Deadlines & SLA Report",
+                "Generated " + LocalDateTime.now().format(DT_FMT) + "   \u2022   SIT & UAT deployment commitments   \u2022   Confidential");
 
-        document.add(new com.lowagie.text.Paragraph("Generated on: " + LocalDateTime.now().format(DT_FMT) + "\n\n"));
-
-        com.lowagie.text.Table table = new com.lowagie.text.Table(10);
-        table.setBorderWidth(1);
-        table.setPadding(3);
-        table.setSpacing(0);
-        table.setWidth(100);
+        com.lowagie.text.pdf.PdfPTable table = new com.lowagie.text.pdf.PdfPTable(10);
+        table.setWidthPercentage(100);
+        table.setWidths(new float[]{1.1f, 3f, 1f, 1.7f, 1f, 1.3f, 1.3f, 0.9f, 1.7f, 1f});
+        table.setHeaderRows(1);
 
         String[] headers = {"JTrack ID", "Title", "Priority", "Assigned Dev", "Milestone", "Expected Date", "Actual Date", "Delay", "SLA Status", "Risk Level"};
-        com.lowagie.text.Font headerFont = com.lowagie.text.FontFactory.getFont(com.lowagie.text.FontFactory.HELVETICA_BOLD, 10, com.lowagie.text.Font.UNDEFINED, java.awt.Color.WHITE);
-        
-        for (String h : headers) {
-            com.lowagie.text.Cell cell = new com.lowagie.text.Cell(new com.lowagie.text.Paragraph(h, headerFont));
-            cell.setBackgroundColor(java.awt.Color.DARK_GRAY);
-            cell.setHorizontalAlignment(com.lowagie.text.Cell.ALIGN_CENTER);
-            table.addCell(cell);
-        }
+        for (String h : headers) table.addCell(pdfHeaderCell(h));
 
-        com.lowagie.text.Font rowFont = com.lowagie.text.FontFactory.getFont(com.lowagie.text.FontFactory.HELVETICA, 9);
-        com.lowagie.text.Font rowFontRed = com.lowagie.text.FontFactory.getFont(com.lowagie.text.FontFactory.HELVETICA_BOLD, 9, com.lowagie.text.Font.UNDEFINED, java.awt.Color.RED);
-
+        boolean alt = false;
         for (Task t : tasks) {
             String devName = t.getAssignedDeveloper() != null ? t.getAssignedDeveloper().getFullName() : "Unassigned";
-            
             if (t.getExpectedSitDeploymentDate() != null) {
-                long delay = calculateDelayDays(t, "SIT");
-                String status = evaluateSlaStatus(t, "SIT");
-                String risk = evaluateRiskLevel(t, "SIT");
-                boolean isHighRisk = "High".equalsIgnoreCase(risk);
-
-                com.lowagie.text.Font activeFont = isHighRisk ? rowFontRed : rowFont;
-
-                table.addCell(new com.lowagie.text.Cell(new com.lowagie.text.Paragraph(t.getJtrackId(), activeFont)));
-                table.addCell(new com.lowagie.text.Cell(new com.lowagie.text.Paragraph(t.getTitle(), activeFont)));
-                table.addCell(new com.lowagie.text.Cell(new com.lowagie.text.Paragraph(t.getPriority(), activeFont)));
-                table.addCell(new com.lowagie.text.Cell(new com.lowagie.text.Paragraph(devName, activeFont)));
-                table.addCell(new com.lowagie.text.Cell(new com.lowagie.text.Paragraph("SIT", activeFont)));
-                table.addCell(new com.lowagie.text.Cell(new com.lowagie.text.Paragraph(t.getExpectedSitDeploymentDate().toString(), activeFont)));
-                table.addCell(new com.lowagie.text.Cell(new com.lowagie.text.Paragraph(t.getSitDate() != null ? t.getSitDate().toString() : "\u2014", activeFont)));
-                table.addCell(new com.lowagie.text.Cell(new com.lowagie.text.Paragraph(String.valueOf(delay), activeFont)));
-                table.addCell(new com.lowagie.text.Cell(new com.lowagie.text.Paragraph(status, activeFont)));
-                table.addCell(new com.lowagie.text.Cell(new com.lowagie.text.Paragraph(risk, activeFont)));
+                addDeadlinePdfRow(table, t, devName, "SIT", t.getExpectedSitDeploymentDate(), t.getSitDate(), alt);
+                alt = !alt;
             }
-
             if (t.getExpectedUatDeploymentDate() != null) {
-                long delay = calculateDelayDays(t, "UAT");
-                String status = evaluateSlaStatus(t, "UAT");
-                String risk = evaluateRiskLevel(t, "UAT");
-                boolean isHighRisk = "High".equalsIgnoreCase(risk);
-
-                com.lowagie.text.Font activeFont = isHighRisk ? rowFontRed : rowFont;
-
-                table.addCell(new com.lowagie.text.Cell(new com.lowagie.text.Paragraph(t.getJtrackId(), activeFont)));
-                table.addCell(new com.lowagie.text.Cell(new com.lowagie.text.Paragraph(t.getTitle(), activeFont)));
-                table.addCell(new com.lowagie.text.Cell(new com.lowagie.text.Paragraph(t.getPriority(), activeFont)));
-                table.addCell(new com.lowagie.text.Cell(new com.lowagie.text.Paragraph(devName, activeFont)));
-                table.addCell(new com.lowagie.text.Cell(new com.lowagie.text.Paragraph("UAT", activeFont)));
-                table.addCell(new com.lowagie.text.Cell(new com.lowagie.text.Paragraph(t.getExpectedUatDeploymentDate().toString(), activeFont)));
-                table.addCell(new com.lowagie.text.Cell(new com.lowagie.text.Paragraph(t.getUatDate() != null ? t.getUatDate().toString() : "\u2014", activeFont)));
-                table.addCell(new com.lowagie.text.Cell(new com.lowagie.text.Paragraph(String.valueOf(delay), activeFont)));
-                table.addCell(new com.lowagie.text.Cell(new com.lowagie.text.Paragraph(status, activeFont)));
-                table.addCell(new com.lowagie.text.Cell(new com.lowagie.text.Paragraph(risk, activeFont)));
+                addDeadlinePdfRow(table, t, devName, "UAT", t.getExpectedUatDeploymentDate(), t.getUatDate(), alt);
+                alt = !alt;
             }
         }
 
         document.add(table);
         document.close();
+    }
+
+    private void addDeadlinePdfRow(com.lowagie.text.pdf.PdfPTable table, Task t, String devName, String milestone,
+                                   LocalDate expected, LocalDate actual, boolean alt) {
+        String status = evaluateSlaStatus(t, milestone);
+        String risk = evaluateRiskLevel(t, milestone);
+        long delay = calculateDelayDays(t, milestone);
+        table.addCell(pdfBodyCell(str(t.getJtrackId()), alt, com.lowagie.text.Element.ALIGN_LEFT));
+        table.addCell(pdfBodyCell(str(t.getTitle()), alt, com.lowagie.text.Element.ALIGN_LEFT));
+        table.addCell(pdfBodyCell(str(t.getPriority()), alt, com.lowagie.text.Element.ALIGN_CENTER));
+        table.addCell(pdfBodyCell(devName, alt, com.lowagie.text.Element.ALIGN_LEFT));
+        table.addCell(pdfBodyCell(milestone, alt, com.lowagie.text.Element.ALIGN_CENTER));
+        table.addCell(pdfBodyCell(fmtDate(expected), alt, com.lowagie.text.Element.ALIGN_CENTER));
+        table.addCell(pdfBodyCell(fmtDate(actual), alt, com.lowagie.text.Element.ALIGN_CENTER));
+        table.addCell(pdfBodyCell(String.valueOf(delay), alt, com.lowagie.text.Element.ALIGN_RIGHT));
+        table.addCell(pdfSlaStatusCell(status));
+        table.addCell(pdfRiskCell(risk));
     }
 
     private void generateTasksCsvReport(java.io.OutputStream out, List<Task> tasks) {
@@ -1057,37 +1159,37 @@ public class AsyncReportService {
     }
 
     private void generateTasksPdfReport(java.io.OutputStream out, List<Task> tasks) throws Exception {
-        com.lowagie.text.Document document = new com.lowagie.text.Document(com.lowagie.text.PageSize.A4.rotate());
-        com.lowagie.text.pdf.PdfWriter.getInstance(document, out);
+        com.lowagie.text.Document document = new com.lowagie.text.Document(com.lowagie.text.PageSize.A4.rotate(), 28, 28, 28, 36);
+        com.lowagie.text.pdf.PdfWriter writer = com.lowagie.text.pdf.PdfWriter.getInstance(document, out);
+        writer.setPageEvent(new PdfFooter("DevTrack 2.0  \u2014  Change Requests Report"));
         document.open();
 
-        com.lowagie.text.Font titleFont = com.lowagie.text.FontFactory.getFont(com.lowagie.text.FontFactory.HELVETICA_BOLD, 16);
-        document.add(new com.lowagie.text.Paragraph("DevTrack 2.0 - Change Requests Report", titleFont));
-        document.add(new com.lowagie.text.Paragraph("Generated: " + LocalDateTime.now().format(DT_FMT) + "\n\n"));
+        pdfBanner(document, "DevTrack 2.0  \u2014  Change Requests Report",
+                "Generated " + LocalDateTime.now().format(DT_FMT) + "   \u2022   " + tasks.size() + " record(s)   \u2022   Confidential");
 
-        com.lowagie.text.Table table = new com.lowagie.text.Table(8);
-        table.setBorderWidth(1);
-        table.setPadding(3);
-        table.setWidth(100);
+        com.lowagie.text.pdf.PdfPTable table = new com.lowagie.text.pdf.PdfPTable(8);
+        table.setWidthPercentage(100);
+        table.setWidths(new float[]{0.7f, 1.4f, 3.4f, 1.4f, 1.1f, 2f, 1.6f, 1.2f});
+        table.setHeaderRows(1);
 
         String[] cols = {"ID", "JTrack ID", "Title", "Status", "Priority", "Assignee", "Created Date", "Quality Risk"};
-        for (String h : cols) {
-            com.lowagie.text.Cell cell = new com.lowagie.text.Cell(new com.lowagie.text.Paragraph(h, com.lowagie.text.FontFactory.getFont(com.lowagie.text.FontFactory.HELVETICA_BOLD, 10, com.lowagie.text.Font.UNDEFINED, java.awt.Color.WHITE)));
-            cell.setBackgroundColor(java.awt.Color.DARK_GRAY);
-            table.addCell(cell);
+        for (String h : cols) table.addCell(pdfHeaderCell(h));
+
+        boolean alt = false;
+        for (Task task : tasks) {
+            table.addCell(pdfBodyCell(String.valueOf(task.getId()), alt, com.lowagie.text.Element.ALIGN_RIGHT));
+            table.addCell(pdfBodyCell(str(task.getJtrackId()), alt, com.lowagie.text.Element.ALIGN_LEFT));
+            table.addCell(pdfBodyCell(str(task.getTitle()), alt, com.lowagie.text.Element.ALIGN_LEFT));
+            table.addCell(pdfBodyCell(str(task.getStatus()), alt, com.lowagie.text.Element.ALIGN_CENTER));
+            table.addCell(pdfBodyCell(str(task.getPriority()), alt, com.lowagie.text.Element.ALIGN_CENTER));
+            table.addCell(pdfBodyCell(task.getAssignedDeveloper() != null ? task.getAssignedDeveloper().getFullName() : "Unassigned", alt, com.lowagie.text.Element.ALIGN_LEFT));
+            table.addCell(pdfBodyCell(fmtDateTime(task.getCreatedDate()), alt, com.lowagie.text.Element.ALIGN_CENTER));
+            table.addCell(task.isQualityRisk()
+                    ? pdfStatusCell("YES", PDF_BAD_BG, PDF_BAD_FG)
+                    : pdfStatusCell("NO", PDF_GOOD_BG, PDF_GOOD_FG));
+            alt = !alt;
         }
 
-        com.lowagie.text.Font font = com.lowagie.text.FontFactory.getFont(com.lowagie.text.FontFactory.HELVETICA, 9);
-        for (Task task : tasks) {
-            table.addCell(new com.lowagie.text.Cell(new com.lowagie.text.Paragraph(String.valueOf(task.getId()), font)));
-            table.addCell(new com.lowagie.text.Cell(new com.lowagie.text.Paragraph(task.getJtrackId() != null ? task.getJtrackId() : "", font)));
-            table.addCell(new com.lowagie.text.Cell(new com.lowagie.text.Paragraph(task.getTitle() != null ? task.getTitle() : "", font)));
-            table.addCell(new com.lowagie.text.Cell(new com.lowagie.text.Paragraph(task.getStatus() != null ? task.getStatus() : "", font)));
-            table.addCell(new com.lowagie.text.Cell(new com.lowagie.text.Paragraph(task.getPriority() != null ? task.getPriority() : "", font)));
-            table.addCell(new com.lowagie.text.Cell(new com.lowagie.text.Paragraph(task.getAssignedDeveloper() != null ? task.getAssignedDeveloper().getFullName() : "Unassigned", font)));
-            table.addCell(new com.lowagie.text.Cell(new com.lowagie.text.Paragraph(task.getCreatedDate() != null ? task.getCreatedDate().toString() : "", font)));
-            table.addCell(new com.lowagie.text.Cell(new com.lowagie.text.Paragraph(task.isQualityRisk() ? "YES" : "NO", font)));
-        }
         document.add(table);
         document.close();
     }
