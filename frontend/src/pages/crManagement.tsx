@@ -4,6 +4,7 @@ import { getAssignedDevNames } from "@/utils/devUtils"
 import { useTaskStore } from "@/store/taskStore"
 import { useAuthStore } from "@/store/authStore"
 import { getCRStatusBadgeClass } from "@/utils/statusColors"
+import React, { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import {
   Plus,
@@ -27,6 +28,8 @@ import RaiseBugModal from "@/components/shared/RaiseBugModal"
 import BugDetailModal from "@/components/shared/BugDetailModal"
 import { CreateCRModal } from "@/components/shared/CreateCRModal"
 import { Pagination, paginate } from "@/components/shared/Pagination"
+import { exportCrAuditReport } from "@/services/crAuditReport.service";
+import { APP_CONFIG } from "@/config/appConfig";
 
 export default function CrManagement() {
   const { 
@@ -77,6 +80,14 @@ export default function CrManagement() {
   const [isRaiseBugOpen, setIsRaiseBugOpen] = useState(false)
   const [selectedBugId, setSelectedBugId] = useState<number | null>(null)
   const [selectedTaskForBugs, setSelectedTaskForBugs] = useState<Task | null>(null)
+
+  useEffect(() => {
+  const p = new URLSearchParams(window.location.search);
+  const bug = p.get("bug");
+  if (bug && !Number.isNaN(Number(bug))) setSelectedBugId(Number(bug));
+  const cr = p.get("cr");
+  if (cr) { const f = tasks.find((t: any) => String(t.id) === cr); if (f) setSelectedTask?.(f); }
+}, [tasks]);
   
   // Reassignment Form State
   const [newTesterUsername, setNewTesterUsername] = useState("")
@@ -124,98 +135,62 @@ export default function CrManagement() {
   }
 
   const handleExportData = async (e: React.FormEvent) => {
-    e.preventDefault()
-    
-    const filteredExport = tasks.filter(t => {
-      // Date filter
-      if (exportStartDate || exportEndDate) {
-        let dateVal: string | undefined | null
-        if (exportDateType === "created") dateVal = t.createdDate
-        else if (exportDateType === "production") dateVal = t.productionDate
-        else if (exportDateType === "sit_deploy") dateVal = getAuditDate(t.id, "SIT_DEPLOYED") !== "—" ? getAuditDate(t.id, "SIT_DEPLOYED") : null
-        else if (exportDateType === "sit_completed") dateVal = getAuditDate(t.id, "SIT_COMPLETED") !== "—" ? getAuditDate(t.id, "SIT_COMPLETED") : null
-        else if (exportDateType === "code_review") dateVal = getAuditDate(t.id, "CODE_REVIEW") !== "—" ? getAuditDate(t.id, "CODE_REVIEW") : null
-        else if (exportDateType === "uat_deploy") dateVal = getAuditDate(t.id, "MOVE_TO_UAT") !== "—" ? getAuditDate(t.id, "MOVE_TO_UAT") : null
-        else if (exportDateType === "prod_deployed") dateVal = getAuditDate(t.id, "PROD_DEPLOYED") !== "—" ? getAuditDate(t.id, "PROD_DEPLOYED") : null
-        if (!dateVal) return false
-        const taskDateStr = typeof dateVal === "string" && dateVal.length === 10 ? dateVal : new Date(dateVal as string).toISOString().split('T')[0]
-        if (exportStartDate && taskDateStr < exportStartDate) return false
-        if (exportEndDate && taskDateStr > exportEndDate) return false
-      }
-      // Priority filter
-      if (exportPriority !== "all" && t.priority !== exportPriority) return false
-      // Status filter
-      if (exportStatus !== "all" && t.status !== exportStatus) return false
-      // Category filter
-      if (exportCategory !== "all" && (t.type?.name || "CR") !== exportCategory) return false
-      // Developer filter
-      if (exportDev !== "all" && !getAssignedDevNames(t).includes(exportDev)) return false
-      // Bugs filter
-      if (exportHasBugs !== "all") {
-        const taskBugCount = bugs.filter(b => b.crTaskId === t.id).length
-        if (exportHasBugs === "yes" && taskBugCount === 0) return false
-        if (exportHasBugs === "no" && taskBugCount > 0) return false
-      }
-      return true
-    })
+  e.preventDefault()
 
-    if (filteredExport.length === 0) {
-      addToast("No data found for the selected date range", "error")
-      return
+  const filteredExport = tasks.filter(t => {
+    // Date filter
+    if (exportStartDate || exportEndDate) {
+      let dateVal: string | undefined | null
+      if (exportDateType === "created") dateVal = t.createdDate
+      else if (exportDateType === "production") dateVal = t.productionDate
+      else if (exportDateType === "sit_deploy") dateVal = getAuditDate(t.id, "SIT_DEPLOYED") !== "—" ? getAuditDate(t.id, "SIT_DEPLOYED") : null
+      else if (exportDateType === "sit_completed") dateVal = getAuditDate(t.id, "SIT_COMPLETED") !== "—" ? getAuditDate(t.id, "SIT_COMPLETED") : null
+      else if (exportDateType === "code_review") dateVal = getAuditDate(t.id, "CODE_REVIEW") !== "—" ? getAuditDate(t.id, "CODE_REVIEW") : null
+      else if (exportDateType === "uat_deploy") dateVal = getAuditDate(t.id, "MOVE_TO_UAT") !== "—" ? getAuditDate(t.id, "MOVE_TO_UAT") : null
+      else if (exportDateType === "prod_deployed") dateVal = getAuditDate(t.id, "PROD_DEPLOYED") !== "—" ? getAuditDate(t.id, "PROD_DEPLOYED") : null
+      if (!dateVal) return false
+      const taskDateStr = typeof dateVal === "string" && dateVal.length === 10 ? dateVal : new Date(dateVal as string).toISOString().split('T')[0]
+      if (exportStartDate && taskDateStr < exportStartDate) return false
+      if (exportEndDate && taskDateStr > exportEndDate) return false
     }
-
-    const headers = [
-      "CR Number", "Title", "Description", "Category", "Priority", "Workflow State", 
-      "Assigned Dev", "Created By", "Created Date", "SIT Deploy Date", "SIT Completed Date", 
-      "Code Review Date", "UAT Deploy Date", "Testing Completed Date", "Bugs", 
-      "Bug Raised Date", "Bug Resolved Date", "UAT Completed Date", "Prod Deploy Date", "Efforts (Days)"
-    ]
-    const rows = filteredExport.map(t => {
-      const taskBugs = bugs.filter(b => b.crTaskId === t.id)
-      const bugCount = taskBugs.length > 0 ? `Yes (${taskBugs.length})` : "None"
-      const bugRaised = taskBugs.map(b => b.createdDate ? new Date(b.createdDate).toISOString().split('T')[0] : "—").join("; ") || "—"
-      const bugResolved = taskBugs.map(b => getBugResolveDate(b.id)).filter(d => d !== "—").join("; ") || "—"
-
-      return [
-        t.jtrackId,
-        t.title,
-        t.description,
-        t.type?.name || "CR",
-        t.priority,
-        t.status,
-        getAssignedDevNames(t),
-        t.createdBy.fullName,
-        t.createdDate ? new Date(t.createdDate).toISOString().split('T')[0] : "NA",
-        getAuditDate(t.id, "SIT_DEPLOYED"),
-        getAuditDate(t.id, "SIT_COMPLETED"),
-        getAuditDate(t.id, "CODE_REVIEW"),
-        getAuditDate(t.id, "MOVE_TO_UAT"),
-        getAuditDate(t.id, "UAT_COMPLETED"),
-        bugCount,
-        bugRaised,
-        bugResolved,
-        getAuditDate(t.id, "UAT_COMPLETED"),
-        getAuditDate(t.id, "PROD_DEPLOYED"),
-        t.efforts
-      ]
-    })
-    
-    const csvContent = [
-      headers.join(","),
-      ...rows.map(r => r.map(val => `"${String(val).replace(/"/g, '""')}"`).join(","))
-    ].join("\n")
-
-    try {
-      const base64Data = "data:text/csv;base64," + btoa(unescape(encodeURIComponent(csvContent)))
-      setDownloadTarget({
-        base64Data,
-        defaultFileName: `DevTracker_CR_Export_${new Date().toISOString().split('T')[0]}.csv`
-      })
-      setIsExportOpen(false)
-    } catch (err: any) {
-      addToast("Export failed: " + err.message, "error")
+    // Priority filter
+    if (exportPriority !== "all" && t.priority !== exportPriority) return false
+    // Status filter
+    if (exportStatus !== "all" && t.status !== exportStatus) return false
+    // Category filter
+    if (exportCategory !== "all" && (t.type?.name || "CR") !== exportCategory) return false
+    // Developer filter
+    if (exportDev !== "all" && !getAssignedDevNames(t).includes(exportDev)) return false
+    // Bugs filter
+    if (exportHasBugs !== "all") {
+      const taskBugCount = bugs.filter(b => b.crTaskId === t.id).length
+      if (exportHasBugs === "yes" && taskBugCount === 0) return false
+      if (exportHasBugs === "no" && taskBugCount > 0) return false
     }
+    return true
+  })
+
+  if (filteredExport.length === 0) {
+    addToast("No data found for the selected filters", "error")
+    return
   }
+
+  try {
+    const baseUrl = `${window.location.origin}${APP_CONFIG.contextPath || ""}`
+    const { base64Data, defaultFileName } = await exportCrAuditReport({
+      tasks: filteredExport,
+      bugs,
+      auditLogs,
+      generatedBy: user?.fullName || "DevTrack User",
+      baseUrl,
+    })
+    setDownloadTarget({ base64Data, defaultFileName })
+    setIsExportOpen(false)
+    addToast("CR Audit report generated successfully", "success")
+  } catch (err: any) {
+    addToast("Export failed: " + (err?.message || "Unknown error"), "error")
+  }
+}
 
 
 
@@ -1409,7 +1384,7 @@ export default function CrManagement() {
                   <Download className="h-5 w-5 text-violet-400" />
                   <div>
                     <h3 className="text-sm font-black tracking-tight text-slate-100">Export Change Requests</h3>
-                    <p className="text-[10px] text-slate-400 mt-0.5">Apply filters to export a targeted dataset as CSV</p>
+                    <p className="text-[10px] text-slate-400 mt-0.5">Apply filters to export a premium Excel audit report</p>
                   </div>
                 </div>
                 <button
@@ -1577,7 +1552,7 @@ export default function CrManagement() {
                     className="h-9 px-5 rounded-xl shadow-lg bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-500 hover:to-indigo-500 border border-violet-500/30 text-white font-bold"
                   >
                     <Download className="h-3.5 w-3.5 mr-1.5" />
-                    Export CSV
+                    Export Excel
                   </Button>
                 </div>
               </form>
