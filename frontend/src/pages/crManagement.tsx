@@ -30,8 +30,7 @@ import { CreateCRModal } from "@/components/shared/CreateCRModal"
 import { Pagination, paginate } from "@/components/shared/Pagination"
 import { exportCrAuditReport } from "@/services/crAuditReport.service";
 import { APP_CONFIG } from "@/config/appConfig";
-import { getAssignedDevNames } from '@/utils/devUtils';
-import { getAssignedDevNames, getAssignedDevNamesCompact } from '@/utils/devUtils';
+
 
 export default function CrManagement() {
   const { 
@@ -1523,7 +1522,7 @@ export default function CrManagement() {
                         if (exportPriority !== "all" && t.priority !== exportPriority) return false
                         if (exportStatus !== "all" && t.status !== exportStatus) return false
                         if (exportCategory !== "all" && (t.type?.name || "CR") !== exportCategory) return false
-                        if (exportDev !== "all" && (t.{getAssignedDevNames(row)} || "Unassigned") !== exportDev) return false
+                        if (exportDev !== "all" && (getAssignedDevNames(t) || "Unassigned") !== exportDev) return false
                         if (exportHasBugs !== "all") {
                           const bc = bugs.filter(b => b.crTaskId === t.id).length
                           if (exportHasBugs === "yes" && bc === 0) return false

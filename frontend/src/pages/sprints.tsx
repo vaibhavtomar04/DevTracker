@@ -15,7 +15,7 @@ import {
   Clock, Download, FileText, TrendingDown, Activity, Layers,
   ChevronLeft, ChevronRight, GitBranch, Loader2, Cpu,
 } from "lucide-react"
-import { getAssignedDevNames, getAssignedDevNamesCompact } from '@/utils/devUtils';
+
 
 /* ─── constants ─── */
 const STATUS_COLUMNS = [
