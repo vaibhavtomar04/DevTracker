@@ -2,6 +2,11 @@ import { create } from "zustand"
 import type { Task, Bug, Comment, AuditLog, AppConfig, TestCase, User, Notification } from "@/services/mockData"
 import { apiClient } from "@/utils/apiClient"
 
+const unwrapTasks = (tasksRes: any): any[] =>
+  tasksRes && Array.isArray(tasksRes.content)
+    ? tasksRes.content
+    : (Array.isArray(tasksRes) ? tasksRes : [])
+
 const mapBugReviews = (reviews: any[]) => {
   return (reviews || []).map(r => {
     let payload: any = {}
@@ -721,9 +726,9 @@ export const useTaskStore = create<TaskState>((set, get) => ({
     })
     
     // Background refresh
-    apiClient("/api/tasks")
+    apiClient("/api/tasks?page=0&size=100")
       .then(tasksRes => {
-        set({ tasks: tasksRes })
+        set({ tasks: unwrapTasks(tasksRes) })
         if (reviewData.crTaskId) {
           return apiClient(`/api/bug-reviews/cr/${reviewData.crTaskId}`)
         }
@@ -745,10 +750,10 @@ export const useTaskStore = create<TaskState>((set, get) => ({
     
     // Background refresh
     Promise.all([
-      apiClient("/api/tasks"),
+      apiClient("/api/tasks?page=0&size=100"),
       apiClient("/api/bugs")
     ]).then(([tasksRes, bugsRes]) => {
-      set({ tasks: tasksRes, bugs: bugsRes })
+      set({ tasks: unwrapTasks(tasksRes), bugs: bugsRes })
       if (res.bugTask && res.bugTask.id) {
         return apiClient(`/api/bug-reviews/cr/${res.bugTask.id}`)
       }
@@ -953,8 +958,8 @@ export const useTaskStore = create<TaskState>((set, get) => ({
       method: "POST",
       body: JSON.stringify(sprintTaskIds)
     })
-    const tasksRes = await apiClient("/api/tasks")
-    set({ tasks: tasksRes })
+    const tasksRes = await apiClient("/api/tasks?page=0&size=100")
+    set({ tasks: unwrapTasks(tasksRes) })
   },
 
   getSprintDependencyGraph: async (sprintId) => {

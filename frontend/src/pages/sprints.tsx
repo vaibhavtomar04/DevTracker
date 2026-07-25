@@ -16,6 +16,7 @@ import {
   ChevronLeft, ChevronRight, GitBranch, Loader2, Cpu,
 } from "lucide-react"
 
+
 /* ─── constants ─── */
 const STATUS_COLUMNS = [
   { id: "OPEN",          label: "Open",        color: "bg-slate-500",   hex: "#64748b" },

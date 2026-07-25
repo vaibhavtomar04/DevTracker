@@ -6,6 +6,7 @@ import { useAuthStore } from "@/store/authStore";
 import { apiClient } from "@/utils/apiClient";
 import { uploadDocument } from "@/services/document.service";
 import { useNavigate } from "react-router-dom";
+import { FEATURES } from "@/config/appConfig";
 
 interface CreateCRModalProps {
   isOpen: boolean;
@@ -111,10 +112,15 @@ export const CreateCRModal: React.FC<CreateCRModalProps> = ({ isOpen, onClose, o
   };
 
   const toggleDeveloperSelection = (devId: number) => {
-    setSelectedDeveloperIds(prev => 
-      prev.includes(devId) ? prev.filter(id => id !== devId) : [...prev, devId]
-    );
-  };
+  // Kill-switch: when multi-dev UI is disabled, enforce a single selected developer (legacy behavior).
+  if (!FEATURES.ENABLE_MULTI_DEV_CR) {
+    setSelectedDeveloperIds(prev => (prev.length === 1 && prev[0] === devId ? prev : [devId]));
+    return;
+  }
+  setSelectedDeveloperIds(prev =>
+    prev.includes(devId) ? prev.filter(id => id !== devId) : [...prev, devId]
+  );
+};
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -443,7 +449,7 @@ export const CreateCRModal: React.FC<CreateCRModalProps> = ({ isOpen, onClose, o
           {/* Multi-developer Allocation Glass Box */}
           <div className="space-y-2.5 pt-2">
             <label className="text-[11px] font-bold tracking-wider text-slate-400 uppercase flex items-center gap-2">
-              <Users className="h-4 w-4 text-violet-400" /> Developers Pool
+              <Users className="h-4 w-4 text-violet-400" /> {FEATURES.ENABLE_MULTI_DEV_CR ? "Developers Pool" : "Developer"}
             </label>
             <div className="p-4 rounded-2xl bg-white/[0.02] border border-white/10 backdrop-blur-md space-y-2.5">
               <div className="relative">

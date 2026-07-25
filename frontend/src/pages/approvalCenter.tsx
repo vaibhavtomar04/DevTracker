@@ -11,6 +11,7 @@ import { CRDetailSlideOver } from '@/components/shared/CRDetailSlideOver';
 import { APP_CONFIG } from '@/config/appConfig';
 import { type Task } from '@/services/mockData';
 import { Pagination, paginate } from '@/components/shared/Pagination';
+import { getAssignedDevNames } from '@/utils/devUtils';
 
 type ApprovalTab = 'CODE_REVIEW' | 'SIT_TESTING' | 'UAT_TESTING';
 
@@ -222,7 +223,7 @@ export default function ApprovalCenter() {
 
                 <div className="space-y-3 pt-3 border-t border-white/[0.06]">
                   <div className="flex items-center justify-between text-xs text-zinc-500">
-                    <span>Dev: <strong className="text-zinc-300">{task.assignedDeveloper?.fullName || 'Unassigned'}</strong></span>
+                    <span>Dev: <strong className="text-zinc-300">{getAssignedDevNames(task)}</strong></span>
                     <span>Branch: <strong className="font-mono text-zinc-400">{task.branchName || 'main'}</strong></span>
                   </div>
 

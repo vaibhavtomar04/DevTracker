@@ -404,10 +404,11 @@ public class BugController {
                         boolean isAdmin = roles.contains("ROLE_TESTADMIN");
                         boolean isCreatorTop = bug.getRaisedBy() != null && bug.getRaisedBy().getUsername().equals(username);
 
-                        // DEVADMIN is treated as a DEVELOPER for bug updates (restricted to assigned bugs)
-                        if (!bug.getAssignedDeveloper().getUsername().equals(username) && !isReviewer && !isAdmin && !isCreatorTop) {
-                            return ResponseEntity.status(403).body("Only the assigned developer, the bug creator, or an admin can update this bug.");
-                        }
+                        // DEVADMIN is treated as a DEVELOPER for bug updates.
+                        // Multi-developer co-ownership: any co-owner of the bug or its parent CR may act.
+                        if (!isBugCoOwner(bug, username) && !isReviewer && !isAdmin && !isCreatorTop) {
+                         return ResponseEntity.status(403).body("Only an assigned co-owner, the bug creator, or an admin can update this bug.");
+                         }
 
                         // NEW: Prevent developer updates if bug is in active testing phase or has a tester assigned
                         boolean isActiveTesting = bug.getStatus() != null && 
@@ -535,7 +536,7 @@ public class BugController {
 
                     boolean isCreator = bug.getRaisedBy() != null && bug.getRaisedBy().getId().equals(currentUser.getId());
                     boolean isAdmin = currentUserRole.contains("ROLE_TESTADMIN");
-                    boolean isAssignedDeveloper = bug.getAssignedDeveloper() != null && bug.getAssignedDeveloper().getId().equals(currentUser.getId());
+                    boolean isAssignedDeveloper = isBugCoOwner(bug, username);
 
                     // Permission logic
                     if (!isCreator && !isAdmin) {
@@ -608,29 +609,71 @@ public class BugController {
                         }
                     }
 
-                    // ── Recognition hook — BUG_RESOLVED ─────────────────────────────
-                    try {
-                        String newSt = savedBug.getStatus();
-                        boolean isResolution = newSt != null &&
-                            (newSt.contains("RESOLVED") || newSt.contains("CLOSED") || newSt.contains("VERIFIED"));
-                        if (isResolution && savedBug.getAssignedDeveloper() != null) {
-                            applicationEventPublisher.publishEvent(new RecognitionTriggerEvent(
-                                savedBug,
-                                "BUG_RESOLVED",
-                                savedBug.getAssignedDeveloper().getId(),
-                                "BUG",
-                                savedBug.getId(),
-                                SecurityContextHolder.getContext().getAuthentication().getName(),
-                                java.util.Map.of(
-                                    "jtrackId", savedBug.getJtrackId() != null ? savedBug.getJtrackId() : "",
-                                    "severity",  savedBug.getSeverity() != null ? savedBug.getSeverity() : "",
-                                    "status",    savedBug.getStatus() != null ? savedBug.getStatus() : ""
-                                )
-                            ));
-                        }
-                    } catch (Exception e) {
-                        log.error("Failed to publish BUG_RESOLVED recognition trigger: {}", e.getMessage());
-                    }
+                    // ── Recognition hook — BUG_RESOLVED (multi-developer EQUAL split) ──
+// Points for resolving a co-owned bug are split EQUALLY across all
+// co-owners: union of {bug sentinel} ∪ {bug_developers pool} ∪
+// {parent CR sentinel} ∪ {parent CR task_developers pool}. Each
+// co-owner gets their own ledger row — idempotencyKey includes userId
+// ({eventType}:{entityType}:{entityId}:{userId}), so distinct devs never
+// collide and the same dev is never double-rewarded. Mirrors the CR
+// recognition split in TaskController. Single-dev (N=1) => one event of
+// 10 pts, same idempotency key as before = behavior-identical.
+try {
+    String newSt = savedBug.getStatus();
+    boolean isResolution = newSt != null &&
+        (newSt.contains("RESOLVED") || newSt.contains("CLOSED") || newSt.contains("VERIFIED"));
+    if (isResolution) {
+        java.util.Set<Long> devIdSet = new java.util.TreeSet<>();
+        if (savedBug.getAssignedDeveloper() != null) {
+            devIdSet.add(savedBug.getAssignedDeveloper().getId());
+        }
+        if (savedBug.getDevelopers() != null) {
+            savedBug.getDevelopers().forEach(bd -> {
+                if (bd.getDeveloper() != null) devIdSet.add(bd.getDeveloper().getId());
+            });
+        }
+        // Union the parent CR ownership too, so a co-owner who joined at
+        // the CR level is credited even if a bug_developers row is missing.
+        if (savedBug.getBugTask() != null) {
+            Task parentCr = savedBug.getBugTask();
+            if (parentCr.getAssignedDeveloper() != null) {
+                devIdSet.add(parentCr.getAssignedDeveloper().getId());
+            }
+            if (parentCr.getDevelopers() != null) {
+                parentCr.getDevelopers().forEach(td -> {
+                    if (td.getDeveloper() != null) devIdSet.add(td.getDeveloper().getId());
+                });
+            }
+        }
+
+        if (!devIdSet.isEmpty()) {
+            java.util.List<Long> allDevIds = new java.util.ArrayList<>(devIdSet);
+            int numDevs = allDevIds.size();
+            int basePoints = 10; // BUG_RESOLVED base (RecognitionEventListener.BASE_POINTS)
+            int base = basePoints / numDevs;
+            int rem  = Math.abs(basePoints % numDevs);
+            int step = basePoints < 0 ? -1 : 1;
+            String actor = SecurityContextHolder.getContext().getAuthentication().getName();
+
+            for (int i = 0; i < numDevs; i++) {
+                Long dId = allDevIds.get(i);
+                int pointsForThisDev = base + (i < rem ? step : 0);
+                java.util.Map<String, Object> meta = new java.util.HashMap<>();
+                meta.put("jtrackId", savedBug.getJtrackId() != null ? savedBug.getJtrackId() : "");
+                meta.put("severity", savedBug.getSeverity() != null ? savedBug.getSeverity() : "");
+                meta.put("status",   savedBug.getStatus() != null ? savedBug.getStatus() : "");
+                meta.put("pointsOverride", pointsForThisDev);
+                meta.put("strategy", "EQUAL");
+                meta.put("poolSize", numDevs);
+
+                applicationEventPublisher.publishEvent(new RecognitionTriggerEvent(
+                    savedBug, "BUG_RESOLVED", dId, "BUG", savedBug.getId(), actor, meta));
+            }
+        }
+    }
+} catch (Exception e) {
+    log.error("Failed to publish BUG_RESOLVED recognition trigger: {}", e.getMessage());
+               }
                     
                     // Auto-transition task back to UAT_TESTING if all sibling bugs are VERIFIED or CLOSED
                     if ("VERIFIED".equals(savedBug.getStatus()) && savedBug.getBugTask() != null) {
@@ -1052,6 +1095,46 @@ public class BugController {
                 })
                 .orElse(ResponseEntity.notFound().build());
     }
+ 
+     /**
+ * Multi-developer co-ownership check for bugs.
+ * A user may act on a bug if they are:
+ *   - the legacy sentinel assignedDeveloper, OR
+ *   - a member of the bug's own developer pool (bug_developers), OR
+ *   - a co-owner of the parent CR (task_developers pool or CR sentinel).
+ * Single-dev bugs (N=1) reduce to the sentinel check — byte-identical behavior.
+ */
+private boolean isBugCoOwner(Bug bug, String username) {
+    if (bug == null || username == null) return false;
+    if (bug.getAssignedDeveloper() != null
+            && username.equals(bug.getAssignedDeveloper().getUsername())) {
+        return true;
+    }
+    if (bug.getDevelopers() != null) {
+        for (BugDeveloper bd : bug.getDevelopers()) {
+            if (bd.getDeveloper() != null
+                    && username.equals(bd.getDeveloper().getUsername())) {
+                return true;
+            }
+        }
+    }
+    if (bug.getBugTask() != null) {
+        Task cr = bug.getBugTask();
+        if (cr.getAssignedDeveloper() != null
+                && username.equals(cr.getAssignedDeveloper().getUsername())) {
+            return true;
+        }
+        if (cr.getDevelopers() != null) {
+            for (com.devtrack.api.model.TaskDeveloper td : cr.getDevelopers()) {
+                if (td.getDeveloper() != null
+                        && username.equals(td.getDeveloper().getUsername())) {
+                    return true;
+                }
+            }
+        }
+    }
+    return false;
+}
 
     private void createAndPushNotification(Long userId, String title, String desc) {
         if (userId == null) return;

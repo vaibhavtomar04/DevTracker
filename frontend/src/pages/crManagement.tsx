@@ -4,6 +4,7 @@ import { useTaskStore } from "@/store/taskStore"
 import { useAuthStore } from "@/store/authStore"
 import { getCRStatusBadgeClass } from "@/utils/statusColors"
 import React, { useState, useEffect } from "react"
+
 import { Button } from "@/components/ui/button"
 import {
   Plus,
@@ -29,6 +30,7 @@ import { CreateCRModal } from "@/components/shared/CreateCRModal"
 import { Pagination, paginate } from "@/components/shared/Pagination"
 import { exportCrAuditReport } from "@/services/crAuditReport.service";
 import { APP_CONFIG } from "@/config/appConfig";
+
 
 export default function CrManagement() {
   const { 
@@ -1520,7 +1522,7 @@ export default function CrManagement() {
                         if (exportPriority !== "all" && t.priority !== exportPriority) return false
                         if (exportStatus !== "all" && t.status !== exportStatus) return false
                         if (exportCategory !== "all" && (t.type?.name || "CR") !== exportCategory) return false
-                        if (exportDev !== "all" && (t.assignedDeveloper?.fullName || "Unassigned") !== exportDev) return false
+                        if (exportDev !== "all" && (getAssignedDevNames(t) || "Unassigned") !== exportDev) return false
                         if (exportHasBugs !== "all") {
                           const bc = bugs.filter(b => b.crTaskId === t.id).length
                           if (exportHasBugs === "yes" && bc === 0) return false

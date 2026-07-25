@@ -136,11 +136,49 @@ const getExpectedDateForStage = (key: string, t: Task): string | undefined => {
 };
 
 const STATUS_ORDER = STAGE_DEFS.map((s) => s.key);
+const IN_PROGRESS_STATUSES = new Set([
+  'OPEN',
+  'IN_PROGRESS',
+  'CHANGES_REQUESTED',
+  'SIT_TESTING',
+  'CODE_REVIEW',
+  'TESTING_POOL',
+  'TESTING_IN_PROGRESS',
+  'UAT_TESTING',
+  'BUG_FOUND',
+  'RESOLVED',
+]);
 
 function normalizeStatus(status: string): string {
-  const s = status.toUpperCase();
-  if (s === 'CHANGES_REQUESTED') return 'IN_PROGRESS';
-  if (s === 'TESTING_COMPLETED') return 'UAT_COMPLETED';
+  const s = (status || '').toUpperCase();
+  switch (s) {
+    // Dev phase
+    case 'CHANGES_REQUESTED':
+      return 'IN_PROGRESS';
+    // QA / UAT testing phase — these are the REAL runtime statuses the backend
+    // sets (TESTING_POOL -> TESTING_IN_PROGRESS -> TESTING_COMPLETED, plus
+    // BUG_FOUND / RESOLVED during retest). None existed in STATUS_ORDER, which
+    // made currentIdx = -1 and collapsed the whole timeline to a single step.
+    // Matches WorkflowExecutionService mapping (TESTING_* -> UAT_*).
+    case 'TESTING_POOL':
+    case 'TESTING_IN_PROGRESS':
+    case 'BUG_FOUND':
+    case 'RESOLVED':
+      return 'UAT_TESTING';
+    case 'TESTING_COMPLETED':
+      return 'UAT_COMPLETED';
+    // Production phase alias
+    case 'PROD_READY':
+      return 'PROD_DEPLOYED';
+    default:
+      break;
+  }
+  // Defensive fallback so an unmapped/future status never collapses the timeline again.
+  if (STATUS_ORDER.indexOf(s) !== -1) return s;
+  if (s.startsWith('SIT')) return 'SIT_TESTING';
+  if (s.includes('UAT') || s.includes('TEST') || s.includes('BUG')) return 'UAT_TESTING';
+  if (s.startsWith('PROD')) return 'PROD_DEPLOYED';
+  if (s === 'DONE' || s === 'COMPLETED' || s.includes('CLOSE')) return 'CLOSED';
   return s;
 }
 
@@ -167,7 +205,8 @@ function getReachedStages(task: Task): Array<{
 
     const dateRaw = def.dateField(task);
     const actor = def.actorField(task);
-    const isActive = def.key === normalized;
+    const rawStatus = (task.status || '').toUpperCase();
+    const isActive = def.key === normalized && IN_PROGRESS_STATUSES.has(rawStatus);
 
     reached.push({
       def,
@@ -250,6 +289,7 @@ export const CRTimelinePopup: React.FC<CRTimelinePopupProps> = ({ task, onClose 
   const currentIdx = STATUS_ORDER.indexOf(normalized);
   const totalStages = currentIdx >= 0 ? currentIdx + 1 : 1;
   const completedCount = reachedStages.filter((s) => s.status === 'completed').length;
+  const activeCount = reachedStages.filter((s) => s.status === 'active').length;
   const progressPct = Math.round((totalStages / STATUS_ORDER.length) * 100);
 
   // Keyboard close
@@ -399,7 +439,7 @@ export const CRTimelinePopup: React.FC<CRTimelinePopupProps> = ({ task, onClose 
           <div className="px-5 pt-3 pb-2 flex-shrink-0">
             <div className="flex items-center justify-between text-[10px] mb-1.5">
               <span className="font-bold text-slate-600 dark:text-zinc-400">
-                {completedCount} completed · 1 active
+                {completedCount} completed{activeCount > 0 ? ` · ${activeCount} active` : ''}
               </span>
               <span className="font-bold text-slate-600 dark:text-zinc-400">{progressPct}% through workflow</span>
             </div>
