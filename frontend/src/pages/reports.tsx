@@ -148,27 +148,21 @@ export default function Reports() {
         })
         setExporting(null)
       } else if (format === "pdf") {
-        // PDF Visual Graph Capture via html2canvas & jsPDF
-        const [{ default: jsPDF }, { default: html2canvas }] = await Promise.all([
-          import("jspdf"),
-          import("html2canvas")
-        ])
-        const el = document.getElementById("reports-dashboard-root")
-        if (el) {
-          const canvas = await html2canvas(el, { backgroundColor: "#080b18", scale: 1.5 })
-          const imgData = canvas.toDataURL("image/png")
-          const pdf = new jsPDF({ 
-            orientation: "landscape", 
-            unit: "px", 
-            format: [canvas.width / 1.5, canvas.height / 1.5] 
-          })
-          pdf.addImage(imgData, "PNG", 0, 0, canvas.width / 1.5, canvas.height / 1.5)
-          const base64Data = pdf.output("datauristring")
-          setDownloadTarget({ 
-            base64Data, 
-            defaultFileName: `DevTracker_Report_${Date.now()}.pdf` 
-          })
-        }
+        // Enterprise-grade vector PDF summary (structured data, no DOM screenshot)
+        const { generateAnalyticsSummaryPdf } = await import("@/utils/analyticsPdf")
+        const base64Data = generateAnalyticsSummaryPdf({
+          analytics,
+          deadlineAnalytics,
+          devProductivity: devProductivityData,
+          devBugs: devBugsData,
+          categories: pieData,
+          filters: { range, scope, sprint: sprintId },
+          generatedBy: (user as any)?.fullName || (user as any)?.username || undefined,
+        })
+        setDownloadTarget({
+          base64Data,
+          defaultFileName: `DevTrack_Executive_Summary_${Date.now()}.pdf`
+        })
         setExporting(null)
       } else if (format === "xlsx") {
         // Backend Asynchronous Excel Report
