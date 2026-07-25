@@ -404,10 +404,11 @@ public class BugController {
                         boolean isAdmin = roles.contains("ROLE_TESTADMIN");
                         boolean isCreatorTop = bug.getRaisedBy() != null && bug.getRaisedBy().getUsername().equals(username);
 
-                        // DEVADMIN is treated as a DEVELOPER for bug updates (restricted to assigned bugs)
-                        if (!bug.getAssignedDeveloper().getUsername().equals(username) && !isReviewer && !isAdmin && !isCreatorTop) {
-                            return ResponseEntity.status(403).body("Only the assigned developer, the bug creator, or an admin can update this bug.");
-                        }
+                        // DEVADMIN is treated as a DEVELOPER for bug updates.
+                        // Multi-developer co-ownership: any co-owner of the bug or its parent CR may act.
+                        if (!isBugCoOwner(bug, username) && !isReviewer && !isAdmin && !isCreatorTop) {
+                         return ResponseEntity.status(403).body("Only an assigned co-owner, the bug creator, or an admin can update this bug.");
+                         }
 
                         // NEW: Prevent developer updates if bug is in active testing phase or has a tester assigned
                         boolean isActiveTesting = bug.getStatus() != null && 
@@ -535,7 +536,7 @@ public class BugController {
 
                     boolean isCreator = bug.getRaisedBy() != null && bug.getRaisedBy().getId().equals(currentUser.getId());
                     boolean isAdmin = currentUserRole.contains("ROLE_TESTADMIN");
-                    boolean isAssignedDeveloper = bug.getAssignedDeveloper() != null && bug.getAssignedDeveloper().getId().equals(currentUser.getId());
+                    boolean isAssignedDeveloper = isBugCoOwner(bug, username);
 
                     // Permission logic
                     if (!isCreator && !isAdmin) {
@@ -1052,6 +1053,46 @@ public class BugController {
                 })
                 .orElse(ResponseEntity.notFound().build());
     }
+ 
+     /**
+ * Multi-developer co-ownership check for bugs.
+ * A user may act on a bug if they are:
+ *   - the legacy sentinel assignedDeveloper, OR
+ *   - a member of the bug's own developer pool (bug_developers), OR
+ *   - a co-owner of the parent CR (task_developers pool or CR sentinel).
+ * Single-dev bugs (N=1) reduce to the sentinel check — byte-identical behavior.
+ */
+private boolean isBugCoOwner(Bug bug, String username) {
+    if (bug == null || username == null) return false;
+    if (bug.getAssignedDeveloper() != null
+            && username.equals(bug.getAssignedDeveloper().getUsername())) {
+        return true;
+    }
+    if (bug.getDevelopers() != null) {
+        for (BugDeveloper bd : bug.getDevelopers()) {
+            if (bd.getDeveloper() != null
+                    && username.equals(bd.getDeveloper().getUsername())) {
+                return true;
+            }
+        }
+    }
+    if (bug.getBugTask() != null) {
+        Task cr = bug.getBugTask();
+        if (cr.getAssignedDeveloper() != null
+                && username.equals(cr.getAssignedDeveloper().getUsername())) {
+            return true;
+        }
+        if (cr.getDevelopers() != null) {
+            for (com.devtrack.api.model.TaskDeveloper td : cr.getDevelopers()) {
+                if (td.getDeveloper() != null
+                        && username.equals(td.getDeveloper().getUsername())) {
+                    return true;
+                }
+            }
+        }
+    }
+    return false;
+}
 
     private void createAndPushNotification(Long userId, String title, String desc) {
         if (userId == null) return;
