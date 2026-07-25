@@ -81,7 +81,7 @@ function ProtectedRoute({ children, allowedRoles }: ProtectedRouteProps) {
   return <DashboardLayout>{children}</DashboardLayout>
 }
 
-import { Terminal } from "lucide-react"
+import { Terminal, AlertTriangle, RefreshCw, LayoutDashboard } from "lucide-react"
 import { motion } from "framer-motion"
 
 // Premium Animated Loading Spinner
@@ -167,30 +167,60 @@ class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState> {
   render() {
     if (this.state.hasError) {
       return (
-        <div className="min-h-screen bg-slate-950 flex flex-col items-center justify-center p-6 text-slate-100 text-center">
-          <div className="max-w-md p-8 rounded-3xl border border-white/[0.06] bg-white/[0.02] backdrop-blur-md space-y-4 shadow-2xl">
-            <h2 className="text-xl font-black bg-gradient-to-r from-rose-400 via-pink-300 to-rose-400 bg-clip-text text-transparent">
+        <div className="min-h-screen bg-background relative flex items-center justify-center p-6 overflow-hidden">
+          {/* Ambient orbs */}
+          <div className="absolute -top-24 -right-24 w-96 h-96 bg-rose-500/10 blur-[120px] rounded-full pointer-events-none" />
+          <div className="absolute -bottom-24 -left-24 w-96 h-96 bg-violet-600/10 blur-[120px] rounded-full pointer-events-none" />
+
+          <motion.div
+            initial={{ opacity: 0, y: 16, scale: 0.98 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            transition={{ duration: 0.4, ease: "easeOut" }}
+            className="relative z-10 w-full max-w-lg rounded-3xl border border-white/[0.08] bg-white/[0.03] backdrop-blur-xl p-8 shadow-[0_24px_80px_rgba(0,0,0,0.5)] text-center"
+          >
+            {/* Icon badge */}
+            <div className="mx-auto mb-5 flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-rose-500/20 to-fuchsia-500/10 border border-rose-500/20 shadow-[0_0_30px_rgba(244,63,94,0.15)]">
+              <AlertTriangle className="h-7 w-7 text-rose-400" strokeWidth={1.75} />
+            </div>
+
+            <h2 className="text-xl font-black tracking-tight text-foreground">
               Something went wrong
             </h2>
-            <p className="text-xs text-slate-400 leading-relaxed">
-              An unexpected error occurred in this section of the application.
+            <p className="mt-2 text-sm text-muted-foreground leading-relaxed">
+              This section hit an unexpected error. Your data is safe — try reloading, or head back to your dashboard.
             </p>
-            {this.state.error && (
-              <pre className="text-[10px] text-red-300 bg-black/50 p-3 rounded-lg text-left overflow-auto max-h-40 font-mono select-all">
-                {this.state.error.toString()}
-                {"\n"}
-                {this.state.error.stack}
-              </pre>
-            )}
-            <div className="pt-2">
+
+            {/* Actions */}
+            <div className="mt-6 flex flex-col sm:flex-row items-center justify-center gap-2.5">
               <button
                 onClick={() => window.location.reload()}
-                className="px-5 py-2 text-xs font-bold rounded-xl bg-gradient-to-r from-violet-600 to-indigo-600 text-white hover:opacity-90 transition-opacity cursor-pointer shadow-lg"
+                className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-5 py-2.5 text-xs font-bold rounded-xl bg-gradient-to-r from-violet-600 to-indigo-600 text-white hover:opacity-90 transition-opacity cursor-pointer shadow-lg shadow-violet-900/30"
               >
-                Reload Application
+                <RefreshCw className="h-3.5 w-3.5" /> Reload Application
+              </button>
+              <button
+                onClick={() => { window.location.href = (APP_CONFIG.contextPath || "") + "/dashboard" }}
+                className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-5 py-2.5 text-xs font-bold rounded-xl border border-white/[0.1] bg-white/[0.04] text-slate-200 hover:bg-white/[0.08] transition-colors cursor-pointer"
+              >
+                <LayoutDashboard className="h-3.5 w-3.5" /> Back to Dashboard
               </button>
             </div>
-          </div>
+
+            {/* Collapsible technical details */}
+            {this.state.error && (
+              <details className="mt-6 text-left group">
+                <summary className="cursor-pointer select-none text-[11px] font-semibold text-muted-foreground/70 hover:text-muted-foreground transition-colors list-none flex items-center gap-1.5">
+                  <span className="inline-block transition-transform group-open:rotate-90">▸</span>
+                  Technical details
+                </summary>
+                <pre className="mt-3 text-[10px] text-rose-300/80 bg-black/40 border border-white/[0.06] p-3 rounded-xl overflow-auto max-h-40 font-mono select-all whitespace-pre-wrap">
+                  {this.state.error.toString()}
+                  {"\n"}
+                  {this.state.error.stack}
+                </pre>
+              </details>
+            )}
+          </motion.div>
         </div>
       )
     }
