@@ -5,14 +5,17 @@ import { APP_CONFIG } from "@/config/appConfig";
  *
  * The heavy lifting (Excel styling, summary sheet, chart, clickable links) is
  * done by the backend POI generator at POST /api/reports/cr-audit-export.
- * This service is responsible for turning the data the CR page already has in
- * memory (tasks + bugs + audit logs) into the enriched JSON payload the backend
- * expects, so timeline / bug / cycle-time values match exactly what the user
- * sees in the UI (audit-log derived, not the sometimes-empty raw date columns).
+ * This service turns the data the CR page already has in memory (tasks + bugs +
+ * audit logs) into the enriched JSON payload the backend expects, so the
+ * timeline / bug / cycle-time values match exactly what the user sees in the UI
+ * (audit-log derived, not the sometimes-empty raw date columns).
  *
  * Only fields that have real backing in the data model are included — blank /
  * unavailable enterprise fields (Release version, Epic, CAB approval, test-case
  * counts, etc.) are intentionally omitted rather than fabricated.
+ *
+ * NOTE: audit-log parsing mirrors crManagement.tsx exactly:
+ *   entityType ("TASK" | "BUG"), entityId, fieldName === "status", newValue, changedDate.
  */
 
 type AnyRec = Record<string, any>;
@@ -40,45 +43,32 @@ function fullName(u: any): string {
 	return u.fullName || u.name || u.username || "";
 }
 
-/** Earliest audit-log timestamp where the given task moved into `status`. */
+/** Earliest audit-log day where the given task moved into `status`. Mirrors crManagement.getAuditDate. */
 function getAuditDate(auditLogs: AnyRec[], taskId: any, status: string): string {
-	const matches = auditLogs.filter((l) => {
-		const entMatch =
-			String(l.entityId ?? l.taskId ?? l.entity_id) === String(taskId);
-		const typeMatch =
-			!l.entityType || String(l.entityType).toUpperCase().includes("TASK") || String(l.entityType).toUpperCase().includes("CR");
-		const valMatch =
-			String(l.newValue ?? l.new_value ?? "").toUpperCase() === status.toUpperCase();
-		return entMatch && typeMatch && valMatch;
-	});
-	if (!matches.length) return "";
-	matches.sort((a, b) => tsOf(a) - tsOf(b));
-	return dateOf(matches[0]);
+	const log = auditLogs
+		.filter(
+			(l) =>
+				l.entityType === "TASK" &&
+				String(l.entityId) === String(taskId) &&
+				l.fieldName === "status" &&
+				String(l.newValue).toUpperCase() === status.toUpperCase()
+		)
+		.sort((a, b) => new Date(a.changedDate || 0).getTime() - new Date(b.changedDate || 0).getTime())[0];
+	return log?.changedDate ? new Date(log.changedDate).toISOString().split("T")[0] : "";
 }
 
-/** Resolve/close timestamp for a bug from the audit log, if present. */
+/** Latest resolve/close/verify day for a bug from the audit log. */
 function getBugResolveDate(auditLogs: AnyRec[], bugId: any): string {
-	const matches = auditLogs.filter((l) => {
-		const entMatch = String(l.entityId ?? l.bugId ?? l.entity_id) === String(bugId);
-		const typeMatch = String(l.entityType ?? "").toUpperCase().includes("BUG");
-		const v = String(l.newValue ?? l.new_value ?? "").toUpperCase();
-		const valMatch = FIXED_BUG_STATUSES.includes(v);
-		return entMatch && typeMatch && valMatch;
-	});
-	if (!matches.length) return "";
-	matches.sort((a, b) => tsOf(b) - tsOf(a)); // latest resolve
-	return dateOf(matches[0]);
-}
-
-function tsOf(log: AnyRec): number {
-	const d = log.timestamp || log.changedAt || log.createdDate || log.date;
-	const t = d ? new Date(d).getTime() : NaN;
-	return isNaN(t) ? 0 : t;
-}
-
-function dateOf(log: AnyRec): string {
-	const d = log.timestamp || log.changedAt || log.createdDate || log.date;
-	return d ? String(d) : "";
+	const log = auditLogs
+		.filter(
+			(l) =>
+				l.entityType === "BUG" &&
+				String(l.entityId) === String(bugId) &&
+				l.fieldName === "status" &&
+				FIXED_BUG_STATUSES.includes(String(l.newValue).toUpperCase())
+		)
+		.sort((a, b) => new Date(b.changedDate || 0).getTime() - new Date(a.changedDate || 0).getTime())[0];
+	return log?.changedDate ? new Date(log.changedDate).toISOString().split("T")[0] : "";
 }
 
 function daysBetween(a?: string, b?: string): number | null {
@@ -110,8 +100,7 @@ function prodReadiness(status: string, openBugs: number): string {
 export function buildCrAuditPayload(args: CrAuditExportArgs): AnyRec {
 	const { tasks, bugs, auditLogs, generatedBy, baseUrl } = args;
 
-	const bugsForTask = (taskId: any) =>
-		bugs.filter((b) => String(b.crTaskId ?? b.bugTaskId ?? b.taskId) === String(taskId));
+	const bugsForTask = (taskId: any) => bugs.filter((b) => String(b.crTaskId) === String(taskId));
 
 	let completed = 0;
 	let cancelled = 0;
@@ -120,7 +109,7 @@ export function buildCrAuditPayload(args: CrAuditExportArgs): AnyRec {
 	const projects = new Set<string>();
 	const sprints = new Set<string>();
 
-	const crRows = tasks.map((t) => {
+	const crRows = tasks.map((t: any) => {
 		const taskBugs = bugsForTask(t.id);
 		const openBugs = taskBugs.filter((b) => !isFixed(b.status) && !isInvalid(b.status)).length;
 		const totalBugs = taskBugs.length;
@@ -141,7 +130,10 @@ export function buildCrAuditPayload(args: CrAuditExportArgs): AnyRec {
 		const sitDeploy = getAuditDate(auditLogs, t.id, "SIT_DEPLOYED") || t.sitDate || "";
 		const sitCompleted = getAuditDate(auditLogs, t.id, "SIT_COMPLETED") || "";
 		const codeReview = getAuditDate(auditLogs, t.id, "CODE_REVIEW") || "";
-		const testingCompleted = t.testingCompletedDate || getAuditDate(auditLogs, t.id, "TESTING_COMPLETED") || "";
+		const testingCompleted =
+			(t.testingCompletedDate ? new Date(t.testingCompletedDate).toISOString().split("T")[0] : "") ||
+			getAuditDate(auditLogs, t.id, "TESTING_COMPLETED") ||
+			"";
 		const uatDeploy = getAuditDate(auditLogs, t.id, "UAT_DEPLOYED") || getAuditDate(auditLogs, t.id, "MOVE_TO_UAT") || t.uatDate || "";
 		const uatCompleted = getAuditDate(auditLogs, t.id, "UAT_COMPLETED") || "";
 		const prodDeploy = getAuditDate(auditLogs, t.id, "PROD_DEPLOYED") || t.productionDate || "";
@@ -186,7 +178,7 @@ export function buildCrAuditPayload(args: CrAuditExportArgs): AnyRec {
 			approver: fullName(t.approver),
 			deploymentOwner: fullName(t.deploymentOwner),
 			createdBy: fullName(t.createdBy),
-			createdDate: created,
+			createdDate: created ? new Date(created).toISOString().split("T")[0] : "",
 			devStartDate: devStart,
 			sitDeployDate: sitDeploy,
 			sitCompletedDate: sitCompleted,
@@ -200,7 +192,7 @@ export function buildCrAuditPayload(args: CrAuditExportArgs): AnyRec {
 			totalCycleTimeDays,
 			gitBranch: t.branchName || "",
 			prLink,
-			mergeDate: t.branchMergeDate || "",
+			mergeDate: t.branchMergeDate ? new Date(t.branchMergeDate).toISOString().split("T")[0] : "",
 			gitLinks: t.gitLinks || "",
 			qualityRisk: !!t.isQualityRisk,
 			rollbackCount: t.rollbackCount ?? 0,
@@ -213,10 +205,8 @@ export function buildCrAuditPayload(args: CrAuditExportArgs): AnyRec {
 
 	// bug rows across the exported CRs (clickable IDs)
 	const bugRows: AnyRec[] = [];
-	const exportedIds = new Set(tasks.map((t) => String(t.id)));
-	for (const t of tasks) {
+	for (const t of tasks as any[]) {
 		for (const b of bugsForTask(t.id)) {
-			if (!exportedIds.has(String(t.id))) continue;
 			bugRows.push({
 				id: b.id,
 				bugId: b.jtrackId || String(b.id),
@@ -228,8 +218,8 @@ export function buildCrAuditPayload(args: CrAuditExportArgs): AnyRec {
 				status: b.status || "",
 				raisedBy: fullName(b.raisedBy),
 				assignedDeveloper: fullName(b.assignedDeveloper),
-				raisedDate: b.createdDate || "",
-				resolvedDate: isFixed(b.status) ? getBugResolveDate(auditLogs, b.id) || b.updatedDate || "" : "",
+				raisedDate: b.createdDate ? new Date(b.createdDate).toISOString().split("T")[0] : "",
+				resolvedDate: isFixed(b.status) ? getBugResolveDate(auditLogs, b.id) : "",
 				url: baseUrl ? `${baseUrl}/dashboard/crs?bug=${b.id}` : "",
 			});
 		}
@@ -246,7 +236,14 @@ export function buildCrAuditPayload(args: CrAuditExportArgs): AnyRec {
 	return {
 		meta: {
 			generatedBy,
-			generatedOn: new Date().toLocaleString("en-GB", { day: "2-digit", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit", hour12: true }),
+			generatedOn: new Date().toLocaleString("en-GB", {
+				day: "2-digit",
+				month: "short",
+				year: "numeric",
+				hour: "2-digit",
+				minute: "2-digit",
+				hour12: true,
+			}),
 			project: pick(projects) || "DevTrack 2.0",
 			sprint: pick(sprints),
 			baseUrl,
@@ -288,7 +285,7 @@ export async function exportCrAuditReport(args: CrAuditExportArgs): Promise<CrAu
 		} catch {
 			/* ignore */
 		}
-		throw new Error(`CR Audit export failed (HTTP ${res.status})${detail ? ": " + detail.slice(0, 200) : ""}`);
+		throw new Error(`HTTP ${res.status}${detail ? ": " + detail.slice(0, 200) : ""}`);
 	}
 
 	const blob = await res.blob();
