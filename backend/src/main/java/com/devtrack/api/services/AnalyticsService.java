@@ -624,10 +624,13 @@ public class AnalyticsService {
             long score = (firstPassCount * 50) + (prodDeploys * 30) + (onTimeSprints * 20);
 
             if (score > 0) {
+                String roleName = (u.getRoles() != null && !u.getRoles().isEmpty())
+                        ? u.getRoles().iterator().next().name()
+                        : "USER";
                 Map<String, Object> entry = new HashMap<>();
                 entry.put("userId", u.getId());
                 entry.put("name", u.getFullName());
-                entry.put("role", u.getRole() != null ? u.getRole().getName() : "USER");
+                entry.put("role", roleName);
                 entry.put("score", score);
                 entry.put("firstPassApprovedCrs", firstPassCount);
                 entry.put("successfulProdDeployments", prodDeploys);
