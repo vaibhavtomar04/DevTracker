@@ -572,3 +572,22 @@ public class CrAuditReportService {
             f.setFontHeightInPoints((short) size);
             f.setBold(bold);
             f.setColor(color);
+            return f;
+        }
+
+        private static void border(XSSFCellStyle st, XSSFColor color) {
+            st.setBorderTop(BorderStyle.THIN);
+            st.setTopBorderColor(color);
+            st.setBorderBottom(BorderStyle.THIN);
+            st.setBottomBorderColor(color);
+            st.setBorderLeft(BorderStyle.THIN);
+            st.setLeftBorderColor(color);
+            st.setBorderRight(BorderStyle.THIN);
+            st.setRightBorderColor(color);
+        }
+
+        private static XSSFColor c(int r, int g, int b) {
+            return new XSSFColor(new byte[]{(byte) r, (byte) g, (byte) b}, null);
+        }
+    }
+}
