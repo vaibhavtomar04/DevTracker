@@ -20,11 +20,11 @@ export interface ChartRoleColor {
 
 export const CHART_PALETTE: Record<string, ChartRoleColor> = {
   brand: {
-    fill: "#63a659",
-    stroke: "#63a659",
-    gradientStart: "rgba(99, 166, 89, 0.85)",
-    gradientEnd: "rgba(99, 166, 89, 0.15)",
-    rgb: "99, 166, 89",
+    fill: "#10b981",
+    stroke: "#10b981",
+    gradientStart: "rgba(16, 185, 129, 0.85)",
+    gradientEnd: "rgba(16, 185, 129, 0.15)",
+    rgb: "16, 185, 129",
   },
   dev: {
     fill: "#6366f1",

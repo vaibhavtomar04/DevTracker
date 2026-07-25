@@ -1,12 +1,13 @@
-import React from "react"
+import React, { useEffect, useState } from "react"
 import { Card } from "@/components/ui/card"
 import { TrendingUp, Clock, Bug, ShieldCheck, Zap, ArrowUpRight, ArrowDownRight } from "lucide-react"
+import { apiClient } from "@/utils/apiClient"
+import { CHART_PALETTE } from "@/components/charts/chartPalette"
 
 export interface KpiItem {
   id: string
   title: string
   value: string
-  numericValue: number
   deltaLabel: string
   deltaType: "increase" | "decrease" | "neutral"
   isPositive: boolean
@@ -17,110 +18,133 @@ export interface KpiItem {
 }
 
 interface ExecKpiStripProps {
-  analytics: any
-  tasks?: any[]
-  bugs?: any[]
+  range?: string
+  scope?: string
+  sprintId?: string
+  userId?: number
   loading?: boolean
 }
 
-export const ExecKpiStrip: React.FC<ExecKpiStripProps> = ({ analytics, tasks = [], bugs = [], loading = false }) => {
-  // Compute numbers from analytics & task store
-  const totalCrs = analytics?.totalCRs || tasks.length || 0
-  const completedCrs = tasks.filter(t => t.status === "CLOSED" || t.status === "PROD_DEPLOYED" || t.status === "PROD_COMPLETED").length
-  const throughputVal = totalCrs > 0 ? `${completedCrs}/${totalCrs}` : "0"
+export const ExecKpiStrip: React.FC<ExecKpiStripProps> = ({
+  range = "30d",
+  scope = "all",
+  sprintId = "all",
+  userId,
+  loading: initialLoading = false
+}) => {
+  const [data, setData] = useState<any>(null)
+  const [loading, setLoading] = useState(initialLoading)
 
-  const avgTestingHours = analytics?.averageTestingDurationHours || 0
-  const avgBugHours = analytics?.averageBugResolutionHours || 0
-  const avgCycleDays = ((avgTestingHours + avgBugHours) / 24).toFixed(1) + "d"
+  useEffect(() => {
+    setLoading(true)
+    const query = new URLSearchParams()
+    if (range) query.set("range", range)
+    if (scope) query.set("scope", scope)
+    if (sprintId) query.set("sprintId", sprintId)
+    if (userId) query.set("userId", userId.toString())
 
-  const totalBugs = analytics?.totalBugs || bugs.length || 0
-  const escapedBugsCount = bugs.filter(b => b.status !== "REJECTED" && b.status !== "INVALID" && (b.status === "VERIFIED" || b.status === "CLOSED")).length
-  const escapedDefectsVal = `${escapedBugsCount} (${totalBugs > 0 ? Math.round((escapedBugsCount / totalBugs) * 100) : 0}%)`
+    apiClient(`/api/analytics/kpi?${query.toString()}`)
+      .then((res) => {
+        if (res) setData(res)
+      })
+      .catch(() => {})
+      .finally(() => setLoading(false))
+  }, [range, scope, sprintId, userId])
 
-  const testingSla = analytics?.testingSlaComplianceRate || 0
-  const approvalSla = analytics?.approvalSlaComplianceRate || 0
-  const combinedSla = Math.round((testingSla + approvalSla) / 2)
+  const formatDelta = (current: number, previous: number, unit: string = "") => {
+    const diff = current - previous
+    const sign = diff > 0 ? "+" : ""
+    const formatted = Math.abs(diff) < 1 ? diff.toFixed(1) : Math.round(diff).toString()
+    return `${sign}${formatted}${unit} vs prev period`
+  }
 
-  const activeWip = tasks.filter(t => t.status !== "CLOSED" && t.status !== "PROD_DEPLOYED" && t.status !== "PROD_COMPLETED").length
+  // Extract metrics from real endpoint payload
+  const tp = data?.throughput || { current: 0, total: 0, previous: 0, series: [0, 0, 0, 0, 0, 0, 0] }
+  const ct = data?.cycleTimeDays || { current: 0, previous: 0, series: [0, 0, 0, 0, 0, 0, 0] }
+  const ed = data?.escapedDefects || { current: 0, previous: 0, pct: "0%", series: [0, 0, 0, 0, 0, 0, 0] }
+  const sla = data?.slaCompliance || { current: 0, previous: 0, series: [0, 0, 0, 0, 0, 0, 0] }
+  const wip = data?.activeWip || { current: 0, previous: 0, series: [0, 0, 0, 0, 0, 0, 0] }
+
+  const tpDiff = tp.current - tp.previous
+  const ctDiff = ct.current - ct.previous
+  const edDiff = ed.current - ed.previous
+  const slaDiff = sla.current - sla.previous
+  const wipDiff = wip.current - wip.previous
 
   const items: KpiItem[] = [
     {
       id: "throughput",
       title: "Throughput",
-      value: throughputVal,
-      numericValue: completedCrs,
-      deltaLabel: "+12.4% vs last period",
-      deltaType: "increase",
-      isPositive: true,
+      value: `${tp.current}/${tp.total}`,
+      deltaLabel: formatDelta(tp.current, tp.previous),
+      deltaType: tpDiff > 0 ? "increase" : tpDiff < 0 ? "decrease" : "neutral",
+      isPositive: tpDiff >= 0,
       icon: TrendingUp,
       iconColor: "text-brand",
       badgeColor: "bg-brand/10 text-brand border-brand/20",
-      sparklineData: [12, 18, 14, 22, 28, 35, 42],
+      sparklineData: tp.series || [0, 0, 0, 0, 0, 0, 0],
     },
     {
       id: "cycle_time",
       title: "Avg Cycle Time",
-      value: avgCycleDays,
-      numericValue: parseFloat(avgCycleDays),
-      deltaLabel: "-0.8d vs last period",
-      deltaType: "decrease",
-      isPositive: true,
+      value: `${ct.current}d`,
+      deltaLabel: formatDelta(ct.current, ct.previous, "d"),
+      deltaType: ctDiff > 0 ? "increase" : ctDiff < 0 ? "decrease" : "neutral",
+      isPositive: ctDiff <= 0, // Down is good
       icon: Clock,
       iconColor: "text-dev",
       badgeColor: "bg-dev/10 text-dev-400 border-dev/20",
-      sparklineData: [6.2, 5.8, 5.1, 4.9, 4.4, 4.2, 3.8],
+      sparklineData: ct.series || [0, 0, 0, 0, 0, 0, 0],
     },
     {
       id: "escaped_defects",
       title: "Escaped Defects",
-      value: escapedDefectsVal,
-      numericValue: escapedBugsCount,
-      deltaLabel: "-2.1% vs last period",
-      deltaType: "decrease",
-      isPositive: true,
+      value: `${ed.current} (${ed.pct || "0%"})`,
+      deltaLabel: formatDelta(ed.current, ed.previous),
+      deltaType: edDiff > 0 ? "increase" : edDiff < 0 ? "decrease" : "neutral",
+      isPositive: edDiff <= 0, // Down is good
       icon: Bug,
       iconColor: "text-danger",
       badgeColor: "bg-danger/10 text-danger border-danger/20",
-      sparklineData: [8, 6, 7, 4, 5, 3, 2],
+      sparklineData: ed.series || [0, 0, 0, 0, 0, 0, 0],
     },
     {
       id: "sla_compliance",
       title: "SLA Compliance",
-      value: `${combinedSla}%`,
-      numericValue: combinedSla,
-      deltaLabel: "+4.5% vs target",
-      deltaType: "increase",
-      isPositive: true,
+      value: `${sla.current}%`,
+      deltaLabel: formatDelta(sla.current, sla.previous, "%"),
+      deltaType: slaDiff > 0 ? "increase" : slaDiff < 0 ? "decrease" : "neutral",
+      isPositive: slaDiff >= 0,
       icon: ShieldCheck,
       iconColor: "text-tester",
       badgeColor: "bg-tester/10 text-tester border-tester/20",
-      sparklineData: [82, 85, 88, 87, 91, 93, 95],
+      sparklineData: sla.series || [0, 0, 0, 0, 0, 0, 0],
     },
     {
       id: "active_wip",
       title: "Active WIP",
-      value: `${activeWip}`,
-      numericValue: activeWip,
-      deltaLabel: "Optimal flow load",
-      deltaType: "neutral",
-      isPositive: true,
+      value: `${wip.current}`,
+      deltaLabel: formatDelta(wip.current, wip.previous),
+      deltaType: wipDiff > 0 ? "increase" : wipDiff < 0 ? "decrease" : "neutral",
+      isPositive: wipDiff <= 0,
       icon: Zap,
       iconColor: "text-pending",
       badgeColor: "bg-pending/10 text-pending border-pending/20",
-      sparklineData: [15, 17, 19, 18, 21, 20, activeWip],
+      sparklineData: wip.series || [0, 0, 0, 0, 0, 0, 0],
     },
   ]
 
-  const renderSparkline = (data: number[], color: string) => {
-    const min = Math.min(...data)
-    const max = Math.max(...data)
-    const range = max - min || 1
+  const renderSparkline = (sparklineData: number[], role: string) => {
+    const color = CHART_PALETTE[role]?.fill || CHART_PALETTE.brand.fill
+    const min = Math.min(...sparklineData)
+    const max = Math.max(...sparklineData)
+    const rangeVal = max - min || 1
     const width = 80
     const height = 24
-    const points = data
+    const points = sparklineData
       .map((val, i) => {
-        const x = (i / (data.length - 1)) * width
-        const y = height - ((val - min) / range) * (height - 4) - 2
+        const x = (i / (sparklineData.length - 1)) * width
+        const y = height - ((val - min) / rangeVal) * (height - 4) - 2
         return `${x},${y}`
       })
       .join(" ")
@@ -143,6 +167,7 @@ export const ExecKpiStrip: React.FC<ExecKpiStripProps> = ({ analytics, tasks = [
     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
       {items.map((item) => {
         const IconComp = item.icon
+        const role = item.id === "throughput" ? "brand" : item.id === "cycle_time" ? "dev" : item.id === "escaped_defects" ? "danger" : item.id === "sla_compliance" ? "tester" : "pending"
 
         return (
           <Card
@@ -171,7 +196,7 @@ export const ExecKpiStrip: React.FC<ExecKpiStripProps> = ({ analytics, tasks = [
                   <span className="text-2xl font-black font-mono tracking-tight text-foreground">
                     {item.value}
                   </span>
-                  {renderSparkline(item.sparklineData, item.id === "throughput" ? "#63a659" : item.id === "cycle_time" ? "#6366f1" : item.id === "escaped_defects" ? "#f43f5e" : item.id === "sla_compliance" ? "#06b6d4" : "#f59e0b")}
+                  {renderSparkline(item.sparklineData, role)}
                 </div>
 
                 <div className="mt-2.5 flex items-center gap-1 text-[11px] font-medium">

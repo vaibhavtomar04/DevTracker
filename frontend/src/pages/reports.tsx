@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react"
+import { useSearchParams } from "react-router-dom"
 import { useTaskStore } from "@/store/taskStore"
 import { useAuthStore } from "@/store/authStore"
 import { apiClient } from "@/utils/apiClient"
@@ -41,11 +42,19 @@ import { TimeInStageChart } from "@/components/reports/TimeInStageChart"
 import { AuditFeedWidget } from "@/components/reports/AuditFeedWidget"
 
 export default function Reports() {
+  const [searchParams] = useSearchParams()
   const { tasks, bugs, fetchData, setDownloadTarget } = useTaskStore()
+  const { user } = useAuthStore()
   const [exporting, setExporting] = useState<string | null>(null)
   const [analytics, setAnalytics] = useState<any>(null)
   const [deadlineAnalytics, setDeadlineAnalytics] = useState<any>(null)
   const { sprint: activeSprint, hasActiveSprint } = useActiveSprint()
+
+  const range = searchParams.get("range") || "30d"
+  const scope = searchParams.get("scope") || "all"
+  const sprintId = searchParams.get("sprintId") || (hasActiveSprint ? "active" : "all")
+
+  const effectiveUserId = scope === "my" ? user?.id : undefined
 
   const getSlabadge = (rate: number | null) => {
     if (rate === null) return null;
@@ -60,13 +69,21 @@ export default function Reports() {
 
   useEffect(() => {
     fetchData()
-    apiClient("/api/analytics/dashboard")
+    const query = new URLSearchParams()
+    if (range) query.set("range", range)
+    if (scope) query.set("scope", scope)
+    if (sprintId) query.set("sprintId", sprintId)
+    if (effectiveUserId) query.set("userId", effectiveUserId.toString())
+
+    const qStr = query.toString() ? `?${query.toString()}` : ""
+
+    apiClient(`/api/analytics/dashboard${qStr}`)
       .then(data => setAnalytics(data))
       .catch(() => {})
-    apiClient("/api/analytics/deadlines")
+    apiClient(`/api/analytics/deadlines${qStr}`)
       .then(data => setDeadlineAnalytics(data))
       .catch(() => {})
-  }, [])
+  }, [range, scope, sprintId, effectiveUserId])
 
   // 1. Developer Productivity Chart Data
   // Group efforts by developer
@@ -367,7 +384,13 @@ export default function Reports() {
       </div>
 
       {/* Exec KPI Strip */}
-      <ExecKpiStrip analytics={analytics} tasks={tasks} bugs={bugs} loading={!analytics} />
+      <ExecKpiStrip
+        range={range}
+        scope={scope}
+        sprintId={sprintId}
+        userId={effectiveUserId}
+        loading={!analytics}
+      />
 
       {/* Global Report Filter Bar */}
       <GlobalReportFilterBar
@@ -759,17 +782,34 @@ export default function Reports() {
 
         {/* Cumulative Flow Diagram (CFD) */}
         <motion.div variants={cardVariants}>
-          <CumulativeFlowDiagram tasks={tasks} loading={!analytics} />
+          <CumulativeFlowDiagram
+            range={range}
+            scope={scope}
+            sprintId={sprintId}
+            userId={effectiveUserId}
+            loading={!analytics}
+          />
         </motion.div>
 
         {/* Time in Stage Bottleneck Analysis */}
         <motion.div variants={cardVariants}>
-          <TimeInStageChart loading={!analytics} />
+          <TimeInStageChart
+            range={range}
+            scope={scope}
+            sprintId={sprintId}
+            userId={effectiveUserId}
+            loading={!analytics}
+          />
         </motion.div>
 
         {/* Audit Activity Stream Feed (Full-Width) */}
         <motion.div variants={cardVariants} className="lg:col-span-2">
-          <AuditFeedWidget />
+          <AuditFeedWidget
+            range={range}
+            scope={scope}
+            sprintId={sprintId}
+            userId={effectiveUserId}
+          />
         </motion.div>
       </motion.div>
     </div>
