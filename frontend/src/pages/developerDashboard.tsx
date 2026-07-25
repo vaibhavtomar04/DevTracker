@@ -848,24 +848,24 @@ export default function DeveloperDashboard() {
                     return (
                       /* 1. Animated Hero Widget */
                       <div key="hero" className={`rounded-3xl bg-[#161619] border border-white/[0.06] relative overflow-hidden shadow-2xl grid grid-cols-1 lg:grid-cols-12 gap-6 items-center ${densityPaddingClass}`}>
-                        {/* Animated background decoration orbs */}
-                        <div className="absolute top-0 right-0 w-80 h-80 bg-cyan-500/5 rounded-full blur-[100px] pointer-events-none" />
-                        <div className="absolute -bottom-10 -left-10 w-60 h-60 bg-teal-500/5 rounded-full blur-[80px] pointer-events-none" />
+                        {/* Background decoration orbs */}
+                        <div className="absolute top-0 right-0 w-80 h-80 bg-indigo-500/10 rounded-full blur-[100px] pointer-events-none" />
+                        <div className="absolute -bottom-10 -left-10 w-60 h-60 bg-dev/10 rounded-full blur-[80px] pointer-events-none" />
 
                         {/* Left Column: Greeting Info */}
                         <div className="lg:col-span-5 flex items-center space-x-3.5 z-10 text-left">
                           {/* Initials profile avatar */}
                           {user?.avatar ? (
-                            <img src={user.avatar} className="h-14 w-14 rounded-2xl object-cover shadow-[0_4px_16px_rgba(6,182,212,0.25)] shrink-0" alt="Avatar" />
+                            <img src={user.avatar} className="h-14 w-14 rounded-2xl object-cover shadow-[0_4px_16px_rgba(99,102,241,0.35)] shrink-0" alt="Avatar" />
                           ) : (
-                            <div className="h-14 w-14 rounded-2xl bg-gradient-to-br from-cyan-500 to-teal-500 flex items-center justify-center font-black text-black text-xl shadow-[0_4px_16px_rgba(6,182,212,0.25)] shrink-0">
+                            <div className="h-14 w-14 rounded-2xl bg-gradient-to-br from-indigo-600 to-indigo-400 flex items-center justify-center font-black text-white text-xl shadow-[0_4px_16px_rgba(99,102,241,0.35)] shrink-0">
                               {user?.fullName?.split(" ").map(w => w.charAt(0)).join("") || "DT"}
                             </div>
                           )}
                           <div className="min-w-0">
                             <h2 className="text-xl font-black tracking-tight text-zinc-100 flex flex-wrap items-center gap-1.5 leading-tight">
                               <span>{greetingText},</span>
-                              <span className="text-cyan-400">{user?.fullName || "Developer"}</span>
+                              <span className="text-indigo-400 font-extrabold">{user?.fullName || "Developer"}</span>
                             </h2>
                             <p className="text-[11px] text-zinc-400 font-semibold flex items-center gap-1.5 mt-1">
                               <span className="inline-block w-2 h-2 rounded-full bg-[#10b981] shrink-0" />
