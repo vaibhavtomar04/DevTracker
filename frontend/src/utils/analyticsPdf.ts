@@ -1,4 +1,5 @@
 import jsPDF from "jspdf"
+import { DEVTRACK_LOGO_PNG, DEVTRACK_LOGO_ASPECT } from "./devtrackLogo"
 
 type RGB = [number, number, number]
 
@@ -31,7 +32,7 @@ const NEUTRAL_BG: RGB = [241, 245, 249]
 const NEUTRAL_FG: RGB = [71, 85, 105]
 const HEADER_SUB: RGB = [165, 180, 252]
 const HEADER_META: RGB = [148, 163, 184]
-const LOGO_GREEN: RGB = [34, 178, 122]
+const LOGO_CARD_BG: RGB = [243, 248, 243]
 
 const RANGE_LABELS: Record<string, string> = {
   "7d": "Last 7 Days",
@@ -137,48 +138,25 @@ export function generateAnalyticsSummaryPdf(data: AnalyticsPdfData): string {
   setFill(INDIGO)
   doc.rect(0, 92, PAGE_W, 3, "F")
 
-  // Brand logo mark: green rounded square with a terminal ">_" glyph (vector)
-  const logoX = MARGIN
-  const logoY = 26
-  const logoSize = 36
-  setFill(LOGO_GREEN)
-  doc.roundedRect(logoX, logoY, logoSize, logoSize, 9, 9, "F")
-  doc.setDrawColor(255, 255, 255)
-  doc.setLineWidth(2.2)
-  doc.setLineCap("round")
-  doc.setLineJoin("round")
-  doc.line(logoX + 10, logoY + 12, logoX + 17, logoY + 19)
-  doc.line(logoX + 17, logoY + 19, logoX + 10, logoY + 26)
-  doc.line(logoX + 19, logoY + 26, logoX + 27, logoY + 26)
-  doc.setLineCap("butt")
-  doc.setLineJoin("miter")
-
-  const textX = logoX + logoSize + 12
-  setText(WHITE)
-  doc.setFont("helvetica", "bold")
-  doc.setFontSize(20)
-  doc.text("DevTrack", textX, 42)
-  const wordmarkW = doc.getTextWidth("DevTrack")
-
-  // Version pill
-  doc.setFont("helvetica", "bold")
-  doc.setFontSize(8)
-  const pillText = "v2.0"
-  const pillTextW = doc.getTextWidth(pillText)
-  const pillW = pillTextW + 12
-  const pillH = 14
-  const pillX = textX + wordmarkW + 8
-  const pillY = 31
-  setDraw(HEADER_SUB)
-  doc.setLineWidth(0.8)
-  doc.roundedRect(pillX, pillY, pillW, pillH, 7, 7, "S")
-  setText(HEADER_SUB)
-  doc.text(pillText, pillX + pillW / 2, pillY + pillH / 2, { align: "center", baseline: "middle" })
+  // Brand logo: the official DevTrack lockup, placed on a light brand card so
+  // the dark wordmark stays legible against the dark header band.
+  const logoH = 26
+  const logoW = logoH * DEVTRACK_LOGO_ASPECT
+  const cardPadX = 10
+  const cardPadY = 7
+  const cardX = MARGIN
+  const cardY = 24
+  const cardW = logoW + cardPadX * 2
+  const cardH = logoH + cardPadY * 2
+  setFill(LOGO_CARD_BG)
+  doc.roundedRect(cardX, cardY, cardW, cardH, 6, 6, "F")
+  doc.addImage(DEVTRACK_LOGO_PNG, "PNG", cardX + cardPadX, cardY + cardPadY, logoW, logoH)
 
   setText(HEADER_SUB)
   doc.setFont("helvetica", "bold")
   doc.setFontSize(11)
-  doc.text("Executive Analytics Report", textX, 60)
+  doc.text("Executive Analytics Report", MARGIN, cardY + cardH + 14)
+
   doc.setFont("helvetica", "normal")
   doc.setFontSize(8.5)
   setText(HEADER_META)
