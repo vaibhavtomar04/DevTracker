@@ -228,7 +228,7 @@ export const CreateCRModal: React.FC<CreateCRModalProps> = ({ isOpen, onClose, o
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-xl p-4 overflow-y-auto animate-fadeIn">
       {/* Radiant Glass Card Container */}
-      <div className="relative bg-slate-950/85 border border-white/15 rounded-3xl w-full max-w-3xl max-h-[90vh] flex flex-col shadow-[0_0_80px_rgba(139,92,246,0.25)] overflow-hidden text-slate-100 backdrop-blur-2xl transition-all">
+      <div className="relative bg-slate-950/85 border border-white/15 rounded-3xl w-full max-w-3xl max-h-[90vh] flex flex-col shadow-[0_0_80px_rgba(var(--primary-rgb),0.25)] overflow-hidden text-slate-100 backdrop-blur-2xl transition-all">
         
         {/* Ambient Top Glow Bar */}
         <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-violet-500 via-indigo-500 to-emerald-400 animate-pulse" />

@@ -564,13 +564,24 @@
 .glow-secondary{ box-shadow: 0 0 20px rgba(var(--secondary-rgb), 0.4),  0 0 60px rgba(var(--secondary-rgb), 0.12); }
 .glow-accent   { box-shadow: 0 0 20px rgba(var(--accent-rgb), 0.4),  0 0 60px rgba(var(--accent-rgb), 0.12); }
 
-/* Legacy aliases */
-.glow-sky     { box-shadow: 0 0 20px rgba(var(--primary-rgb), 0.4),  0 0 60px rgba(var(--primary-rgb), 0.12); }
-.glow-teal    { box-shadow: 0 0 20px rgba(var(--primary-rgb), 0.35), 0 0 60px rgba(var(--primary-rgb), 0.1); }
-.glow-emerald { box-shadow: 0 0 20px rgba(var(--primary-rgb), 0.3),  0 0 60px rgba(var(--primary-rgb), 0.08); }
-.glow-cyan    { box-shadow: 0 0 20px rgba(var(--secondary-rgb), 0.3),  0 0 60px rgba(var(--secondary-rgb), 0.08); }
-.glow-violet  { box-shadow: 0 0 20px rgba(var(--accent-rgb), 0.3),  0 0 60px rgba(var(--accent-rgb), 0.08); }
-.glow-amber   { box-shadow: 0 0 20px rgba(245, 158, 11, 0.3), 0 0 60px rgba(245, 158, 11, 0.08); }
+/* Semantic role glows */
+.glow-brand    { box-shadow: 0 0 20px rgba(99, 166, 89, 0.4),  0 0 60px rgba(99, 166, 89, 0.12); }
+.glow-dev      { box-shadow: 0 0 20px rgba(99, 102, 241, 0.4), 0 0 60px rgba(99, 102, 241, 0.12); }
+.glow-tester   { box-shadow: 0 0 20px rgba(6, 182, 212, 0.4),  0 0 60px rgba(6, 182, 212, 0.12); }
+.glow-info     { box-shadow: 0 0 20px rgba(14, 165, 233, 0.4), 0 0 60px rgba(14, 165, 233, 0.12); }
+.glow-success  { box-shadow: 0 0 20px rgba(34, 197, 94, 0.4),  0 0 60px rgba(34, 197, 94, 0.12); }
+.glow-danger   { box-shadow: 0 0 20px rgba(244, 63, 94, 0.4),  0 0 60px rgba(244, 63, 94, 0.12); }
+.glow-pending  { box-shadow: 0 0 20px rgba(245, 158, 11, 0.4), 0 0 60px rgba(245, 158, 11, 0.12); }
+
+/* Color glow utilities */
+.glow-sky     { box-shadow: 0 0 20px rgba(14, 165, 233, 0.4), 0 0 60px rgba(14, 165, 233, 0.12); }
+.glow-teal    { box-shadow: 0 0 20px rgba(20, 184, 166, 0.4), 0 0 60px rgba(20, 184, 166, 0.12); }
+.glow-emerald { box-shadow: 0 0 20px rgba(16, 185, 129, 0.4), 0 0 60px rgba(16, 185, 129, 0.12); }
+.glow-cyan    { box-shadow: 0 0 20px rgba(6, 182, 212, 0.4),  0 0 60px rgba(6, 182, 212, 0.12); }
+.glow-violet  { box-shadow: 0 0 20px rgba(139, 92, 246, 0.4), 0 0 60px rgba(139, 92, 246, 0.12); }
+.glow-indigo  { box-shadow: 0 0 20px rgba(99, 102, 241, 0.4), 0 0 60px rgba(99, 102, 241, 0.12); }
+.glow-amber   { box-shadow: 0 0 20px rgba(245, 158, 11, 0.4), 0 0 60px rgba(245, 158, 11, 0.08); }
+.glow-rose    { box-shadow: 0 0 20px rgba(244, 63, 94, 0.4),  0 0 60px rgba(244, 63, 94, 0.12); }
 
 .neon-border {
   border: 1px solid rgba(var(--primary-rgb), 0.5);
@@ -803,17 +814,7 @@ select:focus {
   box-shadow: 0 0 0 2px var(--primary-500) !important;
 }
 
-/* ─── Hardcoded Violet Shadow Overrides ─────────────────────────── */
-[class*="shadow-"][class*="rgba(139,92,246"],
-[class*="shadow-"][class*="139,92,246"] {
-  --tw-shadow-color: rgba(var(--primary-rgb), 0.35) !important;
-  box-shadow: 0 0 16px rgba(var(--primary-rgb), 0.35) !important;
-}
 
-[class*="hover:shadow-"][class*="rgba(139,92,246"]:hover,
-[class*="hover:shadow-"][class*="139,92,246"]:hover {
-  box-shadow: 0 0 25px rgba(var(--primary-rgb), 0.4) !important;
-}
 
 /* ─── Light Mode Overrides for Hardcoded Dark Backgrounds ─────────── */
 :root:not(.dark) div[class*="bg-[#060814]"][class*="flex-1"] {

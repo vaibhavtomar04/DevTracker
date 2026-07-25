@@ -253,7 +253,7 @@ export default function UsersPage() {
         {isAdmin && (
           <button
             onClick={() => setIsCreateOpen(true)}
-            className="flex items-center gap-1.5 px-4 py-2 text-sm font-bold rounded-xl bg-gradient-to-r from-violet-600 to-indigo-600 text-white shadow-[0_0_16px_rgba(139,92,246,0.35)] hover:opacity-90 transition-opacity cursor-pointer"
+            className="flex items-center gap-1.5 px-4 py-2 text-sm font-bold rounded-xl bg-gradient-to-r from-brand-600 to-brand-500 text-white shadow-[0_0_16px_rgba(99,166,89,0.35)] hover:opacity-90 transition-opacity cursor-pointer"
           >
             <Plus className="h-4 w-4" />
             Create User
@@ -486,7 +486,7 @@ export default function UsersPage() {
               {/* Header - fixed */}
               <div className="flex items-center justify-between border-b border-white/[0.06] p-6 pb-4 shrink-0">
                 <div className="flex items-center gap-2.5">
-                  <div className="h-8 w-8 rounded-lg bg-gradient-to-br from-violet-600 to-indigo-600 flex items-center justify-center shadow-[0_0_14px_rgba(139,92,246,0.4)]">
+                  <div className="h-8 w-8 rounded-lg bg-gradient-to-br from-brand-600 to-brand-500 flex items-center justify-center shadow-[0_0_14px_rgba(99,166,89,0.4)]">
                     <UserPlus className="h-4 w-4 text-white" />
                   </div>
                   <div>
@@ -601,7 +601,7 @@ export default function UsersPage() {
                   </button>
                   <button
                     type="submit"
-                    className="flex-1 py-2.5 text-sm font-bold rounded-xl bg-gradient-to-r from-violet-600 to-indigo-600 text-white hover:opacity-90 transition-opacity shadow-[0_0_16px_rgba(139,92,246,0.3)] cursor-pointer"
+                    className="flex-1 py-2.5 text-sm font-bold rounded-xl bg-gradient-to-r from-brand-600 to-brand-500 text-white hover:opacity-90 transition-opacity shadow-[0_0_16px_rgba(99,166,89,0.3)] cursor-pointer"
                   >
                     Create Member
                   </button>
@@ -898,7 +898,7 @@ export default function UsersPage() {
                   </button>
                   <button
                     type="submit"
-                    className="flex-1 py-2 text-xs font-bold rounded-xl bg-gradient-to-r from-violet-600 to-indigo-600 text-white hover:opacity-90 transition-opacity cursor-pointer shadow-[0_0_14px_rgba(139,92,246,0.3)]"
+                    className="flex-1 py-2 text-xs font-bold rounded-xl bg-gradient-to-r from-brand-600 to-brand-500 text-white hover:opacity-90 transition-opacity cursor-pointer shadow-[0_0_14px_rgba(99,166,89,0.3)]"
                   >
                     Save Roles
                   </button>

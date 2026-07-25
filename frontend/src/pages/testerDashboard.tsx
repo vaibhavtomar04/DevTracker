@@ -417,9 +417,9 @@ export default function TesterDashboard() {
                       key={task.id}
                       variants={cardVariants}
                       onClick={() => setSelectedTask(task)}
-                      className={`p-5 rounded-2xl border backdrop-blur-md transition-all duration-300 cursor-pointer shadow-[inset_0_0_0_1px_rgba(255,255,255,0.04)] hover:shadow-[0_0_20px_rgba(139,92,246,0.12)] hover:border-violet-500/30 ${
+                      className={`p-5 rounded-2xl border backdrop-blur-md transition-all duration-300 cursor-pointer shadow-[inset_0_0_0_1px_rgba(255,255,255,0.04)] hover:shadow-[0_0_20px_rgba(6,182,212,0.12)] hover:border-cyan-500/30 ${
                         isSelected
-                          ? "bg-violet-500/10 border-violet-500/40 shadow-[0_0_25px_rgba(139,92,246,0.15)]"
+                          ? "bg-cyan-500/10 border-cyan-500/40 shadow-[0_0_25px_rgba(6,182,212,0.15)]"
                           : "bg-[#161619] border-white/[0.06]"
                       }`}
                     >
@@ -501,9 +501,9 @@ export default function TesterDashboard() {
                       key={task.id}
                       variants={cardVariants}
                       onClick={() => setSelectedTask(task)}
-                      className={`p-5 rounded-2xl border backdrop-blur-md transition-all duration-300 cursor-pointer shadow-[inset_0_0_0_1px_rgba(255,255,255,0.04)] hover:shadow-[0_0_20px_rgba(139,92,246,0.12)] hover:border-violet-500/30 ${
+                      className={`p-5 rounded-2xl border backdrop-blur-md transition-all duration-300 cursor-pointer shadow-[inset_0_0_0_1px_rgba(255,255,255,0.04)] hover:shadow-[0_0_20px_rgba(6,182,212,0.12)] hover:border-cyan-500/30 ${
                         isSelected
-                          ? "bg-violet-500/10 border-violet-500/40 shadow-[0_0_25px_rgba(139,92,246,0.15)]"
+                          ? "bg-cyan-500/10 border-cyan-500/40 shadow-[0_0_25px_rgba(6,182,212,0.15)]"
                           : "bg-[#161619] border-white/[0.06]"
                       }`}
                     >
@@ -709,9 +709,9 @@ export default function TesterDashboard() {
                       key={task.id}
                       variants={cardVariants}
                       onClick={() => setSelectedTask(task)}
-                      className={`p-5 rounded-2xl border backdrop-blur-md transition-all duration-300 cursor-pointer shadow-[inset_0_0_0_1px_rgba(255,255,255,0.04)] hover:shadow-[0_0_20px_rgba(139,92,246,0.12)] hover:border-violet-500/30 ${
+                      className={`p-5 rounded-2xl border backdrop-blur-md transition-all duration-300 cursor-pointer shadow-[inset_0_0_0_1px_rgba(255,255,255,0.04)] hover:shadow-[0_0_20px_rgba(6,182,212,0.12)] hover:border-cyan-500/30 ${
                         isSelected
-                          ? "bg-violet-500/10 border-violet-500/40 shadow-[0_0_25px_rgba(139,92,246,0.15)]"
+                          ? "bg-cyan-500/10 border-cyan-500/40 shadow-[0_0_25px_rgba(6,182,212,0.15)]"
                           : "bg-[#161619] border-white/[0.06]"
                       }`}
                     >
