@@ -616,13 +616,10 @@ public class TaskController {
                         task.setWorkflow(taskDetails.getWorkflow());
                     }
 
-                    if (taskDetails.getDevelopers() != null) {
-                        task.getDevelopers().clear();
-                        for (TaskDeveloper td : taskDetails.getDevelopers()) {
-                            td.setTask(task);
-                            task.getDevelopers().add(td);
-                        }
-                    }
+                    // Multi-developer co-ownership: the developer set is IMMUTABLE after creation.
+                    // Intentionally ignore taskDetails.getDevelopers() on update so status-move
+                    // payloads can never drop co-developers. The team is fixed in createTask;
+                    // there is no add/remove path (strangler-fig: widen reads, never rewrite).
                     // Simple audit logging for status change
                     if (taskDetails.getStatus() != null && !taskDetails.getStatus().equals(oldStatus)) {
                         AuditLog log = new AuditLog();
@@ -1123,6 +1120,16 @@ public class TaskController {
                     }
                     task.setInPool(false);
                     task.setAssignedDeveloper(currentUser);
+                    boolean alreadyPooled = task.getDevelopers() != null && task.getDevelopers().stream()
+                      .anyMatch(td -> td.getDeveloper() != null
+                       && td.getDeveloper().getId().equals(currentUser.getId()));
+                        if (task.getDevelopers() != null && !alreadyPooled) 
+                    {
+                        TaskDeveloper poolRow = new TaskDeveloper();
+                        poolRow.setTask(task);
+                         poolRow.setDeveloper(currentUser);
+                        task.getDevelopers().add(poolRow);
+                    }
                     return ResponseEntity.ok(taskRepository.save(task));
                 })
                 .orElse(ResponseEntity.notFound().build());
