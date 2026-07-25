@@ -279,18 +279,32 @@ public interface TaskRepository extends JpaRepository<Task, Long>, org.springfra
     long countCompletedUatCrsForUser(@Param("userId") Long userId);
 
     /**
-     * Dashboard "Recent CRs" projection — 7 columns, no entity hydration.
-     * Avoids loading 50+ columns and 7 JOINs just for the dashboard recent list.
-     * Returns: id, jtrack_id, title, priority, status, updated_date, assigned_developer_name
-     */
-    @Query(value = """
-        SELECT t.id, t.jtrack_id, t.title, t.priority, t.status, t.updated_date,
-               u.full_name AS assigned_developer_name
-        FROM tasks t
-        LEFT JOIN users u ON t.assigned_developer_id = u.id
-        ORDER BY t.id DESC
-        LIMIT :lim
-        """, nativeQuery = true)
+ * Dashboard "Recent CRs" projection — 7 columns, no entity hydration.
+ * Avoids loading 50+ columns and 7 JOINs just for the dashboard recent list.
+ * Returns: id, jtrack_id, title, priority, status, updated_date, assigned_developer_name
+ *
+ * Multi-developer co-ownership: assigned_developer_name is the comma-joined
+ * union of {assignedDeveloper} ∪ {task_developers}, deduped and ordered by name.
+ * Single-dev CRs (N=1, empty task_developers) fall back to the legacy
+ * assigned_developer_id mirror, so the output is byte-identical for them.
+ */
+@Query(value = """
+    SELECT t.id, t.jtrack_id, t.title, t.priority, t.status, t.updated_date,
+           GROUP_CONCAT(DISTINCT du.full_name ORDER BY du.full_name SEPARATOR ', ') AS assigned_developer_name
+    FROM tasks t
+    LEFT JOIN (
+        SELECT t2.id AS task_id, t2.assigned_developer_id AS dev_id
+        FROM tasks t2
+        WHERE t2.assigned_developer_id IS NOT NULL
+        UNION
+        SELECT td.task_id, td.developer_id
+        FROM task_developers td
+    ) dv ON dv.task_id = t.id
+    LEFT JOIN users du ON du.id = dv.dev_id
+    GROUP BY t.id, t.jtrack_id, t.title, t.priority, t.status, t.updated_date
+    ORDER BY t.id DESC
+    LIMIT :lim
+    """, nativeQuery = true)
     List<Object[]> findRecentTaskProjections(@Param("lim") int limit);
 
     /**

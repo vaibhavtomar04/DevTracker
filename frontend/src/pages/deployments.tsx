@@ -19,6 +19,7 @@ import {
 } from "lucide-react"
 import { motion, AnimatePresence } from "framer-motion"
 import type { Task } from "@/services/mockData"
+import { getAssignedDevNames, getAssignedDevNamesCompact } from '@/utils/devUtils';
 
 export default function Deployments() {
   const { tasks, fetchData, updateTask, searchQuery, testCases, addToast, auditLogs } = useTaskStore()
