@@ -10,6 +10,9 @@ import lombok.extern.slf4j.Slf4j;
 import net.javacrumbs.shedlock.spring.annotation.SchedulerLock;
 import org.apache.poi.ss.usermodel.*;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
+import org.apache.poi.xssf.usermodel.XSSFCellStyle;
+import org.apache.poi.xssf.usermodel.XSSFColor;
+import org.apache.poi.xssf.usermodel.XSSFFont;
 import org.apache.poi.xddf.usermodel.chart.*;
 import org.apache.poi.xssf.usermodel.XSSFChart;
 import org.apache.poi.xssf.usermodel.XSSFClientAnchor;
@@ -30,6 +33,7 @@ import java.io.File;
 import java.io.FileOutputStream;
 import java.time.LocalDateTime;
 import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
 import java.time.temporal.ChronoUnit;
 import java.util.*;
 import java.util.stream.Collectors;
@@ -48,6 +52,9 @@ public class AsyncReportService {
     private final SprintRepository sprintRepository;
     private final BugRepository bugRepository;
     private final AnalyticsService analyticsService;
+
+    private static final DateTimeFormatter D_FMT = DateTimeFormatter.ofPattern("yyyy-MM-dd");
+    private static final DateTimeFormatter DT_FMT = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm");
 
     /** Enqueues a new asynchronous report generation job and returns immediate metadata. */
     @Transactional
@@ -75,6 +82,13 @@ public class AsyncReportService {
         reportJobRepository.save(job);
 
         try {
+            // Normalize the requested report type. The frontend sends "ANALYTICS",
+            // "DEADLINE" (no trailing S) and defaults to "TASKS"; we accept any
+            // DEADLINE* spelling so the deadline export routes correctly.
+            String rt = (job.getReportType() == null ? "TASKS" : job.getReportType().trim().toUpperCase());
+            boolean isDeadline = rt.startsWith("DEADLINE");
+            boolean isAnalytics = rt.equals("ANALYTICS");
+
             List<Task> tasks = taskRepository.findAllOptimized();
             List<Task> deadlineTasks = tasks.stream()
                     .filter(t -> t.getExpectedSitDeploymentDate() != null || t.getExpectedUatDeploymentDate() != null)
@@ -85,7 +99,7 @@ public class AsyncReportService {
 
             if ("csv".equalsIgnoreCase(format)) {
                 try (FileOutputStream out = new FileOutputStream(tempFile)) {
-                    if ("DEADLINES".equalsIgnoreCase(job.getReportType())) {
+                    if (isDeadline) {
                         generateDeadlinesCsvReport(out, deadlineTasks);
                     } else {
                         generateTasksCsvReport(out, tasks);
@@ -93,7 +107,7 @@ public class AsyncReportService {
                 }
             } else if ("pdf".equalsIgnoreCase(format)) {
                 try (FileOutputStream out = new FileOutputStream(tempFile)) {
-                    if ("DEADLINES".equalsIgnoreCase(job.getReportType())) {
+                    if (isDeadline) {
                         generateDeadlinesPdfReport(out, deadlineTasks);
                     } else {
                         generateTasksPdfReport(out, tasks);
@@ -101,9 +115,9 @@ public class AsyncReportService {
                 }
             } else {
                 try (Workbook workbook = new XSSFWorkbook(); FileOutputStream out = new FileOutputStream(tempFile)) {
-                    if ("ANALYTICS".equalsIgnoreCase(job.getReportType())) {
+                    if (isAnalytics) {
                         generateAnalyticsExcelReport(workbook);
-                    } else if ("DEADLINES".equalsIgnoreCase(job.getReportType())) {
+                    } else if (isDeadline) {
                         generateDeadlinesExcelReport(workbook, deadlineTasks);
                     } else {
                         generateTasksExcelReport(workbook, tasks);
@@ -112,9 +126,11 @@ public class AsyncReportService {
                 }
             }
 
+            String label = isAnalytics ? "Analytics" : (isDeadline ? "Deadline_SLA" : "CR");
+
             job.setStatus(ReportJob.Status.READY);
             job.setFilePath(tempFile.getAbsolutePath());
-            job.setFileName("DevTrack_Report_" + jobId + ext);
+            job.setFileName("DevTrack_" + label + "_Report_" + LocalDate.now().format(D_FMT) + "_" + jobId + ext);
             job.setDownloadToken(UUID.randomUUID().toString());
             job.setExpiresAt(LocalDateTime.now().plusHours(2));
             reportJobRepository.save(job);
@@ -128,171 +144,335 @@ public class AsyncReportService {
         }
     }
 
+    // ==================================================================================
+    // Premium styling toolkit (shared across all Excel reports)
+    // ==================================================================================
+
+    private XSSFColor rgb(int r, int g, int b) {
+        return new XSSFColor(new byte[]{(byte) r, (byte) g, (byte) b}, null);
+    }
+
+    private static String str(Object o) {
+        if (o == null) return "\u2014";
+        String s = String.valueOf(o);
+        return (s == null || s.isEmpty() || "null".equals(s)) ? "\u2014" : s;
+    }
+
+    private static double num(Object o) {
+        try {
+            return o == null ? 0.0 : Double.parseDouble(String.valueOf(o));
+        } catch (Exception e) {
+            return 0.0;
+        }
+    }
+
+    private static String fmtDate(LocalDate d) {
+        return d == null ? "\u2014" : d.format(D_FMT);
+    }
+
+    private static String fmtDateTime(LocalDateTime d) {
+        return d == null ? "\u2014" : d.format(DT_FMT);
+    }
+
+    private static String humanize(String raw) {
+        if (raw == null || raw.isEmpty()) return "\u2014";
+        String[] parts = raw.toLowerCase().split("_");
+        StringBuilder sb = new StringBuilder();
+        for (String p : parts) {
+            if (p.isEmpty()) continue;
+            sb.append(Character.toUpperCase(p.charAt(0))).append(p.substring(1)).append(" ");
+        }
+        return sb.toString().trim();
+    }
+
+    /** Container for all reusable cell styles, built once per workbook. */
+    private static class RptStyles {
+        XSSFCellStyle bannerTitle, bannerSub, section, th,
+                tdLabel, tdValue, td, tdAlt, tdCenter, tdCenterAlt, tdRight, tdRightAlt,
+                good, warn, bad, neutral;
+    }
+
+    private void border(XSSFCellStyle st, XSSFColor c) {
+        st.setBorderTop(BorderStyle.THIN);
+        st.setBorderBottom(BorderStyle.THIN);
+        st.setBorderLeft(BorderStyle.THIN);
+        st.setBorderRight(BorderStyle.THIN);
+        st.setTopBorderColor(c);
+        st.setBottomBorderColor(c);
+        st.setLeftBorderColor(c);
+        st.setRightBorderColor(c);
+    }
+
+    private XSSFCellStyle bodyStyle(XSSFWorkbook wb, XSSFColor bg, HorizontalAlignment align, XSSFColor bdr, boolean bold, XSSFColor fontColor) {
+        XSSFCellStyle st = wb.createCellStyle();
+        if (bg != null) {
+            st.setFillForegroundColor(bg);
+            st.setFillPattern(FillPatternType.SOLID_FOREGROUND);
+        }
+        st.setAlignment(align);
+        st.setVerticalAlignment(VerticalAlignment.CENTER);
+        border(st, bdr);
+        XSSFFont f = (XSSFFont) wb.createFont();
+        f.setFontHeightInPoints((short) 11);
+        f.setBold(bold);
+        f.setColor(fontColor);
+        st.setFont(f);
+        return st;
+    }
+
+    private RptStyles buildStyles(XSSFWorkbook wb) {
+        RptStyles s = new RptStyles();
+
+        XSSFColor brandDark = rgb(30, 41, 59);   // slate-800 banner
+        XSSFColor brand = rgb(79, 70, 229);       // indigo-600 table header
+        XSSFColor sectionBg = rgb(224, 231, 255); // indigo-100
+        XSSFColor white = rgb(255, 255, 255);
+        XSSFColor subText = rgb(203, 213, 225);   // slate-300
+        XSSFColor bodyText = rgb(30, 41, 59);
+        XSSFColor zebra = rgb(244, 246, 251);
+        XSSFColor bdr = rgb(203, 213, 225);       // slate-300 borders
+        XSSFColor goodBg = rgb(209, 250, 229), goodFg = rgb(6, 95, 70);
+        XSSFColor warnBg = rgb(254, 243, 199), warnFg = rgb(146, 64, 14);
+        XSSFColor badBg = rgb(254, 226, 226), badFg = rgb(153, 27, 27);
+        XSSFColor neuBg = rgb(241, 245, 249), neuFg = rgb(71, 85, 105);
+
+        // Banner title
+        s.bannerTitle = wb.createCellStyle();
+        s.bannerTitle.setFillForegroundColor(brandDark);
+        s.bannerTitle.setFillPattern(FillPatternType.SOLID_FOREGROUND);
+        s.bannerTitle.setAlignment(HorizontalAlignment.LEFT);
+        s.bannerTitle.setVerticalAlignment(VerticalAlignment.CENTER);
+        XSSFFont btf = (XSSFFont) wb.createFont();
+        btf.setBold(true);
+        btf.setFontHeightInPoints((short) 16);
+        btf.setColor(white);
+        s.bannerTitle.setFont(btf);
+
+        // Banner subtitle
+        s.bannerSub = wb.createCellStyle();
+        s.bannerSub.setFillForegroundColor(brandDark);
+        s.bannerSub.setFillPattern(FillPatternType.SOLID_FOREGROUND);
+        s.bannerSub.setAlignment(HorizontalAlignment.LEFT);
+        s.bannerSub.setVerticalAlignment(VerticalAlignment.CENTER);
+        XSSFFont bsf = (XSSFFont) wb.createFont();
+        bsf.setItalic(true);
+        bsf.setFontHeightInPoints((short) 10);
+        bsf.setColor(subText);
+        s.bannerSub.setFont(bsf);
+
+        // Section header
+        s.section = wb.createCellStyle();
+        s.section.setFillForegroundColor(sectionBg);
+        s.section.setFillPattern(FillPatternType.SOLID_FOREGROUND);
+        s.section.setAlignment(HorizontalAlignment.LEFT);
+        s.section.setVerticalAlignment(VerticalAlignment.CENTER);
+        XSSFFont scf = (XSSFFont) wb.createFont();
+        scf.setBold(true);
+        scf.setFontHeightInPoints((short) 12);
+        scf.setColor(brand);
+        s.section.setFont(scf);
+
+        // Table header
+        s.th = wb.createCellStyle();
+        s.th.setFillForegroundColor(brand);
+        s.th.setFillPattern(FillPatternType.SOLID_FOREGROUND);
+        s.th.setAlignment(HorizontalAlignment.CENTER);
+        s.th.setVerticalAlignment(VerticalAlignment.CENTER);
+        s.th.setWrapText(true);
+        border(s.th, brand);
+        XSSFFont thf = (XSSFFont) wb.createFont();
+        thf.setBold(true);
+        thf.setFontHeightInPoints((short) 11);
+        thf.setColor(white);
+        s.th.setFont(thf);
+
+        s.tdLabel = bodyStyle(wb, white, HorizontalAlignment.LEFT, bdr, true, bodyText);
+        s.tdValue = bodyStyle(wb, white, HorizontalAlignment.LEFT, bdr, true, brand);
+        s.tdValue.getFont().setFontHeightInPoints((short) 12);
+        s.td = bodyStyle(wb, white, HorizontalAlignment.LEFT, bdr, false, bodyText);
+        s.tdAlt = bodyStyle(wb, zebra, HorizontalAlignment.LEFT, bdr, false, bodyText);
+        s.tdCenter = bodyStyle(wb, white, HorizontalAlignment.CENTER, bdr, false, bodyText);
+        s.tdCenterAlt = bodyStyle(wb, zebra, HorizontalAlignment.CENTER, bdr, false, bodyText);
+        s.tdRight = bodyStyle(wb, white, HorizontalAlignment.RIGHT, bdr, false, bodyText);
+        s.tdRightAlt = bodyStyle(wb, zebra, HorizontalAlignment.RIGHT, bdr, false, bodyText);
+        s.good = bodyStyle(wb, goodBg, HorizontalAlignment.CENTER, bdr, true, goodFg);
+        s.warn = bodyStyle(wb, warnBg, HorizontalAlignment.CENTER, bdr, true, warnFg);
+        s.bad = bodyStyle(wb, badBg, HorizontalAlignment.CENTER, bdr, true, badFg);
+        s.neutral = bodyStyle(wb, neuBg, HorizontalAlignment.CENTER, bdr, true, neuFg);
+
+        return s;
+    }
+
+    private void put(Row row, int col, String val, XSSFCellStyle style) {
+        Cell c = row.createCell(col);
+        c.setCellValue(val == null ? "" : val);
+        c.setCellStyle(style);
+    }
+
+    private void put(Row row, int col, double val, XSSFCellStyle style) {
+        Cell c = row.createCell(col);
+        c.setCellValue(val);
+        c.setCellStyle(style);
+    }
+
+    /** Renders a full-width branded banner (title + subtitle) across colspan columns. */
+    private void banner(Sheet sheet, int colspan, String title, String subtitle, RptStyles s) {
+        Row r0 = sheet.createRow(0);
+        r0.setHeightInPoints(30);
+        for (int c = 0; c < colspan; c++) {
+            Cell cell = r0.createCell(c);
+            cell.setCellStyle(s.bannerTitle);
+            if (c == 0) cell.setCellValue(title);
+        }
+        Row r1 = sheet.createRow(1);
+        r1.setHeightInPoints(16);
+        for (int c = 0; c < colspan; c++) {
+            Cell cell = r1.createCell(c);
+            cell.setCellStyle(s.bannerSub);
+            if (c == 0) cell.setCellValue(subtitle);
+        }
+        if (colspan > 1) {
+            sheet.addMergedRegion(new CellRangeAddress(0, 0, 0, colspan - 1));
+            sheet.addMergedRegion(new CellRangeAddress(1, 1, 0, colspan - 1));
+        }
+    }
+
+    private void sizeColumns(Sheet sheet, int cols) {
+        for (int i = 0; i < cols; i++) {
+            sheet.autoSizeColumn(i);
+            int w = sheet.getColumnWidth(i) + 900;
+            if (w > 16000) w = 16000;
+            if (w < 2800) w = 2800;
+            sheet.setColumnWidth(i, w);
+        }
+    }
+
+    private XSSFCellStyle slaStatusStyle(RptStyles s, String status) {
+        if (status == null) return s.neutral;
+        switch (status) {
+            case "COMPLETED_ON_TIME":
+            case "ON_TRACK":
+                return s.good;
+            case "AT_RISK":
+                return s.warn;
+            case "MISSED":
+            case "COMPLETED_DELAYED":
+                return s.bad;
+            default:
+                return s.neutral;
+        }
+    }
+
+    private XSSFCellStyle riskStyle(RptStyles s, String risk) {
+        if ("High".equalsIgnoreCase(risk)) return s.bad;
+        if ("Medium".equalsIgnoreCase(risk)) return s.warn;
+        if ("Low".equalsIgnoreCase(risk)) return s.good;
+        return s.neutral;
+    }
+
+    private XSSFCellStyle complianceStyle(RptStyles s, double pct) {
+        if (pct >= 80) return s.good;
+        if (pct >= 50) return s.warn;
+        return s.bad;
+    }
+
+    // ==================================================================================
+
     @SuppressWarnings("unchecked")
     private void generateAnalyticsExcelReport(Workbook workbook) {
         Map<String, Object> data = analyticsService.getDashboardData();
+        XSSFWorkbook wb = (XSSFWorkbook) workbook;
+        RptStyles s = buildStyles(wb);
 
-        // 1. Sheet: Overview & SLA Metrics
-        Sheet overviewSheet = workbook.createSheet("Overview & SLA");
-        overviewSheet.setDisplayGridlines(true);
+        // 1. Sheet: Executive Summary
+        XSSFSheet overviewSheet = wb.createSheet("Executive Summary");
+        overviewSheet.setDisplayGridlines(false);
 
-        // Header style (Navy Theme)
-        CellStyle headerStyle = workbook.createCellStyle();
-        headerStyle.setFillForegroundColor(IndexedColors.DARK_BLUE.getIndex());
-        headerStyle.setFillPattern(FillPatternType.SOLID_FOREGROUND);
-        Font headerFont = workbook.createFont();
-        headerFont.setColor(IndexedColors.WHITE.getIndex());
-        headerFont.setBold(true);
-        headerFont.setFontHeightInPoints((short) 12);
-        headerStyle.setFont(headerFont);
-        headerStyle.setAlignment(HorizontalAlignment.LEFT);
+        banner(overviewSheet, 4,
+                "DevTrack 2.0  \u2014  Executive Analytics Report",
+                "Generated " + LocalDateTime.now().format(DT_FMT) + "   \u2022   System-wide throughput & operations   \u2022   Confidential",
+                s);
 
-        // Subtitle style
-        CellStyle subStyle = workbook.createCellStyle();
-        Font subFont = workbook.createFont();
-        subFont.setItalic(true);
-        subFont.setColor(IndexedColors.GREY_50_PERCENT.getIndex());
-        subStyle.setFont(subFont);
+        // KPI section
+        Row kpiHeader = overviewSheet.createRow(3);
+        Cell kpiHeaderCell = kpiHeader.createCell(0);
+        kpiHeaderCell.setCellValue("Key Performance Indicators");
+        kpiHeaderCell.setCellStyle(s.section);
+        overviewSheet.addMergedRegion(new CellRangeAddress(3, 3, 0, 3));
 
-        // KPI styles
-        CellStyle kpiLabelStyle = workbook.createCellStyle();
-        kpiLabelStyle.setFillForegroundColor(IndexedColors.GREY_25_PERCENT.getIndex());
-        kpiLabelStyle.setFillPattern(FillPatternType.SOLID_FOREGROUND);
-        Font kpiLabelFont = workbook.createFont();
-        kpiLabelFont.setBold(true);
-        kpiLabelStyle.setFont(kpiLabelFont);
-        kpiLabelStyle.setAlignment(HorizontalAlignment.CENTER);
+        Row kpiCols = overviewSheet.createRow(4);
+        put(kpiCols, 0, "Metric", s.th);
+        put(kpiCols, 1, "Value", s.th);
 
-        CellStyle kpiValueStyle = workbook.createCellStyle();
-        kpiValueStyle.setFillForegroundColor(IndexedColors.LIGHT_TURQUOISE.getIndex());
-        kpiValueStyle.setFillPattern(FillPatternType.SOLID_FOREGROUND);
-        Font kpiValueFont = workbook.createFont();
-        kpiValueFont.setBold(true);
-        kpiValueFont.setFontHeightInPoints((short) 14);
-        kpiValueStyle.setFont(kpiValueFont);
-        kpiValueStyle.setAlignment(HorizontalAlignment.CENTER);
-
-        // Title Row
-        Row titleRow = overviewSheet.createRow(0);
-        Cell titleCell = titleRow.createCell(0);
-        titleCell.setCellValue("DEVTRACK SYSTEM THROUGHPUT & OPERATIONS REPORT");
-        titleCell.setCellStyle(headerStyle);
-
-        Row dateRow = overviewSheet.createRow(1);
-        Cell dateCell = dateRow.createCell(0);
-        dateCell.setCellValue("Generated: " + java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss").format(java.time.LocalDateTime.now()));
-        dateCell.setCellStyle(subStyle);
-
-        // KPI block starting at row 3
-        int startRow = 3;
         String[] kpis = {
-            "Total CRs", "Total Defects", "Quality Risks",
-            "Bug Acceptance Rate", "Bug Rejection Rate", "Bug Challenge Rate",
-            "Avg Bug Resolution", "Avg Testing Duration"
+                "Total CRs", "Total Defects", "Quality Risks",
+                "Bug Acceptance Rate", "Bug Rejection Rate", "Bug Challenge Rate",
+                "Avg Bug Resolution", "Avg Testing Duration"
         };
         String[] values = {
-            String.valueOf(data.get("totalCRs")),
-            String.valueOf(data.get("totalBugs")),
-            String.valueOf(data.get("qualityRiskCrCount")),
-            data.get("bugAcceptanceRate") + "%",
-            data.get("bugRejectionRate") + "%",
-            data.get("bugChallengeRate") + "%",
-            data.get("averageBugResolutionHours") + " hrs",
-            data.get("averageTestingDurationHours") + " hrs"
+                str(data.get("totalCRs")),
+                str(data.get("totalBugs")),
+                str(data.get("qualityRiskCrCount")),
+                str(data.get("bugAcceptanceRate")) + "%",
+                str(data.get("bugRejectionRate")) + "%",
+                str(data.get("bugChallengeRate")) + "%",
+                str(data.get("averageBugResolutionHours")) + " hrs",
+                str(data.get("averageTestingDurationHours")) + " hrs"
         };
-
+        int kpiRow = 5;
         for (int i = 0; i < kpis.length; i++) {
-            int rowIdx = startRow + (i / 4) * 3;
-            int colIdx = (i % 4) * 2;
-
-            Row lblRow = overviewSheet.getRow(rowIdx);
-            if (lblRow == null) lblRow = overviewSheet.createRow(rowIdx);
-            Cell lblCell = lblRow.createCell(colIdx);
-            lblCell.setCellValue(kpis[i]);
-            lblCell.setCellStyle(kpiLabelStyle);
-
-            Row valRow = overviewSheet.getRow(rowIdx + 1);
-            if (valRow == null) valRow = overviewSheet.createRow(rowIdx + 1);
-            Cell valCell = valRow.createCell(colIdx);
-            valCell.setCellValue(values[i]);
-            valCell.setCellStyle(kpiValueStyle);
+            Row r = overviewSheet.createRow(kpiRow++);
+            put(r, 0, kpis[i], s.tdLabel);
+            put(r, 1, values[i], s.tdValue);
         }
 
-        // SLA Benchmarks block starting at row 10
-        Row slaHeaderRow = overviewSheet.createRow(10);
+        // SLA section
+        int slaSection = kpiRow + 1;
+        Row slaHeaderRow = overviewSheet.createRow(slaSection);
         Cell slaHeaderCell = slaHeaderRow.createCell(0);
-        slaHeaderCell.setCellValue("SLA Performance & Pipeline Compliance Benchmarks");
-        slaHeaderCell.setCellStyle(headerStyle);
+        slaHeaderCell.setCellValue("SLA Performance & Pipeline Compliance");
+        slaHeaderCell.setCellStyle(s.section);
+        overviewSheet.addMergedRegion(new CellRangeAddress(slaSection, slaSection, 0, 3));
+
+        Row slaCols = overviewSheet.createRow(slaSection + 1);
+        put(slaCols, 0, "Benchmark", s.th);
+        put(slaCols, 1, "Compliance", s.th);
+        put(slaCols, 2, "Status", s.th);
 
         String[] slas = {
-            "Testing SLA (48h) Compliance Rate",
-            "Approval SLA (24h) Compliance Rate",
-            "Sprint Task Completion Rate"
+                "Testing SLA (48h) Compliance Rate",
+                "Approval SLA (24h) Compliance Rate",
+                "Sprint Task Completion Rate"
         };
         double[] slaValues = {
-            Double.parseDouble(String.valueOf(data.get("testingSlaComplianceRate"))),
-            Double.parseDouble(String.valueOf(data.get("approvalSlaComplianceRate"))),
-            Double.parseDouble(String.valueOf(data.get("sprintTaskCompletionRate")))
+                num(data.get("testingSlaComplianceRate")),
+                num(data.get("approvalSlaComplianceRate")),
+                num(data.get("sprintTaskCompletionRate"))
         };
-
-        CellStyle labelStyle = workbook.createCellStyle();
-        Font labelFont = workbook.createFont();
-        labelFont.setBold(true);
-        labelStyle.setFont(labelFont);
-
-        int slaRowIdx = 12;
+        int slaRow = slaSection + 2;
         for (int i = 0; i < slas.length; i++) {
-            Row row = overviewSheet.createRow(slaRowIdx++);
-            Cell c1 = row.createCell(0);
-            c1.setCellValue(slas[i]);
-            c1.setCellStyle(labelStyle);
-
-            Cell c2 = row.createCell(2);
-            c2.setCellValue(slaValues[i] + "%");
-
-            // Render visual progress bar: e.g. [███████░░░]
-            Cell c3 = row.createCell(3);
-            int blocks = (int) Math.round(slaValues[i] / 10.0);
-            StringBuilder bar = new StringBuilder("[");
-            for (int b = 0; b < 10; b++) {
-                if (b < blocks) bar.append("█");
-                else bar.append("░");
-            }
-            bar.append("]");
-            c3.setCellValue(bar.toString());
-
-            CellStyle barStyle = workbook.createCellStyle();
-            Font barFont = workbook.createFont();
-            barFont.setFontName("Courier New");
-            if (slaValues[i] >= 80.0) {
-                barFont.setColor(IndexedColors.GREEN.getIndex());
-            } else if (slaValues[i] >= 50.0) {
-                barFont.setColor(IndexedColors.ORANGE.getIndex());
-            } else {
-                barFont.setColor(IndexedColors.RED.getIndex());
-            }
-            barStyle.setFont(barFont);
-            c3.setCellStyle(barStyle);
+            Row r = overviewSheet.createRow(slaRow++);
+            put(r, 0, slas[i], s.tdLabel);
+            put(r, 1, String.format("%.1f%%", slaValues[i]), s.tdRight);
+            String badge = slaValues[i] >= 80 ? "Optimal" : (slaValues[i] >= 50 ? "Acceptable" : "At Risk");
+            put(r, 2, badge, complianceStyle(s, slaValues[i]));
         }
 
-        // Autosize Overview Columns
-        for (int i = 0; i < 8; i++) {
-            overviewSheet.autoSizeColumn(i);
-        }
+        overviewSheet.setColumnWidth(0, 13000);
+        overviewSheet.setColumnWidth(1, 6000);
+        overviewSheet.setColumnWidth(2, 5000);
+        overviewSheet.setColumnWidth(3, 4000);
+        overviewSheet.createFreezePane(0, 2);
 
         // 2. Sheet: Developer Productivity
-        Sheet devSheet = workbook.createSheet("Dev Productivity");
-        devSheet.setDisplayGridlines(true);
+        XSSFSheet devSheet = wb.createSheet("Dev Productivity");
+        devSheet.setDisplayGridlines(false);
+        banner(devSheet, 3, "Developer Productivity Analysis",
+                "Logged efforts (days) and completed tasks delivered per engineer", s);
+        Row pHeader = devSheet.createRow(3);
+        String[] pCols = {"Developer", "Efforts Logged (Days)", "Completed Tasks"};
+        for (int i = 0; i < pCols.length; i++) put(pHeader, i, pCols[i], s.th);
 
-        Row pHeader = devSheet.createRow(0);
-        String[] pCols = {"Developer", "Efforts Logged (Days)", "Completed Tasks", "Productivity Visual Bar"};
-        for (int i = 0; i < pCols.length; i++) {
-            Cell c = pHeader.createCell(i);
-            c.setCellValue(pCols[i]);
-            c.setCellStyle(headerStyle);
-        }
-
-        // Group efforts & tasks by developer
         List<Task> allTasks = taskRepository.findAllOptimized();
         Map<String, Double> effortsMap = new HashMap<>();
         Map<String, Integer> tasksCountMap = new HashMap<>();
@@ -304,40 +484,23 @@ public class AsyncReportService {
             }
         }
 
-        double maxEfforts = effortsMap.values().stream().mapToDouble(Double::doubleValue).max().orElse(1.0);
-
-        int devRowIdx = 1;
+        int devRowIdx = 4;
+        int devDataStart = 4;
+        boolean alt = false;
         for (Map.Entry<String, Double> entry : effortsMap.entrySet()) {
             Row r = devSheet.createRow(devRowIdx++);
-            r.createCell(0).setCellValue(entry.getKey());
-            r.createCell(1).setCellValue(entry.getValue());
-            r.createCell(2).setCellValue(tasksCountMap.getOrDefault(entry.getKey(), 0));
-
-            // Horizontal visual bar for productivity
-            Cell visualCell = r.createCell(3);
-            int barLen = (int) Math.round((entry.getValue() / maxEfforts) * 10.0);
-            StringBuilder bar = new StringBuilder();
-            for (int b = 0; b < 10; b++) {
-                if (b < barLen) bar.append("█");
-                else bar.append("░");
-            }
-            visualCell.setCellValue(bar.toString());
-
-            CellStyle vStyle = workbook.createCellStyle();
-            Font vFont = workbook.createFont();
-            vFont.setFontName("Courier New");
-            vFont.setColor(IndexedColors.ROYAL_BLUE.getIndex());
-            vStyle.setFont(vFont);
-            visualCell.setCellStyle(vStyle);
+            put(r, 0, entry.getKey(), alt ? s.tdAlt : s.td);
+            put(r, 1, entry.getValue(), alt ? s.tdRightAlt : s.tdRight);
+            put(r, 2, (double) tasksCountMap.getOrDefault(entry.getKey(), 0), alt ? s.tdRightAlt : s.tdRight);
+            alt = !alt;
         }
-        for (int i = 0; i < pCols.length; i++) devSheet.autoSizeColumn(i);
-
-        if (devRowIdx > 1) {
+        sizeColumns(devSheet, pCols.length);
+        devSheet.createFreezePane(0, 4);
+        if (devRowIdx > devDataStart) {
+            devSheet.setAutoFilter(new CellRangeAddress(3, devRowIdx - 1, 0, pCols.length - 1));
             try {
-                XSSFSheet xssfSheet = (XSSFSheet) devSheet;
-                XSSFDrawing drawing = xssfSheet.createDrawingPatriarch();
-                if (drawing == null) drawing = xssfSheet.createDrawingPatriarch();
-                XSSFClientAnchor anchor = drawing.createAnchor(0, 0, 0, 0, 5, 1, 15, 18);
+                XSSFDrawing drawing = devSheet.createDrawingPatriarch();
+                XSSFClientAnchor anchor = drawing.createAnchor(0, 0, 0, 0, 4, 4, 14, 22);
                 XSSFChart chart = drawing.createChart(anchor);
                 chart.setTitleText("Developer Productivity Analysis");
                 chart.setTitleOverlay(false);
@@ -348,24 +511,23 @@ public class AsyncReportService {
                 valueAxis.setTitle("Efforts (Days) / Tasks");
                 valueAxis.setCrosses(AxisCrosses.AUTO_ZERO);
 
-                XDDFDataSource<String> devs = XDDFDataSourcesFactory.fromStringCellRange(xssfSheet, 
-                        new CellRangeAddress(1, devRowIdx - 1, 0, 0));
-                XDDFNumericalDataSource<Double> efforts = XDDFDataSourcesFactory.fromNumericCellRange(xssfSheet, 
-                        new CellRangeAddress(1, devRowIdx - 1, 1, 1));
-                XDDFNumericalDataSource<Double> tasksData = XDDFDataSourcesFactory.fromNumericCellRange(xssfSheet, 
-                        new CellRangeAddress(1, devRowIdx - 1, 2, 2));
+                XDDFDataSource<String> devs = XDDFDataSourcesFactory.fromStringCellRange(devSheet,
+                        new CellRangeAddress(devDataStart, devRowIdx - 1, 0, 0));
+                XDDFNumericalDataSource<Double> efforts = XDDFDataSourcesFactory.fromNumericCellRange(devSheet,
+                        new CellRangeAddress(devDataStart, devRowIdx - 1, 1, 1));
+                XDDFNumericalDataSource<Double> tasksData = XDDFDataSourcesFactory.fromNumericCellRange(devSheet,
+                        new CellRangeAddress(devDataStart, devRowIdx - 1, 2, 2));
 
                 XDDFChartData chartData = chart.createData(ChartTypes.BAR, categoryAxis, valueAxis);
                 ((XDDFBarChartData) chartData).setBarDirection(BarDirection.COL);
                 ((XDDFBarChartData) chartData).setBarGrouping(BarGrouping.CLUSTERED);
-                
+
                 XDDFChartData.Series series1 = chartData.addSeries(devs, efforts);
                 series1.setTitle("Logged Efforts (Days)", null);
                 XDDFChartData.Series series2 = chartData.addSeries(devs, tasksData);
                 series2.setTitle("Completed Tasks", null);
 
                 chart.plot(chartData);
-
                 XDDFChartLegend legend = chart.getOrAddLegend();
                 legend.setPosition(LegendPosition.BOTTOM);
             } catch (Exception e) {
@@ -374,16 +536,13 @@ public class AsyncReportService {
         }
 
         // 3. Sheet: Defect Resolution
-        Sheet defectSheet = workbook.createSheet("Defects Resolution");
-        defectSheet.setDisplayGridlines(true);
-
-        Row dHeader = defectSheet.createRow(0);
-        String[] dCols = {"Developer", "Bugs Raised", "Bugs Resolved", "Resolution Rate", "Visual Resolution Bar"};
-        for (int i = 0; i < dCols.length; i++) {
-            Cell c = dHeader.createCell(i);
-            c.setCellValue(dCols[i]);
-            c.setCellStyle(headerStyle);
-        }
+        XSSFSheet defectSheet = wb.createSheet("Defects Resolution");
+        defectSheet.setDisplayGridlines(false);
+        banner(defectSheet, 4, "Defect Resolution Metrics",
+                "Bugs raised vs. resolved and resolution rate per developer", s);
+        Row dHeader = defectSheet.createRow(3);
+        String[] dCols = {"Developer", "Bugs Raised", "Bugs Resolved", "Resolution Rate"};
+        for (int i = 0; i < dCols.length; i++) put(dHeader, i, dCols[i], s.th);
 
         List<Bug> allBugs = bugRepository.findAll();
         Map<String, Integer> bugsRaisedMap = new HashMap<>();
@@ -398,7 +557,9 @@ public class AsyncReportService {
             }
         }
 
-        int defectRowIdx = 1;
+        int defectRowIdx = 4;
+        int defectDataStart = 4;
+        alt = false;
         for (Map.Entry<String, Integer> entry : bugsRaisedMap.entrySet()) {
             Row r = defectSheet.createRow(defectRowIdx++);
             String dev = entry.getKey();
@@ -406,37 +567,19 @@ public class AsyncReportService {
             int solved = bugsSolvedMap.getOrDefault(dev, 0);
             double rate = raised > 0 ? (double) solved / raised * 100.0 : 0.0;
             rate = Math.round(rate * 10.0) / 10.0;
-
-            r.createCell(0).setCellValue(dev);
-            r.createCell(1).setCellValue(raised);
-            r.createCell(2).setCellValue(solved);
-            r.createCell(3).setCellValue(rate + "%");
-
-            // Resolution bar
-            Cell vCell = r.createCell(4);
-            int barLen = (int) Math.round((rate / 10.0));
-            StringBuilder bar = new StringBuilder();
-            for (int b = 0; b < 10; b++) {
-                if (b < barLen) bar.append("█");
-                else bar.append("░");
-            }
-            vCell.setCellValue(bar.toString());
-
-            CellStyle vStyle = workbook.createCellStyle();
-            Font vFont = workbook.createFont();
-            vFont.setFontName("Courier New");
-            vFont.setColor(IndexedColors.CORAL.getIndex());
-            vStyle.setFont(vFont);
-            vCell.setCellStyle(vStyle);
+            put(r, 0, dev, alt ? s.tdAlt : s.td);
+            put(r, 1, (double) raised, alt ? s.tdRightAlt : s.tdRight);
+            put(r, 2, (double) solved, alt ? s.tdRightAlt : s.tdRight);
+            put(r, 3, String.format("%.1f%%", rate), rate >= 80 ? s.good : (rate >= 50 ? s.warn : s.bad));
+            alt = !alt;
         }
-        for (int i = 0; i < dCols.length; i++) defectSheet.autoSizeColumn(i);
-
-        if (defectRowIdx > 1) {
+        sizeColumns(defectSheet, dCols.length);
+        defectSheet.createFreezePane(0, 4);
+        if (defectRowIdx > defectDataStart) {
+            defectSheet.setAutoFilter(new CellRangeAddress(3, defectRowIdx - 1, 0, dCols.length - 1));
             try {
-                XSSFSheet xssfSheet = (XSSFSheet) defectSheet;
-                XSSFDrawing drawing = xssfSheet.createDrawingPatriarch();
-                if (drawing == null) drawing = xssfSheet.createDrawingPatriarch();
-                XSSFClientAnchor anchor = drawing.createAnchor(0, 0, 0, 0, 6, 1, 16, 18);
+                XSSFDrawing drawing = defectSheet.createDrawingPatriarch();
+                XSSFClientAnchor anchor = drawing.createAnchor(0, 0, 0, 0, 5, 4, 15, 22);
                 XSSFChart chart = drawing.createChart(anchor);
                 chart.setTitleText("Defect Resolution Metrics");
                 chart.setTitleOverlay(false);
@@ -447,22 +590,20 @@ public class AsyncReportService {
                 valueAxis.setTitle("Bugs Count");
                 valueAxis.setCrosses(AxisCrosses.AUTO_ZERO);
 
-                XDDFDataSource<String> devs = XDDFDataSourcesFactory.fromStringCellRange(xssfSheet, 
-                        new CellRangeAddress(1, defectRowIdx - 1, 0, 0));
-                XDDFNumericalDataSource<Double> raised = XDDFDataSourcesFactory.fromNumericCellRange(xssfSheet, 
-                        new CellRangeAddress(1, defectRowIdx - 1, 1, 1));
-                XDDFNumericalDataSource<Double> resolved = XDDFDataSourcesFactory.fromNumericCellRange(xssfSheet, 
-                        new CellRangeAddress(1, defectRowIdx - 1, 2, 2));
+                XDDFDataSource<String> devs = XDDFDataSourcesFactory.fromStringCellRange(defectSheet,
+                        new CellRangeAddress(defectDataStart, defectRowIdx - 1, 0, 0));
+                XDDFNumericalDataSource<Double> raised = XDDFDataSourcesFactory.fromNumericCellRange(defectSheet,
+                        new CellRangeAddress(defectDataStart, defectRowIdx - 1, 1, 1));
+                XDDFNumericalDataSource<Double> resolved = XDDFDataSourcesFactory.fromNumericCellRange(defectSheet,
+                        new CellRangeAddress(defectDataStart, defectRowIdx - 1, 2, 2));
 
                 XDDFChartData chartData = chart.createData(ChartTypes.LINE, categoryAxis, valueAxis);
-                
                 XDDFChartData.Series series1 = chartData.addSeries(devs, raised);
                 series1.setTitle("Bugs Raised", null);
                 XDDFChartData.Series series2 = chartData.addSeries(devs, resolved);
                 series2.setTitle("Bugs Resolved", null);
 
                 chart.plot(chartData);
-
                 XDDFChartLegend legend = chart.getOrAddLegend();
                 legend.setPosition(LegendPosition.BOTTOM);
             } catch (Exception e) {
@@ -471,62 +612,34 @@ public class AsyncReportService {
         }
 
         // 4. Sheet: Active Sprint Burndown
-        Sheet burndownSheet = workbook.createSheet("Sprint Burndown");
-        burndownSheet.setDisplayGridlines(true);
-
-        Row bHeader = burndownSheet.createRow(0);
-        String[] bCols = {"Day", "Remaining Story Points", "Ideal Story Points", "Visual Burndown"};
-        for (int i = 0; i < bCols.length; i++) {
-            Cell c = bHeader.createCell(i);
-            c.setCellValue(bCols[i]);
-            c.setCellStyle(headerStyle);
-        }
+        XSSFSheet burndownSheet = wb.createSheet("Sprint Burndown");
+        burndownSheet.setDisplayGridlines(false);
+        banner(burndownSheet, 3, "Active Sprint Burndown",
+                "Remaining vs. ideal story points across the active sprint", s);
+        Row bHeader = burndownSheet.createRow(3);
+        String[] bCols = {"Day", "Remaining Story Points", "Ideal Story Points"};
+        for (int i = 0; i < bCols.length; i++) put(bHeader, i, bCols[i], s.th);
 
         List<Map<String, Object>> burndownData = (List<Map<String, Object>>) data.get("sprintBurndown");
-        int burnRowIdx = 1;
-        long maxVal = 0;
-        if (burndownData != null) {
-            for (Map<String, Object> day : burndownData) {
-                long remaining = Long.parseLong(String.valueOf(day.get("Remaining")));
-                if (remaining > maxVal) maxVal = remaining;
-            }
-        }
-        if (maxVal == 0) maxVal = 1;
-
+        int burnRowIdx = 4;
+        int burnDataStart = 4;
+        alt = false;
         if (burndownData != null) {
             for (Map<String, Object> day : burndownData) {
                 Row r = burndownSheet.createRow(burnRowIdx++);
-                r.createCell(0).setCellValue(String.valueOf(day.get("name")));
-                r.createCell(1).setCellValue(Double.parseDouble(String.valueOf(day.get("Remaining"))));
-                r.createCell(2).setCellValue(Double.parseDouble(String.valueOf(day.get("Ideal"))));
-
-                // Visual remaining bar
-                Cell vCell = r.createCell(3);
-                double rem = Double.parseDouble(String.valueOf(day.get("Remaining")));
-                int barLen = (int) Math.round((rem / maxVal) * 10.0);
-                StringBuilder bar = new StringBuilder();
-                for (int b = 0; b < 10; b++) {
-                    if (b < barLen) bar.append("█");
-                    else bar.append("░");
-                }
-                vCell.setCellValue(bar.toString());
-
-                CellStyle vStyle = workbook.createCellStyle();
-                Font vFont = workbook.createFont();
-                vFont.setFontName("Courier New");
-                vFont.setColor(IndexedColors.DARK_RED.getIndex());
-                vStyle.setFont(vFont);
-                vCell.setCellStyle(vStyle);
+                put(r, 0, str(day.get("name")), alt ? s.tdAlt : s.td);
+                put(r, 1, num(day.get("Remaining")), alt ? s.tdRightAlt : s.tdRight);
+                put(r, 2, num(day.get("Ideal")), alt ? s.tdRightAlt : s.tdRight);
+                alt = !alt;
             }
         }
-        for (int i = 0; i < bCols.length; i++) burndownSheet.autoSizeColumn(i);
-
-        if (burnRowIdx > 1) {
+        sizeColumns(burndownSheet, bCols.length);
+        burndownSheet.createFreezePane(0, 4);
+        if (burnRowIdx > burnDataStart) {
+            burndownSheet.setAutoFilter(new CellRangeAddress(3, burnRowIdx - 1, 0, bCols.length - 1));
             try {
-                XSSFSheet xssfSheet = (XSSFSheet) burndownSheet;
-                XSSFDrawing drawing = xssfSheet.createDrawingPatriarch();
-                if (drawing == null) drawing = xssfSheet.createDrawingPatriarch();
-                XSSFClientAnchor anchor = drawing.createAnchor(0, 0, 0, 0, 5, 1, 15, 18);
+                XSSFDrawing drawing = burndownSheet.createDrawingPatriarch();
+                XSSFClientAnchor anchor = drawing.createAnchor(0, 0, 0, 0, 4, 4, 14, 22);
                 XSSFChart chart = drawing.createChart(anchor);
                 chart.setTitleText("Active Sprint Burndown Chart");
                 chart.setTitleOverlay(false);
@@ -537,22 +650,20 @@ public class AsyncReportService {
                 valueAxis.setTitle("Story Points");
                 valueAxis.setCrosses(AxisCrosses.AUTO_ZERO);
 
-                XDDFDataSource<String> days = XDDFDataSourcesFactory.fromStringCellRange(xssfSheet, 
-                        new CellRangeAddress(1, burnRowIdx - 1, 0, 0));
-                XDDFNumericalDataSource<Double> remaining = XDDFDataSourcesFactory.fromNumericCellRange(xssfSheet, 
-                        new CellRangeAddress(1, burnRowIdx - 1, 1, 1));
-                XDDFNumericalDataSource<Double> ideal = XDDFDataSourcesFactory.fromNumericCellRange(xssfSheet, 
-                        new CellRangeAddress(1, burnRowIdx - 1, 2, 2));
+                XDDFDataSource<String> days = XDDFDataSourcesFactory.fromStringCellRange(burndownSheet,
+                        new CellRangeAddress(burnDataStart, burnRowIdx - 1, 0, 0));
+                XDDFNumericalDataSource<Double> remaining = XDDFDataSourcesFactory.fromNumericCellRange(burndownSheet,
+                        new CellRangeAddress(burnDataStart, burnRowIdx - 1, 1, 1));
+                XDDFNumericalDataSource<Double> ideal = XDDFDataSourcesFactory.fromNumericCellRange(burndownSheet,
+                        new CellRangeAddress(burnDataStart, burnRowIdx - 1, 2, 2));
 
                 XDDFChartData chartData = chart.createData(ChartTypes.LINE, categoryAxis, valueAxis);
-                
                 XDDFChartData.Series series1 = chartData.addSeries(days, remaining);
                 series1.setTitle("Remaining Story Points", null);
                 XDDFChartData.Series series2 = chartData.addSeries(days, ideal);
                 series2.setTitle("Ideal Story Points", null);
 
                 chart.plot(chartData);
-
                 XDDFChartLegend legend = chart.getOrAddLegend();
                 legend.setPosition(LegendPosition.BOTTOM);
             } catch (Exception e) {
@@ -561,41 +672,43 @@ public class AsyncReportService {
         }
 
         // 5. Sheet: Category & Response Times
-        Sheet timesSheet = workbook.createSheet("Categories & Response");
-        timesSheet.setDisplayGridlines(true);
+        XSSFSheet timesSheet = wb.createSheet("Response Times");
+        timesSheet.setDisplayGridlines(false);
+        banner(timesSheet, 2, "Average Response Times",
+                "Developer and tester average turnaround (hours)", s);
 
-        Row tHeader = timesSheet.createRow(0);
-        Cell tCell = tHeader.createCell(0);
-        tCell.setCellValue("Developer Avg Response Times (Hours)");
-        tCell.setCellStyle(headerStyle);
-
-        int timesRowIdx = 2;
+        Row devTimesHeader = timesSheet.createRow(3);
+        put(devTimesHeader, 0, "Developer", s.th);
+        put(devTimesHeader, 1, "Avg Response Time (Hours)", s.th);
+        int timesRowIdx = 4;
         List<Map<String, Object>> devTimes = (List<Map<String, Object>>) data.get("developerResponseTimes");
+        alt = false;
         if (devTimes != null) {
             for (Map<String, Object> dev : devTimes) {
                 Row r = timesSheet.createRow(timesRowIdx++);
-                r.createCell(0).setCellValue(String.valueOf(dev.get("name")));
-                r.createCell(1).setCellValue(Double.parseDouble(String.valueOf(dev.get("Response Time"))));
+                put(r, 0, str(dev.get("name")), alt ? s.tdAlt : s.td);
+                put(r, 1, num(dev.get("Response Time")), alt ? s.tdRightAlt : s.tdRight);
+                alt = !alt;
             }
         }
 
-        timesRowIdx += 2;
+        timesRowIdx += 1;
         Row testerHeader = timesSheet.createRow(timesRowIdx++);
-        Cell testerCell = testerHeader.createCell(0);
-        testerCell.setCellValue("Tester Avg Response Times (Hours)");
-        testerCell.setCellStyle(headerStyle);
-
+        put(testerHeader, 0, "Tester", s.th);
+        put(testerHeader, 1, "Avg Response Time (Hours)", s.th);
         List<Map<String, Object>> testerTimes = (List<Map<String, Object>>) data.get("testerResponseTimes");
+        alt = false;
         if (testerTimes != null) {
             for (Map<String, Object> tester : testerTimes) {
                 Row r = timesSheet.createRow(timesRowIdx++);
-                r.createCell(0).setCellValue(String.valueOf(tester.get("name")));
-                r.createCell(1).setCellValue(Double.parseDouble(String.valueOf(tester.get("Response Time"))));
+                put(r, 0, str(tester.get("name")), alt ? s.tdAlt : s.td);
+                put(r, 1, num(tester.get("Response Time")), alt ? s.tdRightAlt : s.tdRight);
+                alt = !alt;
             }
         }
-
-        timesSheet.autoSizeColumn(0);
-        timesSheet.autoSizeColumn(1);
+        timesSheet.setColumnWidth(0, 11000);
+        timesSheet.setColumnWidth(1, 8000);
+        timesSheet.createFreezePane(0, 4);
     }
 
     @Async("taskExecutor")
@@ -667,64 +780,68 @@ public class AsyncReportService {
             Map<Long, String> sprintNames = new HashMap<>();
             if (!sprintIds.isEmpty()) {
                 List<Sprint> sprints = sprintRepository.findAllById(sprintIds);
-                for (Sprint s : sprints) {
-                    sprintNames.put(s.getId(), s.getName());
+                for (Sprint sp : sprints) {
+                    sprintNames.put(sp.getId(), sp.getName());
                 }
             }
 
             File tempFile = File.createTempFile("devtrack-tested-crs-" + jobId + "-", ".xlsx");
 
-            try (Workbook workbook = new XSSFWorkbook(); FileOutputStream out = new FileOutputStream(tempFile)) {
-                Sheet sheet = workbook.createSheet("Tested CRs Report");
-                Row headerRow = sheet.createRow(0);
+            try (XSSFWorkbook workbook = new XSSFWorkbook(); FileOutputStream out = new FileOutputStream(tempFile)) {
+                RptStyles s = buildStyles(workbook);
+                XSSFSheet sheet = workbook.createSheet("Tested CRs Report");
+                sheet.setDisplayGridlines(false);
+
                 String[] cols = {
                         "CR Number", "CR Title", "Project", "Sprint", "Assigned Developer(s)",
                         "Priority", "Testing Started", "Testing Completed", "Testing Duration",
                         "Bugs Raised", "Retests", "Production Status", "Final Status", "Quality Risk"
                 };
 
-                CellStyle headerStyle = workbook.createCellStyle();
-                Font font = workbook.createFont();
-                font.setBold(true);
-                headerStyle.setFont(font);
+                banner(sheet, cols.length, "DevTrack 2.0  \u2014  Tested Change Requests Report",
+                        "Generated " + LocalDateTime.now().format(DT_FMT) + "   \u2022   " + tasks.size() + " record(s)", s);
 
-                for (int i = 0; i < cols.length; i++) {
-                    Cell cell = headerRow.createCell(i);
-                    cell.setCellValue(cols[i]);
-                    cell.setCellStyle(headerStyle);
-                }
+                Row headerRow = sheet.createRow(3);
+                for (int i = 0; i < cols.length; i++) put(headerRow, i, cols[i], s.th);
 
-                int rowIdx = 1;
+                int rowIdx = 4;
+                boolean alt = false;
                 for (Task task : tasks) {
                     Row row = sheet.createRow(rowIdx++);
+                    XSSFCellStyle cs = alt ? s.tdAlt : s.td;
+                    XSSFCellStyle cc = alt ? s.tdCenterAlt : s.tdCenter;
+                    XSSFCellStyle cr = alt ? s.tdRightAlt : s.tdRight;
 
                     String devsStr = task.getDevelopers().stream()
                             .map(td -> td.getDeveloper() != null ? td.getDeveloper().getFullName() : "Unknown")
                             .collect(Collectors.joining(", "));
 
-                    String sprintName = task.getSprintId() != null 
-                            ? sprintNames.getOrDefault(task.getSprintId(), "Sprint " + task.getSprintId()) 
+                    String sprintName = task.getSprintId() != null
+                            ? sprintNames.getOrDefault(task.getSprintId(), "Sprint " + task.getSprintId())
                             : "Ad-hoc";
 
                     String prodStatus = task.getProductionDate() != null ? "DEPLOYED" : "PENDING";
 
-                    row.createCell(0).setCellValue(task.getJtrackId() != null ? task.getJtrackId() : "");
-                    row.createCell(1).setCellValue(task.getTitle() != null ? task.getTitle() : "");
-                    row.createCell(2).setCellValue(task.getProject() != null ? task.getProject() : "N/A");
-                    row.createCell(3).setCellValue(sprintName);
-                    row.createCell(4).setCellValue(devsStr);
-                    row.createCell(5).setCellValue(task.getPriority() != null ? task.getPriority() : "");
-                    row.createCell(6).setCellValue(task.getTestingStartedDate() != null ? task.getTestingStartedDate().toString() : "");
-                    row.createCell(7).setCellValue(task.getTestingCompletedDate() != null ? task.getTestingCompletedDate().toString() : "");
-                    row.createCell(8).setCellValue(task.getTestingDuration() != null ? task.getTestingDuration() : "N/A");
-                    row.createCell(9).setCellValue(task.getTotalBugsRaised() != null ? task.getTotalBugsRaised() : 0);
-                    row.createCell(10).setCellValue(task.getTotalRetests() != null ? task.getTotalRetests() : 0);
-                    row.createCell(11).setCellValue(prodStatus);
-                    row.createCell(12).setCellValue(task.getStatus() != null ? task.getStatus() : "");
-                    row.createCell(13).setCellValue(task.isQualityRisk() ? "YES" : "NO");
+                    put(row, 0, str(task.getJtrackId()), cs);
+                    put(row, 1, str(task.getTitle()), cs);
+                    put(row, 2, task.getProject() != null ? task.getProject() : "N/A", cs);
+                    put(row, 3, sprintName, cs);
+                    put(row, 4, devsStr, cs);
+                    put(row, 5, str(task.getPriority()), cc);
+                    put(row, 6, fmtDateTime(task.getTestingStartedDate()), cc);
+                    put(row, 7, fmtDateTime(task.getTestingCompletedDate()), cc);
+                    put(row, 8, task.getTestingDuration() != null ? task.getTestingDuration() : "N/A", cc);
+                    put(row, 9, (double) (task.getTotalBugsRaised() != null ? task.getTotalBugsRaised() : 0), cr);
+                    put(row, 10, (double) (task.getTotalRetests() != null ? task.getTotalRetests() : 0), cr);
+                    put(row, 11, prodStatus, task.getProductionDate() != null ? s.good : s.neutral);
+                    put(row, 12, str(task.getStatus()), cc);
+                    put(row, 13, task.isQualityRisk() ? "YES" : "NO", task.isQualityRisk() ? s.bad : s.good);
+                    alt = !alt;
                 }
 
-                for (int i = 0; i < cols.length; i++) sheet.autoSizeColumn(i);
+                sizeColumns(sheet, cols.length);
+                sheet.createFreezePane(0, 4);
+                if (rowIdx > 4) sheet.setAutoFilter(new CellRangeAddress(3, rowIdx - 1, 0, cols.length - 1));
                 workbook.write(out);
             }
 
@@ -762,279 +879,53 @@ public class AsyncReportService {
     }
 
     private void generateDeadlinesExcelReport(Workbook workbook, List<Task> tasks) {
-        Sheet sheet = workbook.createSheet("Deployment Deadlines");
-        Row headerRow = sheet.createRow(0);
+        XSSFWorkbook wb = (XSSFWorkbook) workbook;
+        RptStyles s = buildStyles(wb);
+        XSSFSheet sheet = wb.createSheet("Deployment Deadlines");
+        sheet.setDisplayGridlines(false);
+
         String[] cols = {"JTrack ID", "Title", "Priority", "Assigned Dev", "Milestone", "Expected Date", "Actual Date", "Delay (Days)", "SLA Status", "Risk Level"};
+        banner(sheet, cols.length, "DevTrack 2.0  \u2014  Deployment Deadlines & SLA Report",
+                "Generated " + LocalDateTime.now().format(DT_FMT) + "   \u2022   SIT & UAT deployment commitments   \u2022   Confidential", s);
 
-        CellStyle headerStyle = workbook.createCellStyle();
-        Font font = workbook.createFont();
-        font.setBold(true);
-        headerStyle.setFont(font);
+        Row headerRow = sheet.createRow(3);
+        for (int i = 0; i < cols.length; i++) put(headerRow, i, cols[i], s.th);
 
-        for (int i = 0; i < cols.length; i++) {
-            Cell cell = headerRow.createCell(i);
-            cell.setCellValue(cols[i]);
-            cell.setCellStyle(headerStyle);
-        }
-
-        int rowIdx = 1;
+        int rowIdx = 4;
+        boolean alt = false;
         for (Task t : tasks) {
             String devName = t.getAssignedDeveloper() != null ? t.getAssignedDeveloper().getFullName() : "Unassigned";
 
             if (t.getExpectedSitDeploymentDate() != null) {
-                Row row = sheet.createRow(rowIdx++);
-                row.createCell(0).setCellValue(t.getJtrackId());
-                row.createCell(1).setCellValue(t.getTitle());
-                row.createCell(2).setCellValue(t.getPriority());
-                row.createCell(3).setCellValue(devName);
-                row.createCell(4).setCellValue("SIT");
-                row.createCell(5).setCellValue(t.getExpectedSitDeploymentDate().toString());
-                row.createCell(6).setCellValue(t.getSitDate() != null ? t.getSitDate().toString() : "—");
-                row.createCell(7).setCellValue(calculateDelayDays(t, "SIT"));
-                row.createCell(8).setCellValue(evaluateSlaStatus(t, "SIT"));
-                row.createCell(9).setCellValue(evaluateRiskLevel(t, "SIT"));
-            }
-
-            if (t.getExpectedUatDeploymentDate() != null) {
-                Row row = sheet.createRow(rowIdx++);
-                row.createCell(0).setCellValue(t.getJtrackId());
-                row.createCell(1).setCellValue(t.getTitle());
-                row.createCell(2).setCellValue(t.getPriority());
-                row.createCell(3).setCellValue(devName);
-                row.createCell(4).setCellValue("UAT");
-                row.createCell(5).setCellValue(t.getExpectedUatDeploymentDate().toString());
-                row.createCell(6).setCellValue(t.getUatDate() != null ? t.getUatDate().toString() : "—");
-                row.createCell(7).setCellValue(calculateDelayDays(t, "UAT"));
-                row.createCell(8).setCellValue(evaluateSlaStatus(t, "UAT"));
-                row.createCell(9).setCellValue(evaluateRiskLevel(t, "UAT"));
-            }
-        }
-        for (int i = 0; i < cols.length; i++) sheet.autoSizeColumn(i);
-    }
-
-    private void generateDeadlinesCsvReport(java.io.OutputStream out, List<Task> tasks) {
-        java.io.PrintWriter writer = new java.io.PrintWriter(out);
-        writer.println("JTrack ID,Title,Priority,Assigned Dev,Milestone,Expected Date,Actual Date,Delay Days,SLA Status,Risk Level");
-        for (Task t : tasks) {
-            String devName = t.getAssignedDeveloper() != null ? t.getAssignedDeveloper().getFullName() : "Unassigned";
-            if (t.getExpectedSitDeploymentDate() != null) {
-                long delay = calculateDelayDays(t, "SIT");
-                String status = evaluateSlaStatus(t, "SIT");
-                String risk = evaluateRiskLevel(t, "SIT");
-                writer.printf("\"%s\",\"%s\",\"%s\",\"%s\",\"SIT Deployment\",\"%s\",\"%s\",%d,\"%s\",\"%s\"\n",
-                    escapeCsv(t.getJtrackId()), escapeCsv(t.getTitle()), escapeCsv(t.getPriority()), escapeCsv(devName),
-                    t.getExpectedSitDeploymentDate(), t.getSitDate() != null ? t.getSitDate().toString() : "",
-                    delay, status, risk);
+                rowIdx = writeDeadlineRow(sheet, s, rowIdx, alt, t, devName, "SIT",
+                        t.getExpectedSitDeploymentDate(), t.getSitDate());
+                alt = !alt;
             }
             if (t.getExpectedUatDeploymentDate() != null) {
-                long delay = calculateDelayDays(t, "UAT");
-                String status = evaluateSlaStatus(t, "UAT");
-                String risk = evaluateRiskLevel(t, "UAT");
-                writer.printf("\"%s\",\"%s\",\"%s\",\"%s\",\"UAT Deployment\",\"%s\",\"%s\",%d,\"%s\",\"%s\"\n",
-                    escapeCsv(t.getJtrackId()), escapeCsv(t.getTitle()), escapeCsv(t.getPriority()), escapeCsv(devName),
-                    t.getExpectedUatDeploymentDate(), t.getUatDate() != null ? t.getUatDate().toString() : "",
-                    delay, status, risk);
+                rowIdx = writeDeadlineRow(sheet, s, rowIdx, alt, t, devName, "UAT",
+                        t.getExpectedUatDeploymentDate(), t.getUatDate());
+                alt = !alt;
             }
         }
-        writer.flush();
+        sizeColumns(sheet, cols.length);
+        sheet.createFreezePane(0, 4);
+        if (rowIdx > 4) sheet.setAutoFilter(new CellRangeAddress(3, rowIdx - 1, 0, cols.length - 1));
     }
 
-    private void generateDeadlinesPdfReport(java.io.OutputStream out, List<Task> tasks) throws Exception {
-        com.lowagie.text.Document document = new com.lowagie.text.Document(com.lowagie.text.PageSize.A4.rotate());
-        com.lowagie.text.pdf.PdfWriter.getInstance(document, out);
-        document.open();
-
-        com.lowagie.text.Font titleFont = com.lowagie.text.FontFactory.getFont(com.lowagie.text.FontFactory.HELVETICA_BOLD, 18);
-        com.lowagie.text.Paragraph title = new com.lowagie.text.Paragraph("DevTrack 2.0 - Change Request Deployment Deadlines SLA Report", titleFont);
-        title.setAlignment(com.lowagie.text.Paragraph.ALIGN_CENTER);
-        document.add(title);
-
-        document.add(new com.lowagie.text.Paragraph("Generated on: " + LocalDateTime.now().toString() + "\n\n"));
-
-        com.lowagie.text.Table table = new com.lowagie.text.Table(10);
-        table.setBorderWidth(1);
-        table.setPadding(3);
-        table.setSpacing(0);
-        table.setWidth(100);
-
-        String[] headers = {"JTrack ID", "Title", "Priority", "Assigned Dev", "Milestone", "Expected Date", "Actual Date", "Delay", "SLA Status", "Risk Level"};
-        com.lowagie.text.Font headerFont = com.lowagie.text.FontFactory.getFont(com.lowagie.text.FontFactory.HELVETICA_BOLD, 10, com.lowagie.text.Font.UNDEFINED, java.awt.Color.WHITE);
-        
-        for (String h : headers) {
-            com.lowagie.text.Cell cell = new com.lowagie.text.Cell(new com.lowagie.text.Paragraph(h, headerFont));
-            cell.setBackgroundColor(java.awt.Color.DARK_GRAY);
-            cell.setHorizontalAlignment(com.lowagie.text.Cell.ALIGN_CENTER);
-            table.addCell(cell);
-        }
-
-        com.lowagie.text.Font rowFont = com.lowagie.text.FontFactory.getFont(com.lowagie.text.FontFactory.HELVETICA, 9);
-        com.lowagie.text.Font rowFontRed = com.lowagie.text.FontFactory.getFont(com.lowagie.text.FontFactory.HELVETICA_BOLD, 9, com.lowagie.text.Font.UNDEFINED, java.awt.Color.RED);
-
-        for (Task t : tasks) {
-            String devName = t.getAssignedDeveloper() != null ? t.getAssignedDeveloper().getFullName() : "Unassigned";
-            
-            if (t.getExpectedSitDeploymentDate() != null) {
-                long delay = calculateDelayDays(t, "SIT");
-                String status = evaluateSlaStatus(t, "SIT");
-                String risk = evaluateRiskLevel(t, "SIT");
-                boolean isHighRisk = "High".equalsIgnoreCase(risk);
-
-                com.lowagie.text.Font activeFont = isHighRisk ? rowFontRed : rowFont;
-
-                table.addCell(new com.lowagie.text.Cell(new com.lowagie.text.Paragraph(t.getJtrackId(), activeFont)));
-                table.addCell(new com.lowagie.text.Cell(new com.lowagie.text.Paragraph(t.getTitle(), activeFont)));
-                table.addCell(new com.lowagie.text.Cell(new com.lowagie.text.Paragraph(t.getPriority(), activeFont)));
-                table.addCell(new com.lowagie.text.Cell(new com.lowagie.text.Paragraph(devName, activeFont)));
-                table.addCell(new com.lowagie.text.Cell(new com.lowagie.text.Paragraph("SIT", activeFont)));
-                table.addCell(new com.lowagie.text.Cell(new com.lowagie.text.Paragraph(t.getExpectedSitDeploymentDate().toString(), activeFont)));
-                table.addCell(new com.lowagie.text.Cell(new com.lowagie.text.Paragraph(t.getSitDate() != null ? t.getSitDate().toString() : "—", activeFont)));
-                table.addCell(new com.lowagie.text.Cell(new com.lowagie.text.Paragraph(String.valueOf(delay), activeFont)));
-                table.addCell(new com.lowagie.text.Cell(new com.lowagie.text.Paragraph(status, activeFont)));
-                table.addCell(new com.lowagie.text.Cell(new com.lowagie.text.Paragraph(risk, activeFont)));
-            }
-
-            if (t.getExpectedUatDeploymentDate() != null) {
-                long delay = calculateDelayDays(t, "UAT");
-                String status = evaluateSlaStatus(t, "UAT");
-                String risk = evaluateRiskLevel(t, "UAT");
-                boolean isHighRisk = "High".equalsIgnoreCase(risk);
-
-                com.lowagie.text.Font activeFont = isHighRisk ? rowFontRed : rowFont;
-
-                table.addCell(new com.lowagie.text.Cell(new com.lowagie.text.Paragraph(t.getJtrackId(), activeFont)));
-                table.addCell(new com.lowagie.text.Cell(new com.lowagie.text.Paragraph(t.getTitle(), activeFont)));
-                table.addCell(new com.lowagie.text.Cell(new com.lowagie.text.Paragraph(t.getPriority(), activeFont)));
-                table.addCell(new com.lowagie.text.Cell(new com.lowagie.text.Paragraph(devName, activeFont)));
-                table.addCell(new com.lowagie.text.Cell(new com.lowagie.text.Paragraph("UAT", activeFont)));
-                table.addCell(new com.lowagie.text.Cell(new com.lowagie.text.Paragraph(t.getExpectedUatDeploymentDate().toString(), activeFont)));
-                table.addCell(new com.lowagie.text.Cell(new com.lowagie.text.Paragraph(t.getUatDate() != null ? t.getUatDate().toString() : "—", activeFont)));
-                table.addCell(new com.lowagie.text.Cell(new com.lowagie.text.Paragraph(String.valueOf(delay), activeFont)));
-                table.addCell(new com.lowagie.text.Cell(new com.lowagie.text.Paragraph(status, activeFont)));
-                table.addCell(new com.lowagie.text.Cell(new com.lowagie.text.Paragraph(risk, activeFont)));
-            }
-        }
-
-        document.add(table);
-        document.close();
-    }
-
-    private void generateTasksCsvReport(java.io.OutputStream out, List<Task> tasks) {
-        java.io.PrintWriter writer = new java.io.PrintWriter(out);
-        writer.println("ID,JTrack ID,Title,Status,Priority,Assignee,Created Date,Quality Risk");
-        for (Task task : tasks) {
-            writer.printf("%d,\"%s\",\"%s\",\"%s\",\"%s\",\"%s\",\"%s\",\"%s\"\n",
-                task.getId(),
-                escapeCsv(task.getJtrackId()),
-                escapeCsv(task.getTitle()),
-                escapeCsv(task.getStatus()),
-                escapeCsv(task.getPriority()),
-                escapeCsv(task.getAssignedDeveloper() != null ? task.getAssignedDeveloper().getFullName() : "Unassigned"),
-                task.getCreatedDate() != null ? task.getCreatedDate().toString() : "",
-                task.isQualityRisk() ? "YES" : "NO");
-        }
-        writer.flush();
-    }
-
-    private void generateTasksPdfReport(java.io.OutputStream out, List<Task> tasks) throws Exception {
-        com.lowagie.text.Document document = new com.lowagie.text.Document(com.lowagie.text.PageSize.A4.rotate());
-        com.lowagie.text.pdf.PdfWriter.getInstance(document, out);
-        document.open();
-
-        com.lowagie.text.Font titleFont = com.lowagie.text.FontFactory.getFont(com.lowagie.text.FontFactory.HELVETICA_BOLD, 16);
-        document.add(new com.lowagie.text.Paragraph("DevTrack 2.0 - Change Requests Report", titleFont));
-        document.add(new com.lowagie.text.Paragraph("Generated: " + LocalDateTime.now().toString() + "\n\n"));
-
-        com.lowagie.text.Table table = new com.lowagie.text.Table(8);
-        table.setBorderWidth(1);
-        table.setPadding(3);
-        table.setWidth(100);
-
-        String[] cols = {"ID", "JTrack ID", "Title", "Status", "Priority", "Assignee", "Created Date", "Quality Risk"};
-        for (String h : cols) {
-            com.lowagie.text.Cell cell = new com.lowagie.text.Cell(new com.lowagie.text.Paragraph(h, com.lowagie.text.FontFactory.getFont(com.lowagie.text.FontFactory.HELVETICA_BOLD, 10, com.lowagie.text.Font.UNDEFINED, java.awt.Color.WHITE)));
-            cell.setBackgroundColor(java.awt.Color.DARK_GRAY);
-            table.addCell(cell);
-        }
-
-        com.lowagie.text.Font font = com.lowagie.text.FontFactory.getFont(com.lowagie.text.FontFactory.HELVETICA, 9);
-        for (Task task : tasks) {
-            table.addCell(new com.lowagie.text.Cell(new com.lowagie.text.Paragraph(String.valueOf(task.getId()), font)));
-            table.addCell(new com.lowagie.text.Cell(new com.lowagie.text.Paragraph(task.getJtrackId() != null ? task.getJtrackId() : "", font)));
-            table.addCell(new com.lowagie.text.Cell(new com.lowagie.text.Paragraph(task.getTitle() != null ? task.getTitle() : "", font)));
-            table.addCell(new com.lowagie.text.Cell(new com.lowagie.text.Paragraph(task.getStatus() != null ? task.getStatus() : "", font)));
-            table.addCell(new com.lowagie.text.Cell(new com.lowagie.text.Paragraph(task.getPriority() != null ? task.getPriority() : "", font)));
-            table.addCell(new com.lowagie.text.Cell(new com.lowagie.text.Paragraph(task.getAssignedDeveloper() != null ? task.getAssignedDeveloper().getFullName() : "Unassigned", font)));
-            table.addCell(new com.lowagie.text.Cell(new com.lowagie.text.Paragraph(task.getCreatedDate() != null ? task.getCreatedDate().toString() : "", font)));
-            table.addCell(new com.lowagie.text.Cell(new com.lowagie.text.Paragraph(task.isQualityRisk() ? "YES" : "NO", font)));
-        }
-        document.add(table);
-        document.close();
-    }
-
-    private void generateTasksExcelReport(Workbook workbook, List<Task> tasks) {
-        Sheet sheet = workbook.createSheet("CR Tasks Report");
-        Row headerRow = sheet.createRow(0);
-        String[] cols = {"ID", "JTrack ID", "Title", "Status", "Priority", "Assignee", "Created Date", "Quality Risk"};
-
-        CellStyle headerStyle = workbook.createCellStyle();
-        Font font = workbook.createFont();
-        font.setBold(true);
-        headerStyle.setFont(font);
-
-        for (int i = 0; i < cols.length; i++) {
-            Cell cell = headerRow.createCell(i);
-            cell.setCellValue(cols[i]);
-            cell.setCellStyle(headerStyle);
-        }
-
-        int rowIdx = 1;
-        for (Task task : tasks) {
-            Row row = sheet.createRow(rowIdx++);
-            row.createCell(0).setCellValue(task.getId());
-            row.createCell(1).setCellValue(task.getJtrackId() != null ? task.getJtrackId() : "");
-            row.createCell(2).setCellValue(task.getTitle() != null ? task.getTitle() : "");
-            row.createCell(3).setCellValue(task.getStatus() != null ? task.getStatus() : "");
-            row.createCell(4).setCellValue(task.getPriority() != null ? task.getPriority() : "");
-            row.createCell(5).setCellValue(task.getAssignedDeveloper() != null ? task.getAssignedDeveloper().getFullName() : "Unassigned");
-            row.createCell(6).setCellValue(task.getCreatedDate() != null ? task.getCreatedDate().toString() : "");
-            row.createCell(7).setCellValue(task.isQualityRisk() ? "YES" : "NO");
-        }
-
-        for (int i = 0; i < cols.length; i++) sheet.autoSizeColumn(i);
-    }
-
-    private long calculateDelayDays(Task task, String type) {
-        LocalDate expected = "SIT".equalsIgnoreCase(type) ? task.getExpectedSitDeploymentDate() : task.getExpectedUatDeploymentDate();
-        LocalDate actual = "SIT".equalsIgnoreCase(type) ? task.getSitDate() : task.getUatDate();
-        if (expected == null) return 0;
-        LocalDate comp = actual != null ? actual : LocalDate.now();
-        if (comp.isAfter(expected)) {
-            return ChronoUnit.DAYS.between(expected, comp);
-        }
-        return 0;
-    }
-
-    private String evaluateSlaStatus(Task task, String type) {
-        LocalDate expected = "SIT".equalsIgnoreCase(type) ? task.getExpectedSitDeploymentDate() : task.getExpectedUatDeploymentDate();
-        LocalDate actual = "SIT".equalsIgnoreCase(type) ? task.getSitDate() : task.getUatDate();
-        if (expected == null) return "NOT_SET";
-        if (actual != null) {
-            return actual.isAfter(expected) ? "COMPLETED_DELAYED" : "COMPLETED_ON_TIME";
-        }
-        if (LocalDate.now().isAfter(expected)) return "MISSED";
-        long rem = expected.isAfter(LocalDate.now()) ? ChronoUnit.DAYS.between(LocalDate.now(), expected) : 0;
-        return rem <= 2 ? "AT_RISK" : "ON_TRACK";
-    }
-
-    private String evaluateRiskLevel(Task task, String type) {
-        String status = evaluateSlaStatus(task, type);
-        if ("MISSED".equals(status) || "COMPLETED_DELAYED".equals(status)) return "High";
-        if ("AT_RISK".equals(status)) return "Medium";
-        return "Low";
-    }
-
-    private String escapeCsv(String val) {
-        if (val == null) return "";
-        return val.replace("\"", "\"\"");
-    }
-}
+    private int writeDeadlineRow(XSSFSheet sheet, RptStyles s, int rowIdx, boolean alt, Task t,
+                                 String devName, String milestone, LocalDate expected, LocalDate actual) {
+        XSSFCellStyle cs = alt ? s.tdAlt : s.td;
+        XSSFCellStyle cc = alt ? s.tdCenterAlt : s.tdCenter;
+        XSSFCellStyle cr = alt ? s.tdRightAlt : s.tdRight;
+        Row row = sheet.createRow(rowIdx++);
+        String status = evaluateSlaStatus(t, milestone);
+        String risk = evaluateRiskLevel(t, milestone);
+        put(row, 0, str(t.getJtrackId()), cs);
+        put(row, 1, str(t.getTitle()), cs);
+        put(row, 2, str(t.getPriority()), cc);
+        put(row, 3, devName, cs);
+        put(row, 4, milestone, cc);
+        put(row, 5, fmtDate(expected), cc);
+        put(row, 6, fmtDate(actual), cc);
+        put(row, 7, (double) calculateDelayDays(t, milestone), cr);
+        put(row, 8, humanize(status), slaStatusSt
