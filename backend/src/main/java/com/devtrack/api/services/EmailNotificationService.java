@@ -180,8 +180,8 @@ public class EmailNotificationService {
 			}else {
 				subject = subject+bug.getTitle();
 			}
-
-			EmailRequestVo requestMap = createEmailRequestMap(renderedHtml, subject, user.getEmail(), null, testingSender, testingCc);
+            String coOwnerCc = buildBugCoOwnerCc(bug, user.getId(), testingCc);
+			EmailRequestVo requestMap = createEmailRequestMap(renderedHtml, subject, user.getEmail(), null, testingSender, coOwnerCc);
 
 			if(requestMap!=null) {
 				ResponseVo response = callSendNotificationApi(requestMap);
@@ -234,8 +234,8 @@ public class EmailNotificationService {
 				context.setVariable("appLogoUrl", appLogoUrl);
 
 				String renderedHtml = templateEngine.process("email/bug-update", context);
-
-				EmailRequestVo requestMap = createEmailRequestMap(renderedHtml, mailThread.getSubject(), user.getEmail(), mailThread.getMessageId(), testingSender, testingCc);
+                String coOwnerCc = buildBugCoOwnerCc(bug, user.getId(), testingCc);
+				EmailRequestVo requestMap = createEmailRequestMap(renderedHtml, mailThread.getSubject(), user.getEmail(), mailThread.getMessageId(), testingSender, coOwnerCc);
 
 				if(requestMap!=null)
 					callSendNotificationApi(requestMap);
@@ -557,6 +557,74 @@ public class EmailNotificationService {
 		}
 	}
 
+    private String buildBugCoOwnerCc(Bug bug, Long primaryRecipientId, String baseCc) {
+	java.util.TreeSet<Long> ids = new java.util.TreeSet<>();
+
+	// Bug's own developer pool — EAGER-loaded, always safe to read.
+	// (createBug inherits the parent CR co-owner pool into bug_developers,
+	//  so in practice this set already reflects the full co-owner union.)
+	try {
+		if (bug.getDevelopers() != null) {
+			for (com.devtrack.api.model.BugDeveloper bd : bug.getDevelopers()) {
+				if (bd.getDeveloper() != null && bd.getDeveloper().getId() != null) {
+					ids.add(bd.getDeveloper().getId());
+				}
+			}
+		}
+	} catch (Exception e) {
+		log.warn("Could not read bug developer pool for bug {}", bug.getId(), e);
+	}
+
+	// Parent CR's developer pool — defensive secondary source, best-effort only.
+	try {
+		if (bug.getBugTask() != null && bug.getBugTask().getId() != null) {
+			Task parent = taskRepository.findById(bug.getBugTask().getId()).orElse(null);
+			if (parent != null && parent.getDevelopers() != null) {
+				for (com.devtrack.api.model.TaskDeveloper td : parent.getDevelopers()) {
+					if (td.getDeveloper() != null && td.getDeveloper().getId() != null) {
+						ids.add(td.getDeveloper().getId());
+					}
+				}
+			}
+		}
+	} catch (Exception e) {
+		log.warn("Could not read parent CR developer pool for bug {} — using bug pool only", bug.getId(), e);
+	}
+
+	// Sentinel already sits in the "to" field; never CC them.
+	if (primaryRecipientId != null) {
+		ids.remove(primaryRecipientId);
+	}
+
+	if (ids.isEmpty()) {
+		return baseCc; // Single-dev / no extra co-owners → byte-identical to legacy behavior.
+	}
+
+	java.util.LinkedHashSet<String> extraCc = new java.util.LinkedHashSet<>();
+	for (Long id : ids) {
+		userRepository.findById(id).ifPresent(u -> {
+			if (u.getEmail() != null && !u.getEmail().isBlank()) {
+				extraCc.add(u.getEmail().trim());
+			}
+		});
+	}
+
+	if (extraCc.isEmpty()) {
+		return baseCc;
+	}
+
+	StringBuilder sb = new StringBuilder();
+	if (baseCc != null && !baseCc.trim().isEmpty()) {
+		sb.append(baseCc.trim());
+	}
+	for (String email : extraCc) {
+		if (sb.length() > 0) {
+			sb.append(",");
+		}
+		sb.append(email);
+	}
+	return sb.toString();
+}
 	public EmailRequestVo createEmailRequestMap(String messagebody, String messagebsubject, String to, String orgMessageId, String sender, String cc) {
 		log.info("Inside createEmailRequestMap");
 		try {
