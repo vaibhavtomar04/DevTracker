@@ -10,5 +10,5 @@ import org.springframework.data.domain.Pageable;
 public interface AuditLogRepository extends JpaRepository<AuditLog, Long> {
     List<AuditLog> findByEntityTypeAndEntityId(String entityType, Long entityId);
     boolean existsByEntityIdAndEntityTypeAndRemarks(Long entityId, String entityType, String remarks);
-    Page<AuditLog> findAllByOrderByTimestampDesc(Pageable pageable);
+    Page<AuditLog> findAllByOrderByChangedDateDesc(Pageable pageable);
 }

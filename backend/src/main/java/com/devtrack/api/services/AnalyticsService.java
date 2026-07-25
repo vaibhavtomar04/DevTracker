@@ -647,7 +647,7 @@ public class AnalyticsService {
     }
 
     public Map<String, Object> getAuditAnalytics(int page, int size) {
-        Page<AuditLog> auditPage = auditLogRepository.findAllByOrderByTimestampDesc(PageRequest.of(page, size));
+        Page<AuditLog> auditPage = auditLogRepository.findAllByOrderByChangedDateDesc(PageRequest.of(page, size));
 
         Map<String, Object> res = new LinkedHashMap<>();
         res.put("logs", auditPage.getContent());
