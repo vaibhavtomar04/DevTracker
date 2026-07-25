@@ -673,7 +673,7 @@ try {
     }
 } catch (Exception e) {
     log.error("Failed to publish BUG_RESOLVED recognition trigger: {}", e.getMessage());
--                }
+               }
                     
                     // Auto-transition task back to UAT_TESTING if all sibling bugs are VERIFIED or CLOSED
                     if ("VERIFIED".equals(savedBug.getStatus()) && savedBug.getBugTask() != null) {
