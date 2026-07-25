@@ -12,6 +12,7 @@ import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.time.temporal.ChronoUnit;
 import java.util.*;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 @Service
@@ -193,136 +194,172 @@ public class AnalyticsService {
         return res;
     }
 
+    // ============================================================
+    //  KPI ANALYTICS — real prior-period deltas + real sparklines
+    // ============================================================
     public Map<String, Object> getKpiAnalytics(String range, String scope, String sprintId, Long userId) {
-        List<Task> tasks = getFilteredTasks(range, scope, sprintId, userId);
-        int totalCrs = tasks.size();
+        List<Task> all = taskRepository.findAllOptimized();
+        long days = rangeDays(range);
+        LocalDateTime now = LocalDateTime.now();
 
-        // Completed CRs
-        List<Task> completed = tasks.stream()
-                .filter(t -> "CLOSED".equalsIgnoreCase(t.getStatus()) || "PROD_DEPLOYED".equalsIgnoreCase(t.getStatus()) || "PROD_COMPLETED".equalsIgnoreCase(t.getStatus()) || "VERIFIED".equalsIgnoreCase(t.getStatus()))
-                .toList();
+        LocalDateTime curStart = (days == 0) ? null : now.minusDays(days);
+        List<Task> current = filterWindow(all, scope, sprintId, userId, curStart, null);
+        // For "all" there is no meaningful prior window, so previous == current => neutral delta.
+        List<Task> previous = (days == 0)
+                ? current
+                : filterWindow(all, scope, sprintId, userId, now.minusDays(2 * days), curStart);
 
-        // 1. Throughput
-        int throughputCurrent = completed.size();
-        int throughputPrevious = (int) Math.round(throughputCurrent * 0.8);
-        List<Integer> throughputSeries = generate7BucketSeriesInt(completed.size());
+        int totalCrs = current.size();
 
-        // 2. Cycle Time
-        double avgCycleDays = completed.isEmpty() ? 0.0 : completed.stream()
-                .mapToDouble(t -> {
-                    if (t.getCreatedDate() != null && t.getTestingCompletedDate() != null) {
-                        return Math.max(0.5, Duration.between(t.getCreatedDate(), t.getTestingCompletedDate()).toDays());
-                    }
-                    return 2.5;
-                })
-                .average().orElse(0.0);
-        avgCycleDays = Math.round(avgCycleDays * 10.0) / 10.0;
-        double cyclePrevious = Math.round((avgCycleDays + 0.6) * 10.0) / 10.0;
-        List<Double> cycleSeries = generate7BucketSeriesDouble(avgCycleDays, true);
+        int throughputCurrent = metricThroughput(current);
+        double cycleCurrent = metricCycleDays(current);
+        int escapedCurrent = metricEscaped(current);
+        double slaCurrent = metricSla(current);
+        int wipCurrent = metricWip(current);
 
-        // 3. Escaped Defects (CRs with bugs NOT IN REJECTED/INVALID)
-        List<Bug> allBugs = getFilteredBugs(tasks);
-        Set<Long> escapedCrIds = allBugs.stream()
-                .filter(b -> b.getStatus() != null && !"REJECTED".equalsIgnoreCase(b.getStatus()) && !"INVALID".equalsIgnoreCase(b.getStatus()))
-                .filter(b -> b.getBugTask() != null)
-                .map(b -> b.getBugTask().getId())
-                .collect(Collectors.toSet());
-        int escapedCount = escapedCrIds.size();
-        int escapedPrevious = Math.max(0, escapedCount + 1);
-        double escapedPctVal = totalCrs > 0 ? (double) escapedCount / totalCrs * 100 : 0.0;
+        int throughputPrev = metricThroughput(previous);
+        double cyclePrev = metricCycleDays(previous);
+        int escapedPrev = metricEscaped(previous);
+        double slaPrev = metricSla(previous);
+        int wipPrev = metricWip(previous);
+
+        List<List<Task>> buckets = bucketize(all, scope, sprintId, userId, curStart, now, 7);
+        List<Integer> tpSeries = new ArrayList<>();
+        List<Double> cycleSeries = new ArrayList<>();
+        List<Integer> escSeries = new ArrayList<>();
+        List<Double> slaSeries = new ArrayList<>();
+        List<Integer> wipSeries = new ArrayList<>();
+        for (List<Task> b : buckets) {
+            tpSeries.add(metricThroughput(b));
+            cycleSeries.add(metricCycleDays(b));
+            escSeries.add(metricEscaped(b));
+            slaSeries.add(metricSla(b));
+            wipSeries.add(metricWip(b));
+        }
+
+        double escapedPctVal = totalCrs > 0 ? (double) escapedCurrent / totalCrs * 100 : 0.0;
         String escapedPct = String.format(Locale.US, "%.1f%%", escapedPctVal);
-        List<Integer> escapedSeries = generate7BucketSeriesInt(escapedCount);
-
-        // 4. SLA Compliance
-        long compliantCount = completed.stream()
-                .filter(t -> t.getTestingStartedDate() != null && t.getTestingCompletedDate() != null)
-                .filter(t -> Duration.between(t.getTestingStartedDate(), t.getTestingCompletedDate()).toHours() <= 48)
-                .count();
-        double slaCurrent = completed.isEmpty() ? 90.0 : Math.round(((double) compliantCount / completed.size() * 100) * 10.0) / 10.0;
-        double slaPrevious = Math.max(0.0, Math.round((slaCurrent - 3.5) * 10.0) / 10.0);
-        List<Double> slaSeries = generate7BucketSeriesDouble(slaCurrent, false);
-
-        // 5. Active WIP
-        int activeWipCurrent = (int) tasks.stream()
-                .filter(t -> !"CLOSED".equalsIgnoreCase(t.getStatus()) && !"PROD_DEPLOYED".equalsIgnoreCase(t.getStatus()) && !"PROD_COMPLETED".equalsIgnoreCase(t.getStatus()))
-                .count();
-        int activeWipPrevious = activeWipCurrent + 2;
-        List<Integer> wipSeries = generate7BucketSeriesInt(activeWipCurrent);
 
         Map<String, Object> res = new LinkedHashMap<>();
-
-        Map<String, Object> tpMap = new LinkedHashMap<>();
-        tpMap.put("current", throughputCurrent);
-        tpMap.put("total", totalCrs);
-        tpMap.put("previous", throughputPrevious);
-        tpMap.put("series", throughputSeries);
-        res.put("throughput", tpMap);
-
-        Map<String, Object> ctMap = new LinkedHashMap<>();
-        ctMap.put("current", avgCycleDays);
-        ctMap.put("previous", cyclePrevious);
-        ctMap.put("series", cycleSeries);
-        res.put("cycleTimeDays", ctMap);
-
-        Map<String, Object> edMap = new LinkedHashMap<>();
-        edMap.put("current", escapedCount);
-        edMap.put("previous", escapedPrevious);
-        edMap.put("pct", escapedPct);
-        edMap.put("series", escapedSeries);
-        res.put("escapedDefects", edMap);
-
-        Map<String, Object> slaMap = new LinkedHashMap<>();
-        slaMap.put("current", slaCurrent);
-        slaMap.put("previous", slaPrevious);
-        slaMap.put("series", slaSeries);
-        res.put("slaCompliance", slaMap);
-
-        Map<String, Object> wipMap = new LinkedHashMap<>();
-        wipMap.put("current", activeWipCurrent);
-        wipMap.put("previous", activeWipPrevious);
-        wipMap.put("series", wipSeries);
-        res.put("activeWip", wipMap);
-
+        res.put("throughput", kpiMap(throughputCurrent, throughputPrev, tpSeries, totalCrs, null));
+        res.put("cycleTimeDays", kpiMap(cycleCurrent, cyclePrev, cycleSeries, null, null));
+        res.put("escapedDefects", kpiMap(escapedCurrent, escapedPrev, escSeries, null, escapedPct));
+        res.put("slaCompliance", kpiMap(slaCurrent, slaPrev, slaSeries, null, null));
+        res.put("activeWip", kpiMap(wipCurrent, wipPrev, wipSeries, null, null));
         return res;
     }
 
-    private List<Integer> generate7BucketSeriesInt(int finalVal) {
-        List<Integer> list = new ArrayList<>();
-        int base = Math.max(0, finalVal - 4);
-        for (int i = 0; i < 6; i++) {
-            list.add(base + (i % 3));
-        }
-        list.add(finalVal);
-        return list;
+    private long rangeDays(String range) {
+        if ("7d".equalsIgnoreCase(range)) return 7;
+        if ("30d".equalsIgnoreCase(range)) return 30;
+        if ("90d".equalsIgnoreCase(range)) return 90;
+        return 0; // all
     }
 
-    private List<Double> generate7BucketSeriesDouble(double finalVal, boolean decrTrend) {
-        List<Double> list = new ArrayList<>();
-        double start = decrTrend ? finalVal + 1.2 : Math.max(0, finalVal - 6.0);
-        double step = (finalVal - start) / 6.0;
-        for (int i = 0; i < 6; i++) {
-            list.add(Math.round((start + step * i) * 10.0) / 10.0);
-        }
-        list.add(finalVal);
-        return list;
+    private List<Task> filterWindow(List<Task> all, String scope, String sprintId, Long userId,
+                                    LocalDateTime start, LocalDateTime end) {
+        Long resolvedSprintId = getResolvedSprintId(sprintId);
+        boolean isMyScope = "my".equalsIgnoreCase(scope);
+        return all.stream()
+                .filter(t -> t.getCreatedDate() != null)
+                .filter(t -> start == null || !t.getCreatedDate().isBefore(start))
+                .filter(t -> end == null || t.getCreatedDate().isBefore(end))
+                .filter(t -> !isMyScope || userId == null || (t.getAssignedDeveloper() != null && userId.equals(t.getAssignedDeveloper().getId())))
+                .filter(t -> resolvedSprintId == null || (t.getSprintId() != null && resolvedSprintId.equals(t.getSprintId())))
+                .toList();
     }
 
+    private List<List<Task>> bucketize(List<Task> all, String scope, String sprintId, Long userId,
+                                       LocalDateTime start, LocalDateTime end, int n) {
+        if (start == null) {
+            start = all.stream()
+                    .map(Task::getCreatedDate)
+                    .filter(Objects::nonNull)
+                    .min(Comparator.naturalOrder())
+                    .orElse(end.minusDays(30));
+        }
+        long totalSeconds = Duration.between(start, end).getSeconds();
+        if (totalSeconds <= 0) totalSeconds = 1;
+        List<List<Task>> buckets = new ArrayList<>();
+        for (int i = 0; i < n; i++) {
+            LocalDateTime bStart = start.plusSeconds(totalSeconds * i / n);
+            LocalDateTime bEnd = (i == n - 1) ? null : start.plusSeconds(totalSeconds * (i + 1) / n);
+            buckets.add(filterWindow(all, scope, sprintId, userId, bStart, bEnd));
+        }
+        return buckets;
+    }
+
+    private boolean isCompleted(Task t) {
+        String s = t.getStatus();
+        return "CLOSED".equalsIgnoreCase(s) || "PROD_DEPLOYED".equalsIgnoreCase(s)
+                || "PROD_COMPLETED".equalsIgnoreCase(s) || "VERIFIED".equalsIgnoreCase(s);
+    }
+
+    private int metricThroughput(List<Task> tasks) {
+        return (int) tasks.stream().filter(this::isCompleted).count();
+    }
+
+    private double metricCycleDays(List<Task> tasks) {
+        double[] vals = tasks.stream()
+                .filter(this::isCompleted)
+                .filter(t -> t.getCreatedDate() != null && t.getTestingCompletedDate() != null)
+                .mapToDouble(t -> Math.max(0.0, Duration.between(t.getCreatedDate(), t.getTestingCompletedDate()).toHours() / 24.0))
+                .toArray();
+        if (vals.length == 0) return 0.0;
+        double mean = Arrays.stream(vals).average().orElse(0.0);
+        return Math.round(mean * 10.0) / 10.0;
+    }
+
+    private int metricEscaped(List<Task> tasks) {
+        List<Bug> bugs = getFilteredBugs(tasks);
+        return (int) bugs.stream()
+                .filter(b -> b.getStatus() != null && !"REJECTED".equalsIgnoreCase(b.getStatus()) && !"INVALID".equalsIgnoreCase(b.getStatus()))
+                .filter(b -> b.getBugTask() != null)
+                .map(b -> b.getBugTask().getId())
+                .distinct()
+                .count();
+    }
+
+    private double metricSla(List<Task> tasks) {
+        List<Task> completed = tasks.stream()
+                .filter(this::isCompleted)
+                .filter(t -> t.getTestingStartedDate() != null && t.getTestingCompletedDate() != null)
+                .toList();
+        if (completed.isEmpty()) return 0.0;
+        long ok = completed.stream()
+                .filter(t -> Duration.between(t.getTestingStartedDate(), t.getTestingCompletedDate()).toHours() <= 48)
+                .count();
+        return Math.round(((double) ok / completed.size() * 100) * 10.0) / 10.0;
+    }
+
+    private int metricWip(List<Task> tasks) {
+        return (int) tasks.stream().filter(t -> {
+            String s = t.getStatus();
+            return !"CLOSED".equalsIgnoreCase(s) && !"PROD_DEPLOYED".equalsIgnoreCase(s) && !"PROD_COMPLETED".equalsIgnoreCase(s);
+        }).count();
+    }
+
+    private Map<String, Object> kpiMap(Object current, Object previous, List<?> series, Integer total, String pct) {
+        Map<String, Object> m = new LinkedHashMap<>();
+        m.put("current", current);
+        if (total != null) m.put("total", total);
+        m.put("previous", previous);
+        if (pct != null) m.put("pct", pct);
+        m.put("series", series);
+        return m;
+    }
+
+    // ============================================================
+    //  STAGE DURATIONS — all five stages from real milestone dates
+    // ============================================================
     public Map<String, Object> getStageDurations(String range, String scope, String sprintId, Long userId) {
         List<Task> tasks = getFilteredTasks(range, scope, sprintId, userId);
 
-        double devAvg = 2.1;
-        double reviewAvg = 0.8;
-        double testingAvg = 3.4;
-        double sitAvg = 1.2;
-        double uatAvg = 1.5;
-
-        if (!tasks.isEmpty()) {
-            List<Task> tested = tasks.stream().filter(t -> t.getTestingStartedDate() != null && t.getTestingCompletedDate() != null).toList();
-            if (!tested.isEmpty()) {
-                double avgT = tested.stream().mapToDouble(t -> Duration.between(t.getTestingStartedDate(), t.getTestingCompletedDate()).toHours() / 24.0).average().orElse(3.4);
-                testingAvg = Math.round(avgT * 10.0) / 10.0;
-            }
-        }
+        double devAvg = avgDays(tasks, t -> toDt(t.getDevStartDate()), t -> toDt(t.getBranchMergeDate()));
+        double reviewAvg = avgDays(tasks, t -> toDt(t.getBranchMergeDate()), t -> t.getTestingStartedDate());
+        double testingAvg = avgDays(tasks, t -> t.getTestingStartedDate(), t -> t.getTestingCompletedDate());
+        double sitAvg = avgDays(tasks, t -> t.getTestingCompletedDate(), t -> toDt(t.getSitDate()));
+        double uatAvg = avgDays(tasks, t -> toDt(t.getSitDate()), t -> toDt(t.getUatDate()));
 
         List<Map<String, Object>> stages = new ArrayList<>();
         stages.add(createStageMap("Development", devAvg));
@@ -334,8 +371,9 @@ public class AnalyticsService {
         Map<String, Object> maxStage = stages.stream()
                 .max(Comparator.comparingDouble(s -> (Double) s.get("days")))
                 .orElse(stages.get(0));
+        double maxDays = (Double) maxStage.get("days");
 
-        stages.forEach(s -> s.put("isBottleneck", s.get("stage").equals(maxStage.get("stage"))));
+        stages.forEach(s -> s.put("isBottleneck", maxDays > 0 && s.get("stage").equals(maxStage.get("stage"))));
 
         Map<String, Object> res = new LinkedHashMap<>();
         res.put("bottleneckStage", maxStage.get("stage"));
@@ -353,20 +391,78 @@ public class AnalyticsService {
         return map;
     }
 
+    private double avgDays(List<Task> tasks, Function<Task, LocalDateTime> startFn, Function<Task, LocalDateTime> endFn) {
+        List<Double> vals = new ArrayList<>();
+        for (Task t : tasks) {
+            LocalDateTime a = startFn.apply(t);
+            LocalDateTime b = endFn.apply(t);
+            if (a != null && b != null && !b.isBefore(a)) {
+                vals.add(Duration.between(a, b).toHours() / 24.0);
+            }
+        }
+        if (vals.isEmpty()) return 0.0;
+        double mean = vals.stream().mapToDouble(Double::doubleValue).average().orElse(0.0);
+        return Math.round(mean * 10.0) / 10.0;
+    }
+
+    private LocalDateTime toDt(LocalDate d) {
+        return d == null ? null : d.atStartOfDay();
+    }
+
+    // ============================================================
+    //  CUMULATIVE FLOW — daily state bands from milestone dates
+    // ============================================================
     public List<Map<String, Object>> getCumulativeFlowDiagram(String range, String scope, String sprintId, Long userId) {
         List<Task> tasks = getFilteredTasks(range, scope, sprintId, userId);
 
-        int total = Math.max(15, tasks.size());
+        LocalDate endDay = LocalDate.now();
+        long days = rangeDays(range);
+        LocalDate startDay;
+        if (days == 0) {
+            startDay = tasks.stream()
+                    .map(Task::getCreatedDate)
+                    .filter(Objects::nonNull)
+                    .map(LocalDateTime::toLocalDate)
+                    .min(Comparator.naturalOrder())
+                    .orElse(endDay.minusDays(29));
+        } else {
+            startDay = endDay.minusDays(days - 1);
+        }
+
+        long span = ChronoUnit.DAYS.between(startDay, endDay);
+        if (span < 0) span = 0;
+        int points = (int) Math.min(30, span + 1);
+        if (points < 1) points = 1;
+
+        DateTimeFormatter fmt = DateTimeFormatter.ofPattern("MM/dd");
         List<Map<String, Object>> list = new ArrayList<>();
 
-        for (int day = 1; day <= 7; day++) {
-            int prod = Math.min(total, (int) Math.round((day / 7.0) * total * 0.6));
-            int testing = Math.min(total - prod, (int) Math.round((day / 7.0) * total * 0.2) + 2);
-            int dev = Math.min(total - prod - testing, (int) Math.round((day / 7.0) * total * 0.15) + 3);
-            int backlog = Math.max(0, total - prod - testing - dev);
+        for (int i = 0; i < points; i++) {
+            LocalDate d = (points == 1) ? endDay : startDay.plusDays(Math.round((double) span * i / (points - 1)));
+
+            int prod = 0, testing = 0, dev = 0, backlog = 0;
+            for (Task t : tasks) {
+                if (t.getCreatedDate() == null) continue;
+                LocalDate created = t.getCreatedDate().toLocalDate();
+                if (created.isAfter(d)) continue;
+
+                LocalDate prodDate = t.getProductionDate();
+                LocalDate testStart = t.getTestingStartedDate() != null ? t.getTestingStartedDate().toLocalDate() : null;
+                LocalDate devStart = t.getDevStartDate();
+
+                if (prodDate != null && !prodDate.isAfter(d)) {
+                    prod++;
+                } else if (testStart != null && !testStart.isAfter(d)) {
+                    testing++;
+                } else if (devStart != null && !devStart.isAfter(d)) {
+                    dev++;
+                } else {
+                    backlog++;
+                }
+            }
 
             Map<String, Object> point = new LinkedHashMap<>();
-            point.put("day", "Day " + day);
+            point.put("day", d.format(fmt));
             point.put("backlog", backlog);
             point.put("dev", dev);
             point.put("testing", testing);
