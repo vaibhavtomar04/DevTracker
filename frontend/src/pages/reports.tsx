@@ -33,12 +33,16 @@ import {
 import { motion } from "framer-motion"
 import { PremiumTooltip } from "@/components/charts/PremiumTooltip"
 import { CATEGORY_COLORS, TOOLTIP_CURSORS } from "@/components/charts/chartPalette"
+import { useActiveSprint } from "@/hooks/useActiveSprint"
+import { ExecKpiStrip } from "@/components/reports/ExecKpiStrip"
+import { GlobalReportFilterBar } from "@/components/reports/GlobalReportFilterBar"
 
 export default function Reports() {
   const { tasks, bugs, fetchData, setDownloadTarget } = useTaskStore()
   const [exporting, setExporting] = useState<string | null>(null)
   const [analytics, setAnalytics] = useState<any>(null)
   const [deadlineAnalytics, setDeadlineAnalytics] = useState<any>(null)
+  const { sprint: activeSprint, hasActiveSprint } = useActiveSprint()
 
   const getSlabadge = (rate: number | null) => {
     if (rate === null) return null;
@@ -358,6 +362,15 @@ export default function Reports() {
           </Button>
         </div>
       </div>
+
+      {/* Exec KPI Strip */}
+      <ExecKpiStrip analytics={analytics} tasks={tasks} bugs={bugs} loading={!analytics} />
+
+      {/* Global Report Filter Bar */}
+      <GlobalReportFilterBar
+        hasActiveSprint={hasActiveSprint}
+        activeSprintName={activeSprint?.name}
+      />
 
       {/* Analytics Charts Grid */}
       <motion.div 
