@@ -44,4 +44,9 @@ export const APP_CONFIG = {
   apiUrl: `${currentConfig.hostname}${currentConfig.contextPath}`,
 };
 
+export const FEATURES = {
+  ENABLE_MULTI_DEV_CR:
+    String(import.meta.env.VITE_ENABLE_MULTI_DEV_CR ?? 'true').toLowerCase() !== 'false',
+};
+
 export default APP_CONFIG;
