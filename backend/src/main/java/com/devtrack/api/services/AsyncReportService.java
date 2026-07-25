@@ -671,7 +671,7 @@ public class AsyncReportService {
             }
         }
 
-        // 5. Sheet: Category & Response Times
+        // 5. Sheet: Response Times
         XSSFSheet timesSheet = wb.createSheet("Response Times");
         timesSheet.setDisplayGridlines(false);
         banner(timesSheet, 2, "Average Response Times",
@@ -928,4 +928,238 @@ public class AsyncReportService {
         put(row, 5, fmtDate(expected), cc);
         put(row, 6, fmtDate(actual), cc);
         put(row, 7, (double) calculateDelayDays(t, milestone), cr);
-        put(row, 8, humanize(status), slaStatusSt
+        put(row, 8, humanize(status), slaStatusStyle(s, status));
+        put(row, 9, risk, riskStyle(s, risk));
+        return rowIdx;
+    }
+
+    private void generateDeadlinesCsvReport(java.io.OutputStream out, List<Task> tasks) {
+        java.io.PrintWriter writer = new java.io.PrintWriter(out);
+        writer.println("JTrack ID,Title,Priority,Assigned Dev,Milestone,Expected Date,Actual Date,Delay Days,SLA Status,Risk Level");
+        for (Task t : tasks) {
+            String devName = t.getAssignedDeveloper() != null ? t.getAssignedDeveloper().getFullName() : "Unassigned";
+            if (t.getExpectedSitDeploymentDate() != null) {
+                long delay = calculateDelayDays(t, "SIT");
+                String status = evaluateSlaStatus(t, "SIT");
+                String risk = evaluateRiskLevel(t, "SIT");
+                writer.printf("\"%s\",\"%s\",\"%s\",\"%s\",\"SIT Deployment\",\"%s\",\"%s\",%d,\"%s\",\"%s\"\n",
+                    escapeCsv(t.getJtrackId()), escapeCsv(t.getTitle()), escapeCsv(t.getPriority()), escapeCsv(devName),
+                    t.getExpectedSitDeploymentDate(), t.getSitDate() != null ? t.getSitDate().toString() : "",
+                    delay, status, risk);
+            }
+            if (t.getExpectedUatDeploymentDate() != null) {
+                long delay = calculateDelayDays(t, "UAT");
+                String status = evaluateSlaStatus(t, "UAT");
+                String risk = evaluateRiskLevel(t, "UAT");
+                writer.printf("\"%s\",\"%s\",\"%s\",\"%s\",\"UAT Deployment\",\"%s\",\"%s\",%d,\"%s\",\"%s\"\n",
+                    escapeCsv(t.getJtrackId()), escapeCsv(t.getTitle()), escapeCsv(t.getPriority()), escapeCsv(devName),
+                    t.getExpectedUatDeploymentDate(), t.getUatDate() != null ? t.getUatDate().toString() : "",
+                    delay, status, risk);
+            }
+        }
+        writer.flush();
+    }
+
+    private void generateDeadlinesPdfReport(java.io.OutputStream out, List<Task> tasks) throws Exception {
+        com.lowagie.text.Document document = new com.lowagie.text.Document(com.lowagie.text.PageSize.A4.rotate());
+        com.lowagie.text.pdf.PdfWriter.getInstance(document, out);
+        document.open();
+
+        com.lowagie.text.Font titleFont = com.lowagie.text.FontFactory.getFont(com.lowagie.text.FontFactory.HELVETICA_BOLD, 18);
+        com.lowagie.text.Paragraph title = new com.lowagie.text.Paragraph("DevTrack 2.0 - Change Request Deployment Deadlines SLA Report", titleFont);
+        title.setAlignment(com.lowagie.text.Paragraph.ALIGN_CENTER);
+        document.add(title);
+
+        document.add(new com.lowagie.text.Paragraph("Generated on: " + LocalDateTime.now().format(DT_FMT) + "\n\n"));
+
+        com.lowagie.text.Table table = new com.lowagie.text.Table(10);
+        table.setBorderWidth(1);
+        table.setPadding(3);
+        table.setSpacing(0);
+        table.setWidth(100);
+
+        String[] headers = {"JTrack ID", "Title", "Priority", "Assigned Dev", "Milestone", "Expected Date", "Actual Date", "Delay", "SLA Status", "Risk Level"};
+        com.lowagie.text.Font headerFont = com.lowagie.text.FontFactory.getFont(com.lowagie.text.FontFactory.HELVETICA_BOLD, 10, com.lowagie.text.Font.UNDEFINED, java.awt.Color.WHITE);
+        
+        for (String h : headers) {
+            com.lowagie.text.Cell cell = new com.lowagie.text.Cell(new com.lowagie.text.Paragraph(h, headerFont));
+            cell.setBackgroundColor(java.awt.Color.DARK_GRAY);
+            cell.setHorizontalAlignment(com.lowagie.text.Cell.ALIGN_CENTER);
+            table.addCell(cell);
+        }
+
+        com.lowagie.text.Font rowFont = com.lowagie.text.FontFactory.getFont(com.lowagie.text.FontFactory.HELVETICA, 9);
+        com.lowagie.text.Font rowFontRed = com.lowagie.text.FontFactory.getFont(com.lowagie.text.FontFactory.HELVETICA_BOLD, 9, com.lowagie.text.Font.UNDEFINED, java.awt.Color.RED);
+
+        for (Task t : tasks) {
+            String devName = t.getAssignedDeveloper() != null ? t.getAssignedDeveloper().getFullName() : "Unassigned";
+            
+            if (t.getExpectedSitDeploymentDate() != null) {
+                long delay = calculateDelayDays(t, "SIT");
+                String status = evaluateSlaStatus(t, "SIT");
+                String risk = evaluateRiskLevel(t, "SIT");
+                boolean isHighRisk = "High".equalsIgnoreCase(risk);
+
+                com.lowagie.text.Font activeFont = isHighRisk ? rowFontRed : rowFont;
+
+                table.addCell(new com.lowagie.text.Cell(new com.lowagie.text.Paragraph(t.getJtrackId(), activeFont)));
+                table.addCell(new com.lowagie.text.Cell(new com.lowagie.text.Paragraph(t.getTitle(), activeFont)));
+                table.addCell(new com.lowagie.text.Cell(new com.lowagie.text.Paragraph(t.getPriority(), activeFont)));
+                table.addCell(new com.lowagie.text.Cell(new com.lowagie.text.Paragraph(devName, activeFont)));
+                table.addCell(new com.lowagie.text.Cell(new com.lowagie.text.Paragraph("SIT", activeFont)));
+                table.addCell(new com.lowagie.text.Cell(new com.lowagie.text.Paragraph(t.getExpectedSitDeploymentDate().toString(), activeFont)));
+                table.addCell(new com.lowagie.text.Cell(new com.lowagie.text.Paragraph(t.getSitDate() != null ? t.getSitDate().toString() : "\u2014", activeFont)));
+                table.addCell(new com.lowagie.text.Cell(new com.lowagie.text.Paragraph(String.valueOf(delay), activeFont)));
+                table.addCell(new com.lowagie.text.Cell(new com.lowagie.text.Paragraph(status, activeFont)));
+                table.addCell(new com.lowagie.text.Cell(new com.lowagie.text.Paragraph(risk, activeFont)));
+            }
+
+            if (t.getExpectedUatDeploymentDate() != null) {
+                long delay = calculateDelayDays(t, "UAT");
+                String status = evaluateSlaStatus(t, "UAT");
+                String risk = evaluateRiskLevel(t, "UAT");
+                boolean isHighRisk = "High".equalsIgnoreCase(risk);
+
+                com.lowagie.text.Font activeFont = isHighRisk ? rowFontRed : rowFont;
+
+                table.addCell(new com.lowagie.text.Cell(new com.lowagie.text.Paragraph(t.getJtrackId(), activeFont)));
+                table.addCell(new com.lowagie.text.Cell(new com.lowagie.text.Paragraph(t.getTitle(), activeFont)));
+                table.addCell(new com.lowagie.text.Cell(new com.lowagie.text.Paragraph(t.getPriority(), activeFont)));
+                table.addCell(new com.lowagie.text.Cell(new com.lowagie.text.Paragraph(devName, activeFont)));
+                table.addCell(new com.lowagie.text.Cell(new com.lowagie.text.Paragraph("UAT", activeFont)));
+                table.addCell(new com.lowagie.text.Cell(new com.lowagie.text.Paragraph(t.getExpectedUatDeploymentDate().toString(), activeFont)));
+                table.addCell(new com.lowagie.text.Cell(new com.lowagie.text.Paragraph(t.getUatDate() != null ? t.getUatDate().toString() : "\u2014", activeFont)));
+                table.addCell(new com.lowagie.text.Cell(new com.lowagie.text.Paragraph(String.valueOf(delay), activeFont)));
+                table.addCell(new com.lowagie.text.Cell(new com.lowagie.text.Paragraph(status, activeFont)));
+                table.addCell(new com.lowagie.text.Cell(new com.lowagie.text.Paragraph(risk, activeFont)));
+            }
+        }
+
+        document.add(table);
+        document.close();
+    }
+
+    private void generateTasksCsvReport(java.io.OutputStream out, List<Task> tasks) {
+        java.io.PrintWriter writer = new java.io.PrintWriter(out);
+        writer.println("ID,JTrack ID,Title,Status,Priority,Assignee,Created Date,Quality Risk");
+        for (Task task : tasks) {
+            writer.printf("%d,\"%s\",\"%s\",\"%s\",\"%s\",\"%s\",\"%s\",\"%s\"\n",
+                task.getId(),
+                escapeCsv(task.getJtrackId()),
+                escapeCsv(task.getTitle()),
+                escapeCsv(task.getStatus()),
+                escapeCsv(task.getPriority()),
+                escapeCsv(task.getAssignedDeveloper() != null ? task.getAssignedDeveloper().getFullName() : "Unassigned"),
+                task.getCreatedDate() != null ? task.getCreatedDate().toString() : "",
+                task.isQualityRisk() ? "YES" : "NO");
+        }
+        writer.flush();
+    }
+
+    private void generateTasksPdfReport(java.io.OutputStream out, List<Task> tasks) throws Exception {
+        com.lowagie.text.Document document = new com.lowagie.text.Document(com.lowagie.text.PageSize.A4.rotate());
+        com.lowagie.text.pdf.PdfWriter.getInstance(document, out);
+        document.open();
+
+        com.lowagie.text.Font titleFont = com.lowagie.text.FontFactory.getFont(com.lowagie.text.FontFactory.HELVETICA_BOLD, 16);
+        document.add(new com.lowagie.text.Paragraph("DevTrack 2.0 - Change Requests Report", titleFont));
+        document.add(new com.lowagie.text.Paragraph("Generated: " + LocalDateTime.now().format(DT_FMT) + "\n\n"));
+
+        com.lowagie.text.Table table = new com.lowagie.text.Table(8);
+        table.setBorderWidth(1);
+        table.setPadding(3);
+        table.setWidth(100);
+
+        String[] cols = {"ID", "JTrack ID", "Title", "Status", "Priority", "Assignee", "Created Date", "Quality Risk"};
+        for (String h : cols) {
+            com.lowagie.text.Cell cell = new com.lowagie.text.Cell(new com.lowagie.text.Paragraph(h, com.lowagie.text.FontFactory.getFont(com.lowagie.text.FontFactory.HELVETICA_BOLD, 10, com.lowagie.text.Font.UNDEFINED, java.awt.Color.WHITE)));
+            cell.setBackgroundColor(java.awt.Color.DARK_GRAY);
+            table.addCell(cell);
+        }
+
+        com.lowagie.text.Font font = com.lowagie.text.FontFactory.getFont(com.lowagie.text.FontFactory.HELVETICA, 9);
+        for (Task task : tasks) {
+            table.addCell(new com.lowagie.text.Cell(new com.lowagie.text.Paragraph(String.valueOf(task.getId()), font)));
+            table.addCell(new com.lowagie.text.Cell(new com.lowagie.text.Paragraph(task.getJtrackId() != null ? task.getJtrackId() : "", font)));
+            table.addCell(new com.lowagie.text.Cell(new com.lowagie.text.Paragraph(task.getTitle() != null ? task.getTitle() : "", font)));
+            table.addCell(new com.lowagie.text.Cell(new com.lowagie.text.Paragraph(task.getStatus() != null ? task.getStatus() : "", font)));
+            table.addCell(new com.lowagie.text.Cell(new com.lowagie.text.Paragraph(task.getPriority() != null ? task.getPriority() : "", font)));
+            table.addCell(new com.lowagie.text.Cell(new com.lowagie.text.Paragraph(task.getAssignedDeveloper() != null ? task.getAssignedDeveloper().getFullName() : "Unassigned", font)));
+            table.addCell(new com.lowagie.text.Cell(new com.lowagie.text.Paragraph(task.getCreatedDate() != null ? task.getCreatedDate().toString() : "", font)));
+            table.addCell(new com.lowagie.text.Cell(new com.lowagie.text.Paragraph(task.isQualityRisk() ? "YES" : "NO", font)));
+        }
+        document.add(table);
+        document.close();
+    }
+
+    private void generateTasksExcelReport(Workbook workbook, List<Task> tasks) {
+        XSSFWorkbook wb = (XSSFWorkbook) workbook;
+        RptStyles s = buildStyles(wb);
+        XSSFSheet sheet = wb.createSheet("CR Tasks Report");
+        sheet.setDisplayGridlines(false);
+
+        String[] cols = {"ID", "JTrack ID", "Title", "Status", "Priority", "Assignee", "Created Date", "Quality Risk"};
+        banner(sheet, cols.length, "DevTrack 2.0  \u2014  Change Requests Report",
+                "Generated " + LocalDateTime.now().format(DT_FMT) + "   \u2022   " + tasks.size() + " record(s)   \u2022   Confidential", s);
+
+        Row headerRow = sheet.createRow(3);
+        for (int i = 0; i < cols.length; i++) put(headerRow, i, cols[i], s.th);
+
+        int rowIdx = 4;
+        boolean alt = false;
+        for (Task task : tasks) {
+            Row row = sheet.createRow(rowIdx++);
+            XSSFCellStyle cs = alt ? s.tdAlt : s.td;
+            XSSFCellStyle cc = alt ? s.tdCenterAlt : s.tdCenter;
+            XSSFCellStyle cr = alt ? s.tdRightAlt : s.tdRight;
+            put(row, 0, (double) task.getId(), cr);
+            put(row, 1, str(task.getJtrackId()), cs);
+            put(row, 2, str(task.getTitle()), cs);
+            put(row, 3, str(task.getStatus()), cc);
+            put(row, 4, str(task.getPriority()), cc);
+            put(row, 5, task.getAssignedDeveloper() != null ? task.getAssignedDeveloper().getFullName() : "Unassigned", cs);
+            put(row, 6, fmtDateTime(task.getCreatedDate()), cc);
+            put(row, 7, task.isQualityRisk() ? "YES" : "NO", task.isQualityRisk() ? s.bad : s.good);
+            alt = !alt;
+        }
+
+        sizeColumns(sheet, cols.length);
+        sheet.createFreezePane(0, 4);
+        if (rowIdx > 4) sheet.setAutoFilter(new CellRangeAddress(3, rowIdx - 1, 0, cols.length - 1));
+    }
+
+    private long calculateDelayDays(Task task, String type) {
+        LocalDate expected = "SIT".equalsIgnoreCase(type) ? task.getExpectedSitDeploymentDate() : task.getExpectedUatDeploymentDate();
+        LocalDate actual = "SIT".equalsIgnoreCase(type) ? task.getSitDate() : task.getUatDate();
+        if (expected == null) return 0;
+        LocalDate comp = actual != null ? actual : LocalDate.now();
+        if (comp.isAfter(expected)) {
+            return ChronoUnit.DAYS.between(expected, comp);
+        }
+        return 0;
+    }
+
+    private String evaluateSlaStatus(Task task, String type) {
+        LocalDate expected = "SIT".equalsIgnoreCase(type) ? task.getExpectedSitDeploymentDate() : task.getExpectedUatDeploymentDate();
+        LocalDate actual = "SIT".equalsIgnoreCase(type) ? task.getSitDate() : task.getUatDate();
+        if (expected == null) return "NOT_SET";
+        if (actual != null) {
+            return actual.isAfter(expected) ? "COMPLETED_DELAYED" : "COMPLETED_ON_TIME";
+        }
+        if (LocalDate.now().isAfter(expected)) return "MISSED";
+        long rem = expected.isAfter(LocalDate.now()) ? ChronoUnit.DAYS.between(LocalDate.now(), expected) : 0;
+        return rem <= 2 ? "AT_RISK" : "ON_TRACK";
+    }
+
+    private String evaluateRiskLevel(Task task, String type) {
+        String status = evaluateSlaStatus(task, type);
+        if ("MISSED".equals(status) || "COMPLETED_DELAYED".equals(status)) return "High";
+        if ("AT_RISK".equals(status)) return "Medium";
+        return "Low";
+    }
+
+    private String escapeCsv(String val) {
+        if (val == null) return "";
+        return val.replace("\"", "\"\"");
+    }
+}
