@@ -3,7 +3,7 @@ import { useTaskStore } from "@/store/taskStore"
 import APP_CONFIG from "@/config/appConfig"
 import { Card, CardContent } from "@/components/ui/card"
 import {
-  Search, Filter, ShieldAlert, History, User, FileText, ArrowRight, ArrowLeft,
+  Search, Filter, ShieldAlert, History, FileText, ArrowRight, ArrowLeft,
   Download, Folder, FolderOpen, Clock, Activity, Users, Fingerprint, ShieldCheck,
   ChevronRight, Layers, CalendarClock, ArrowRightLeft
 } from "lucide-react"
