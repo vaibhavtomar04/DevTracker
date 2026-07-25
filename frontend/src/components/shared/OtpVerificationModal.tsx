@@ -123,7 +123,7 @@ export const OtpVerificationModal: React.FC<OtpVerificationModalProps> = ({
 
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 backdrop-blur-xl p-4 animate-fadeIn">
-      <div className="bg-card border border-border rounded-3xl w-full max-w-md p-7 shadow-[0_0_80px_rgba(139,92,246,0.3)] text-foreground relative overflow-hidden">
+      <div className="bg-card border border-border rounded-3xl w-full max-w-md p-7 shadow-[0_0_80px_rgba(var(--primary-rgb),0.3)] text-foreground relative overflow-hidden">
         
         {/* Top Glow Bar */}
         <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-violet-500 via-indigo-500 to-emerald-400" />

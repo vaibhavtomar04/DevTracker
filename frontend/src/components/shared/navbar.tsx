@@ -293,7 +293,13 @@ export default function Navbar() {
               <span className="block text-xs font-bold leading-none mb-1 text-foreground">
                 {user?.username}
               </span>
-              <span className="block text-[9px] font-bold uppercase leading-none tracking-widest px-1.5 py-0.5 rounded bg-primary/15 text-primary border border-primary/30 w-fit">
+              <span className={`block text-[9px] font-bold uppercase leading-none tracking-widest px-1.5 py-0.5 rounded w-fit ${
+                userRole.includes("DEVELOPER") || userRole.includes("DEV")
+                  ? "bg-dev/15 text-dev-400 border border-dev/30"
+                  : userRole.includes("TESTER") || userRole.includes("QA")
+                  ? "bg-tester/15 text-tester-400 border border-tester/30"
+                  : "bg-primary/15 text-primary border border-primary/30"
+              }`}>
                 {userRole}
               </span>
             </div>

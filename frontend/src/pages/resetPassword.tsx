@@ -125,7 +125,7 @@ export default function ResetPasswordPage() {
       >
         {/* Logo */}
         <div className="flex items-center justify-center gap-2.5 mb-8">
-          <div className="h-10 w-10 rounded-xl bg-gradient-to-br from-violet-600 to-indigo-600 flex items-center justify-center shadow-[0_4px_20px_rgba(139,92,246,0.3)]">
+          <div className="h-10 w-10 rounded-xl bg-gradient-to-br from-brand-600 to-brand-500 flex items-center justify-center shadow-[0_4px_20px_rgba(99,166,89,0.3)]">
             <Terminal className="h-5 w-5 text-white" />
           </div>
           <span className="text-xl font-black tracking-tight text-slate-800 dark:text-zinc-100">
@@ -134,7 +134,7 @@ export default function ResetPasswordPage() {
         </div>
 
         {/* Card */}
-        <div className="rounded-3xl border border-slate-200/80 dark:border-white/[0.08] bg-white dark:bg-[#0b0f19] p-8 space-y-6 shadow-xl dark:shadow-[0_0_60px_rgba(139,92,246,0.08)]">
+        <div className="rounded-3xl border border-slate-200/80 dark:border-white/[0.08] bg-white dark:bg-[#0b0f19] p-8 space-y-6 shadow-xl dark:shadow-[0_0_60px_rgba(99,166,89,0.08)]">
 
           <AnimatePresence mode="wait">
             {success ? (
@@ -323,7 +323,7 @@ export default function ResetPasswordPage() {
                         disabled={loading}
                         whileHover={{ scale: 1.01, y: -1 }}
                         whileTap={{ scale: 0.99 }}
-                        className="relative w-full h-11 mt-1 rounded-xl text-sm font-bold text-white overflow-hidden bg-gradient-to-r from-violet-600 to-indigo-600 shadow-[0_4px_20px_rgba(124,58,237,0.25)] hover:shadow-[0_6px_28px_rgba(124,58,237,0.4)] transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 cursor-pointer"
+                        className="relative w-full h-11 mt-1 rounded-xl text-sm font-bold text-white overflow-hidden bg-gradient-to-r from-brand-600 to-brand-500 shadow-[0_4px_20px_rgba(99,166,89,0.25)] hover:shadow-[0_6px_28px_rgba(99,166,89,0.4)] transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 cursor-pointer"
                       >
                         <span className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent -translate-x-full hover:translate-x-full transition-transform duration-700 pointer-events-none" />
                         {loading ? (

@@ -289,7 +289,13 @@ export default function Sidebar({ collapsed, setCollapsed }: SidebarProps) {
                 <span className="block text-xs font-bold truncate leading-none mb-1 text-foreground">
                   {user?.fullName}
                 </span>
-                <span className="block text-[9px] font-semibold tracking-widest text-muted-foreground/80 uppercase leading-none truncate">
+                <span className={`block text-[9px] font-semibold tracking-widest uppercase leading-none truncate ${
+                  roleLabel.toUpperCase().includes("DEVELOPER") || roleLabel.toUpperCase().includes("DEV")
+                    ? "text-indigo-400"
+                    : roleLabel.toUpperCase().includes("TESTER") || roleLabel.toUpperCase().includes("QA")
+                    ? "text-cyan-400"
+                    : "text-muted-foreground/80"
+                }`}>
                   {roleLabel}
                 </span>
               </motion.div>

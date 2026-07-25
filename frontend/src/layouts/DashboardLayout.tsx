@@ -230,13 +230,13 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
 
       {/* ── Ambient Glow Orbs ─────────────────────────────────── */}
       {/* brand-primary — top-left */}
-      <div className="absolute -top-[15%] -left-[10%] w-[55%] h-[55%] rounded-full blur-[130px] animate-pulse-slow pointer-events-none" style={{ background: 'rgba(var(--primary-rgb),0.08)' }} />
+      <div className="absolute -top-[15%] -left-[10%] w-[55%] h-[55%] rounded-full blur-[130px] pointer-events-none" style={{ background: 'rgba(var(--primary-rgb),0.08)' }} />
       {/* brand-secondary — bottom-right */}
-      <div className="absolute -bottom-[15%] -right-[10%] w-[50%] h-[50%] rounded-full blur-[120px] animate-pulse-slow pointer-events-none" style={{ background: 'rgba(var(--secondary-rgb),0.07)', animationDelay: '1.2s' }} />
+      <div className="absolute -bottom-[15%] -right-[10%] w-[50%] h-[50%] rounded-full blur-[120px] pointer-events-none" style={{ background: 'rgba(var(--secondary-rgb),0.07)' }} />
       {/* brand-accent — center-right */}
-      <div className="absolute top-[20%] right-[5%] w-[30%] h-[40%] rounded-full blur-[100px] animate-pulse-slow pointer-events-none" style={{ background: 'rgba(var(--accent-rgb),0.06)', animationDelay: '2.4s' }} />
+      <div className="absolute top-[20%] right-[5%] w-[30%] h-[40%] rounded-full blur-[100px] pointer-events-none" style={{ background: 'rgba(var(--accent-rgb),0.06)' }} />
       {/* brand-primary — top-right accent */}
-      <div className="absolute top-[5%] right-[25%] w-[20%] h-[25%] rounded-full blur-[90px] animate-float pointer-events-none" style={{ background: 'rgba(var(--primary-rgb),0.05)', animationDelay: '0.8s' }} />
+      <div className="absolute top-[5%] right-[25%] w-[20%] h-[25%] rounded-full blur-[90px] pointer-events-none" style={{ background: 'rgba(var(--primary-rgb),0.05)' }} />
 
       {/* ── Subtle Dot-Grid Overlay ───────────────────────────── */}
       <div

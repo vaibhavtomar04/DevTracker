@@ -826,9 +826,9 @@ export default function DeveloperDashboard() {
       {/* Premium Ambient Background Animation */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none z-0">
         <div className="absolute inset-0 bg-[linear-gradient(to_right,#80808008_1px,transparent_1px),linear-gradient(to_bottom,#80808008_1px,transparent_1px)] bg-[size:24px_24px]" />
-        <div className="absolute top-[-10%] left-[-10%] w-[50%] h-[50%] rounded-full bg-emerald-500/4 blur-[120px] animate-pulse" style={{ animationDuration: "12s" }} />
-        <div className="absolute bottom-[-10%] right-[-10%] w-[50%] h-[50%] rounded-full bg-teal-500/4 blur-[120px] animate-pulse" style={{ animationDuration: "16s" }} />
-        <div className="absolute top-[35%] left-[25%] w-[350px] h-[350px] rounded-full bg-amber-500/3 blur-[100px] animate-pulse" style={{ animationDuration: "20s" }} />
+        <div className="absolute top-[-10%] left-[-10%] w-[50%] h-[50%] rounded-full bg-emerald-500/4 blur-[120px]" />
+        <div className="absolute bottom-[-10%] right-[-10%] w-[50%] h-[50%] rounded-full bg-teal-500/4 blur-[120px]" />
+        <div className="absolute top-[35%] left-[25%] w-[350px] h-[350px] rounded-full bg-amber-500/3 blur-[100px]" />
       </div>
 
       {/* Main Container */}
@@ -848,24 +848,24 @@ export default function DeveloperDashboard() {
                     return (
                       /* 1. Animated Hero Widget */
                       <div key="hero" className={`rounded-3xl bg-[#161619] border border-white/[0.06] relative overflow-hidden shadow-2xl grid grid-cols-1 lg:grid-cols-12 gap-6 items-center ${densityPaddingClass}`}>
-                        {/* Animated background decoration orbs */}
-                        <div className="absolute top-0 right-0 w-80 h-80 bg-cyan-500/5 rounded-full blur-[100px] pointer-events-none" />
-                        <div className="absolute -bottom-10 -left-10 w-60 h-60 bg-teal-500/5 rounded-full blur-[80px] pointer-events-none" />
+                        {/* Background decoration orbs */}
+                        <div className="absolute top-0 right-0 w-80 h-80 bg-indigo-500/10 rounded-full blur-[100px] pointer-events-none" />
+                        <div className="absolute -bottom-10 -left-10 w-60 h-60 bg-dev/10 rounded-full blur-[80px] pointer-events-none" />
 
                         {/* Left Column: Greeting Info */}
                         <div className="lg:col-span-5 flex items-center space-x-3.5 z-10 text-left">
                           {/* Initials profile avatar */}
                           {user?.avatar ? (
-                            <img src={user.avatar} className="h-14 w-14 rounded-2xl object-cover shadow-[0_4px_16px_rgba(6,182,212,0.25)] shrink-0" alt="Avatar" />
+                            <img src={user.avatar} className="h-14 w-14 rounded-2xl object-cover shadow-[0_4px_16px_rgba(99,102,241,0.35)] shrink-0" alt="Avatar" />
                           ) : (
-                            <div className="h-14 w-14 rounded-2xl bg-gradient-to-br from-cyan-500 to-teal-500 flex items-center justify-center font-black text-black text-xl shadow-[0_4px_16px_rgba(6,182,212,0.25)] shrink-0">
+                            <div className="h-14 w-14 rounded-2xl bg-gradient-to-br from-indigo-600 to-indigo-400 flex items-center justify-center font-black text-white text-xl shadow-[0_4px_16px_rgba(99,102,241,0.35)] shrink-0">
                               {user?.fullName?.split(" ").map(w => w.charAt(0)).join("") || "DT"}
                             </div>
                           )}
                           <div className="min-w-0">
                             <h2 className="text-xl font-black tracking-tight text-zinc-100 flex flex-wrap items-center gap-1.5 leading-tight">
                               <span>{greetingText},</span>
-                              <span className="text-cyan-400">{user?.fullName || "Developer"}</span>
+                              <span className="text-indigo-400 font-extrabold">{user?.fullName || "Developer"}</span>
                             </h2>
                             <p className="text-[11px] text-zinc-400 font-semibold flex items-center gap-1.5 mt-1">
                               <span className="inline-block w-2 h-2 rounded-full bg-[#10b981] shrink-0" />
