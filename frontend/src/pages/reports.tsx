@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react"
+import { useSearchParams } from "react-router-dom"
 import { useTaskStore } from "@/store/taskStore"
 import { useAuthStore } from "@/store/authStore"
 import { apiClient } from "@/utils/apiClient"
@@ -31,12 +32,29 @@ import {
   Legend
 } from "recharts"
 import { motion } from "framer-motion"
+import { PremiumTooltip } from "@/components/charts/PremiumTooltip"
+import { CATEGORY_COLORS, TOOLTIP_CURSORS } from "@/components/charts/chartPalette"
+import { useActiveSprint } from "@/hooks/useActiveSprint"
+import { ExecKpiStrip } from "@/components/reports/ExecKpiStrip"
+import { GlobalReportFilterBar } from "@/components/reports/GlobalReportFilterBar"
+import { CumulativeFlowDiagram } from "@/components/reports/CumulativeFlowDiagram"
+import { TimeInStageChart } from "@/components/reports/TimeInStageChart"
+import { AuditFeedWidget } from "@/components/reports/AuditFeedWidget"
 
 export default function Reports() {
+  const [searchParams] = useSearchParams()
   const { tasks, bugs, fetchData, setDownloadTarget } = useTaskStore()
+  const { user } = useAuthStore()
   const [exporting, setExporting] = useState<string | null>(null)
   const [analytics, setAnalytics] = useState<any>(null)
   const [deadlineAnalytics, setDeadlineAnalytics] = useState<any>(null)
+  const { sprint: activeSprint, hasActiveSprint } = useActiveSprint()
+
+  const range = searchParams.get("range") || "30d"
+  const scope = searchParams.get("scope") || "all"
+  const sprintId = searchParams.get("sprintId") || (hasActiveSprint ? "active" : "all")
+
+  const effectiveUserId = scope === "my" ? user?.id : undefined
 
   const getSlabadge = (rate: number | null) => {
     if (rate === null) return null;
@@ -51,13 +69,21 @@ export default function Reports() {
 
   useEffect(() => {
     fetchData()
-    apiClient("/api/analytics/dashboard")
+    const query = new URLSearchParams()
+    if (range) query.set("range", range)
+    if (scope) query.set("scope", scope)
+    if (sprintId) query.set("sprintId", sprintId)
+    if (effectiveUserId) query.set("userId", effectiveUserId.toString())
+
+    const qStr = query.toString() ? `?${query.toString()}` : ""
+
+    apiClient(`/api/analytics/dashboard${qStr}`)
       .then(data => setAnalytics(data))
       .catch(() => {})
-    apiClient("/api/analytics/deadlines")
+    apiClient(`/api/analytics/deadlines${qStr}`)
       .then(data => setDeadlineAnalytics(data))
       .catch(() => {})
-  }, [])
+  }, [range, scope, sprintId, effectiveUserId])
 
   // 1. Developer Productivity Chart Data
   // Group efforts by developer
@@ -122,27 +148,21 @@ export default function Reports() {
         })
         setExporting(null)
       } else if (format === "pdf") {
-        // PDF Visual Graph Capture via html2canvas & jsPDF
-        const [{ default: jsPDF }, { default: html2canvas }] = await Promise.all([
-          import("jspdf"),
-          import("html2canvas")
-        ])
-        const el = document.getElementById("reports-dashboard-root")
-        if (el) {
-          const canvas = await html2canvas(el, { backgroundColor: "#080b18", scale: 1.5 })
-          const imgData = canvas.toDataURL("image/png")
-          const pdf = new jsPDF({ 
-            orientation: "landscape", 
-            unit: "px", 
-            format: [canvas.width / 1.5, canvas.height / 1.5] 
-          })
-          pdf.addImage(imgData, "PNG", 0, 0, canvas.width / 1.5, canvas.height / 1.5)
-          const base64Data = pdf.output("datauristring")
-          setDownloadTarget({ 
-            base64Data, 
-            defaultFileName: `DevTracker_Report_${Date.now()}.pdf` 
-          })
-        }
+        // Enterprise-grade vector PDF summary (structured data, no DOM screenshot)
+        const { generateAnalyticsSummaryPdf } = await import("@/utils/analyticsPdf")
+        const base64Data = generateAnalyticsSummaryPdf({
+          analytics,
+          deadlineAnalytics,
+          devProductivity: devProductivityData,
+          devBugs: devBugsData,
+          categories: pieData,
+          filters: { range, scope, sprint: sprintId },
+          generatedBy: (user as any)?.fullName || (user as any)?.username || undefined,
+        })
+        setDownloadTarget({
+          base64Data,
+          defaultFileName: `DevTrack_Executive_Summary_${Date.now()}.pdf`
+        })
         setExporting(null)
       } else if (format === "xlsx") {
         // Backend Asynchronous Excel Report
@@ -245,7 +265,7 @@ export default function Reports() {
   })
   const pieData = Object.entries(categories).map(([name, value]) => ({ name, value }))
   
-  const COLORS = ["#8b5cf6", "#6366f1", "#06b6d4", "#10b981"]
+  const COLORS = CATEGORY_COLORS
 
   // Framer Motion configuration
   const gridVariants = {
@@ -357,6 +377,21 @@ export default function Reports() {
         </div>
       </div>
 
+      {/* Exec KPI Strip */}
+      <ExecKpiStrip
+        range={range}
+        scope={scope}
+        sprintId={sprintId}
+        userId={effectiveUserId}
+        loading={!analytics}
+      />
+
+      {/* Global Report Filter Bar */}
+      <GlobalReportFilterBar
+        hasActiveSprint={hasActiveSprint}
+        activeSprintName={activeSprint?.name}
+      />
+
       {/* Analytics Charts Grid */}
       <motion.div 
         variants={gridVariants}
@@ -400,15 +435,8 @@ export default function Reports() {
                         <XAxis dataKey="name" stroke="#64748b" fontSize={9} tickLine={false} axisLine={false} />
                         <YAxis stroke="#64748b" fontSize={9} tickLine={false} axisLine={false} />
                         <Tooltip
-                          contentStyle={{ 
-                            background: "rgba(7, 10, 20, 0.85)", 
-                            border: "1px solid rgba(255,255,255,0.08)", 
-                            borderRadius: "12px", 
-                            fontSize: "11px", 
-                            color: "white",
-                            backdropFilter: "blur(12px)",
-                            boxShadow: "0 10px 30px rgba(0,0,0,0.5)"
-                          }}
+                          cursor={TOOLTIP_CURSORS.bar}
+                          content={<PremiumTooltip />}
                         />
                         <Legend wrapperStyle={{ fontSize: "10px", color: "#94a3b8", paddingTop: "5px" }} />
                         <Bar dataKey="efforts" name="Logged Efforts (days)" fill="url(#effortsGrad)" radius={[4, 4, 0, 0]} />
@@ -469,15 +497,8 @@ export default function Reports() {
                         <XAxis dataKey="name" stroke="#64748b" fontSize={9} tickLine={false} axisLine={false} />
                         <YAxis stroke="#64748b" fontSize={9} tickLine={false} axisLine={false} />
                         <Tooltip
-                          contentStyle={{ 
-                            background: "rgba(7, 10, 20, 0.85)", 
-                            border: "1px solid rgba(255,255,255,0.08)", 
-                            borderRadius: "12px", 
-                            fontSize: "11px", 
-                            color: "white",
-                            backdropFilter: "blur(12px)",
-                            boxShadow: "0 10px 30px rgba(0,0,0,0.5)"
-                          }}
+                          cursor={TOOLTIP_CURSORS.line}
+                          content={<PremiumTooltip />}
                         />
                         <Legend wrapperStyle={{ fontSize: "10px", color: "#94a3b8", paddingTop: "5px" }} />
                         <Line type="monotone" dataKey="raised" name="Defects Raised" stroke="#f43f5e" strokeWidth={2.5} activeDot={{ r: 6 }} dot={{ r: 3, strokeWidth: 1 }} />
@@ -560,14 +581,7 @@ export default function Reports() {
                           ))}
                         </Pie>
                         <Tooltip
-                          contentStyle={{ 
-                            background: "rgba(7, 10, 20, 0.85)", 
-                            border: "1px solid rgba(255,255,255,0.08)", 
-                            borderRadius: "12px", 
-                            fontSize: "11px", 
-                            color: "white",
-                            backdropFilter: "blur(12px)"
-                          }}
+                          content={<PremiumTooltip />}
                         />
                       </PieChart>
                     </ResponsiveContainer>
@@ -758,6 +772,38 @@ export default function Reports() {
               </div>
             </CardContent>
           </Card>
+        </motion.div>
+
+        {/* Cumulative Flow Diagram (CFD) */}
+        <motion.div variants={cardVariants}>
+          <CumulativeFlowDiagram
+            range={range}
+            scope={scope}
+            sprintId={sprintId}
+            userId={effectiveUserId}
+            loading={!analytics}
+          />
+        </motion.div>
+
+        {/* Time in Stage Bottleneck Analysis */}
+        <motion.div variants={cardVariants}>
+          <TimeInStageChart
+            range={range}
+            scope={scope}
+            sprintId={sprintId}
+            userId={effectiveUserId}
+            loading={!analytics}
+          />
+        </motion.div>
+
+        {/* Audit Activity Stream Feed (Full-Width) */}
+        <motion.div variants={cardVariants} className="lg:col-span-2">
+          <AuditFeedWidget
+            range={range}
+            scope={scope}
+            sprintId={sprintId}
+            userId={effectiveUserId}
+          />
         </motion.div>
       </motion.div>
     </div>

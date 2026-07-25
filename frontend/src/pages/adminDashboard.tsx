@@ -4,6 +4,7 @@ import { createPortal } from "react-dom"
 import { motion, AnimatePresence } from "framer-motion"
 import { useTaskStore } from "@/store/taskStore"
 import { useDashboardStore } from "@/store/dashboardStore"
+import { useActiveSprint } from "@/hooks/useActiveSprint"
 import { getAssignedDevNames } from "@/utils/devUtils"
 import { performanceMonitor } from "@/utils/PerformanceMonitor"
 import {
@@ -149,6 +150,7 @@ export default function AdminDashboard() {
   const navigate = useNavigate()
   const { tasks, bugs, fetchData, deleteTask, addToast } = useTaskStore()
   const { fetchSummary, summary: dashSummary, loading: dashLoading } = useDashboardStore()
+  const { hasActiveSprint } = useActiveSprint()
   const [selectedBugDetailId, setSelectedBugDetailId] = useState<number | null>(null)
   const [analytics, setAnalytics] = useState<any>(null)
   const [deadlineAnalytics, setDeadlineAnalytics] = useState<any>(null)
@@ -598,32 +600,34 @@ export default function AdminDashboard() {
           </div>
         </motion.div>
 
-        {/* Chart 6: Sprint Burndown */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.6, duration: 0.5 }}
-          className={`${glassCard} p-5`}
-        >
-          <div className="mb-4">
-            <h2 className="text-sm font-bold text-foreground">Sprint Burndown</h2>
-            <p className="text-[10px] text-muted-foreground mt-0.5">Sprint remaining work compared against ideal line</p>
-          </div>
-          <div className="h-64">
-            <ResponsiveContainer width="100%" height="100%">
-              <LineChart data={analytics?.sprintBurndown || []} margin={{ top: 10, right: 10, left: -25, bottom: 0 }}>
-                <XAxis dataKey="name" stroke="#888888" fontSize={9} tickLine={false} axisLine={false} />
-                <YAxis stroke="#888888" fontSize={9} tickLine={false} axisLine={false} />
-                <Tooltip
-                  contentStyle={{ background: "rgba(7,13,26,0.95)", border: "1px solid rgba(255,255,255,0.08)", borderRadius: "10px", fontSize: "11px", color: "white" }}
-                />
-                <Legend verticalAlign="top" height={36} wrapperStyle={{ fontSize: '10px' }} />
-                <Line type="monotone" dataKey="Remaining" stroke="#f43f5e" strokeWidth={2} activeDot={{ r: 4 }} />
-                <Line type="monotone" dataKey="Ideal" stroke="#a78bfa" strokeWidth={1.5} strokeDasharray="5 5" dot={false} />
-              </LineChart>
-            </ResponsiveContainer>
-          </div>
-        </motion.div>
+        {/* Chart 6: Sprint Burndown (rendered ONLY when an active sprint exists) */}
+        {hasActiveSprint && (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.6, duration: 0.5 }}
+            className={`${glassCard} p-5`}
+          >
+            <div className="mb-4">
+              <h2 className="text-sm font-bold text-foreground">Sprint Burndown</h2>
+              <p className="text-[10px] text-muted-foreground mt-0.5">Sprint remaining work compared against ideal line</p>
+            </div>
+            <div className="h-64">
+              <ResponsiveContainer width="100%" height="100%">
+                <LineChart data={analytics?.sprintBurndown || []} margin={{ top: 10, right: 10, left: -25, bottom: 0 }}>
+                  <XAxis dataKey="name" stroke="#888888" fontSize={9} tickLine={false} axisLine={false} />
+                  <YAxis stroke="#888888" fontSize={9} tickLine={false} axisLine={false} />
+                  <Tooltip
+                    contentStyle={{ background: "rgba(7,13,26,0.95)", border: "1px solid rgba(255,255,255,0.08)", borderRadius: "10px", fontSize: "11px", color: "white" }}
+                  />
+                  <Legend verticalAlign="top" height={36} wrapperStyle={{ fontSize: '10px' }} />
+                  <Line type="monotone" dataKey="Remaining" stroke="#f43f5e" strokeWidth={2} activeDot={{ r: 4 }} />
+                  <Line type="monotone" dataKey="Ideal" stroke="#a78bfa" strokeWidth={1.5} strokeDasharray="5 5" dot={false} />
+                </LineChart>
+              </ResponsiveContainer>
+            </div>
+          </motion.div>
+        )}
       </div>
 
       {/* ── System & API Performance Monitoring Widget (Requirement 19) ── */}

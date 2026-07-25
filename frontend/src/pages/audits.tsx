@@ -67,11 +67,13 @@ export default function Audits() {
 
   const filteredLogs = latestLogs.filter(log => {
     const jtrackId = getEntityJtrackId(log.entityType, log.entityId)
-    const matchesSearch = log.changedBy.fullName.toLowerCase().includes(search.toLowerCase()) ||
-                          log.fieldName.toLowerCase().includes(search.toLowerCase()) ||
-                          jtrackId.toLowerCase().includes(search.toLowerCase()) ||
-                          (log.remarks && log.remarks.toLowerCase().includes(search.toLowerCase()))
-    
+    const q = search.toLowerCase()
+    const matchesSearch =
+      (log.changedBy?.fullName?.toLowerCase().includes(q) ?? false) ||
+      (log.fieldName?.toLowerCase().includes(q) ?? false) ||
+      jtrackId.toLowerCase().includes(q) ||
+      (log.remarks?.toLowerCase().includes(q) ?? false)
+
     const matchesEntity = entityFilter === "all" || log.entityType === entityFilter
     return matchesSearch && matchesEntity
   })
@@ -233,7 +235,7 @@ export default function Audits() {
                           <td className="p-4">
                             <div className="flex items-center space-x-1.5 font-semibold text-white">
                               <User className="h-3 w-3 text-cyan-400 shrink-0" />
-                              <span>{log.changedBy.fullName}</span>
+                              <span>{log.changedBy?.fullName ?? 'System'}</span>
                             </div>
                           </td>
 
