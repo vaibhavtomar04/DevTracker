@@ -388,26 +388,40 @@ public class AnalyticsService {
         long uatDelayedCount = 0;
         long totalSitDelayDays = 0;
         long totalUatDelayDays = 0;
+        long longestSitDelay = 0;
+        long longestUatDelay = 0;
 
-        Map<String, Long> devDelayDaysMap = new HashMap<>();
+        // key -> [totalDelayDays, delayedTaskCount]
+        Map<String, long[]> devAgg = new HashMap<>();
+        Map<String, long[]> projAgg = new HashMap<>();
 
         for (Task task : allTasks) {
             long sitDelay = calculateDelayDaysLocal(task, "SIT");
             if (sitDelay > 0) {
                 sitDelayedCount++;
                 totalSitDelayDays += sitDelay;
+                longestSitDelay = Math.max(longestSitDelay, sitDelay);
             }
 
             long uatDelay = calculateDelayDaysLocal(task, "UAT");
             if (uatDelay > 0) {
                 uatDelayedCount++;
                 totalUatDelayDays += uatDelay;
+                longestUatDelay = Math.max(longestUatDelay, uatDelay);
             }
 
             long totalTaskDelay = sitDelay + uatDelay;
-            if (totalTaskDelay > 0 && task.getAssignedDeveloper() != null) {
-                String devName = task.getAssignedDeveloper().getFullName();
-                devDelayDaysMap.put(devName, devDelayDaysMap.getOrDefault(devName, 0L) + totalTaskDelay);
+            if (totalTaskDelay > 0) {
+                if (task.getAssignedDeveloper() != null) {
+                    long[] agg = devAgg.computeIfAbsent(task.getAssignedDeveloper().getFullName(), k -> new long[2]);
+                    agg[0] += totalTaskDelay;
+                    agg[1] += 1;
+                }
+                String projectName = (task.getProject() != null && !task.getProject().isBlank())
+                        ? task.getProject() : "Unassigned";
+                long[] pagg = projAgg.computeIfAbsent(projectName, k -> new long[2]);
+                pagg[0] += totalTaskDelay;
+                pagg[1] += 1;
             }
         }
 
@@ -417,26 +431,44 @@ public class AnalyticsService {
         double avgSitDelayDays = sitDelayedCount > 0 ? (double) totalSitDelayDays / sitDelayedCount : 0.0;
         double avgUatDelayDays = uatDelayedCount > 0 ? (double) totalUatDelayDays / uatDelayedCount : 0.0;
 
-        List<Map<String, Object>> developerDelayRanking = devDelayDaysMap.entrySet().stream()
-                .map(e -> {
-                    Map<String, Object> m = new HashMap<>();
-                    m.put("developer", e.getKey());
-                    m.put("totalDelayDays", e.getValue());
-                    return m;
-                })
-                .sorted((a, b) -> Long.compare((Long) b.get("totalDelayDays"), (Long) a.get("totalDelayDays")))
+        List<Map<String, Object>> developerDelayRanking = devAgg.entrySet().stream()
+                .map(e -> buildRankRow("developer", e.getKey(), e.getValue()))
+                .sorted((a, b) -> Double.compare(((Number) b.get("avgDelay")).doubleValue(),
+                                                 ((Number) a.get("avgDelay")).doubleValue()))
+                .toList();
+
+        List<Map<String, Object>> projectDelayRanking = projAgg.entrySet().stream()
+                .map(e -> buildRankRow("project", e.getKey(), e.getValue()))
+                .sorted((a, b) -> Double.compare(((Number) b.get("avgDelay")).doubleValue(),
+                                                 ((Number) a.get("avgDelay")).doubleValue()))
                 .toList();
 
         Map<String, Object> result = new LinkedHashMap<>();
+        // Frontend contract (reports.tsx)
+        result.put("averageSitDelay", Math.round(avgSitDelayDays * 10.0) / 10.0);
+        result.put("averageUatDelay", Math.round(avgUatDelayDays * 10.0) / 10.0);
+        result.put("longestSitDelay", longestSitDelay);
+        result.put("longestUatDelay", longestUatDelay);
+        result.put("projectDelayRanking", projectDelayRanking);
+        result.put("developerDelayRanking", developerDelayRanking);
+        // Back-compat keys (existing consumers / exports)
         result.put("sitDelayedTasksCount", sitDelayedCount);
         result.put("sitDelayPercentage", Math.round(sitDelayPercentage * 10.0) / 10.0);
         result.put("averageSitDelayDays", Math.round(avgSitDelayDays * 10.0) / 10.0);
         result.put("uatDelayedTasksCount", uatDelayedCount);
         result.put("uatDelayPercentage", Math.round(uatDelayPercentage * 10.0) / 10.0);
         result.put("averageUatDelayDays", Math.round(avgUatDelayDays * 10.0) / 10.0);
-        result.put("developerDelayRanking", developerDelayRanking);
 
         return result;
+    }
+
+    private Map<String, Object> buildRankRow(String keyName, String keyValue, long[] agg) {
+        double avg = agg[1] > 0 ? (double) agg[0] / agg[1] : 0.0;
+        Map<String, Object> m = new LinkedHashMap<>();
+        m.put(keyName, keyValue);
+        m.put("avgDelay", Math.round(avg * 10.0) / 10.0);
+        m.put("totalDelayDays", agg[0]);
+        return m;
     }
 
     private long calculateDelayDaysLocal(Task task, String type) {
