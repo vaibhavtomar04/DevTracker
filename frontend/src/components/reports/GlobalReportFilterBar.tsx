@@ -21,9 +21,13 @@ export const GlobalReportFilterBar: React.FC<GlobalReportFilterBarProps> = ({
   const scope = searchParams.get("scope") || "all"
   const sprintId = searchParams.get("sprintId") || (hasActiveSprint ? "active" : "all")
 
+  // Each filter's own default. A param is cleared from the URL only when it
+  // equals THIS key's default — not whenever the value happens to be "all".
+  const DEFAULTS: Record<string, string> = { range: "30d", scope: "all", sprintId: "all" }
+
   const updateFilter = (key: string, value: string) => {
     const nextParams = new URLSearchParams(searchParams)
-    if (value === "all" || (key === "range" && value === "30d") || (key === "scope" && value === "all") || (key === "sprintId" && value === "all")) {
+    if (value === DEFAULTS[key]) {
       nextParams.delete(key)
     } else {
       nextParams.set(key, value)
