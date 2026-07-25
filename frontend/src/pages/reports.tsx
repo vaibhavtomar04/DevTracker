@@ -36,6 +36,9 @@ import { CATEGORY_COLORS, TOOLTIP_CURSORS } from "@/components/charts/chartPalet
 import { useActiveSprint } from "@/hooks/useActiveSprint"
 import { ExecKpiStrip } from "@/components/reports/ExecKpiStrip"
 import { GlobalReportFilterBar } from "@/components/reports/GlobalReportFilterBar"
+import { CumulativeFlowDiagram } from "@/components/reports/CumulativeFlowDiagram"
+import { TimeInStageChart } from "@/components/reports/TimeInStageChart"
+import { AuditFeedWidget } from "@/components/reports/AuditFeedWidget"
 
 export default function Reports() {
   const { tasks, bugs, fetchData, setDownloadTarget } = useTaskStore()
@@ -752,6 +755,21 @@ export default function Reports() {
               </div>
             </CardContent>
           </Card>
+        </motion.div>
+
+        {/* Cumulative Flow Diagram (CFD) */}
+        <motion.div variants={cardVariants}>
+          <CumulativeFlowDiagram tasks={tasks} loading={!analytics} />
+        </motion.div>
+
+        {/* Time in Stage Bottleneck Analysis */}
+        <motion.div variants={cardVariants}>
+          <TimeInStageChart loading={!analytics} />
+        </motion.div>
+
+        {/* Audit Activity Stream Feed (Full-Width) */}
+        <motion.div variants={cardVariants} className="lg:col-span-2">
+          <AuditFeedWidget />
         </motion.div>
       </motion.div>
     </div>
