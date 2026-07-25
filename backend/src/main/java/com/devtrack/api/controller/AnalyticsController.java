@@ -9,6 +9,8 @@ import org.springframework.web.bind.annotation.RestController;
 
 import java.util.Map;
 
+import org.springframework.web.bind.annotation.RequestParam;
+
 @RestController
 @RequestMapping("/api/analytics")
 @CrossOrigin(origins = "*")
@@ -28,5 +30,37 @@ public class AnalyticsController {
     @GetMapping("/deadlines")
     public ResponseEntity<Map<String, Object>> getDeadlineAnalytics() {
         return ResponseEntity.ok(analyticsService.getDeadlineAnalytics());
+    }
+
+    @GetMapping("/flow")
+    public ResponseEntity<Map<String, Object>> getFlowAnalytics() {
+        return ResponseEntity.ok(analyticsService.getFlowAnalytics());
+    }
+
+    @GetMapping("/quality")
+    public ResponseEntity<Map<String, Object>> getQualityAnalytics() {
+        return ResponseEntity.ok(analyticsService.getQualityAnalytics());
+    }
+
+    @GetMapping("/workload")
+    public ResponseEntity<Map<String, Object>> getWorkloadAnalytics() {
+        return ResponseEntity.ok(analyticsService.getWorkloadAnalytics());
+    }
+
+    @GetMapping("/delivery")
+    public ResponseEntity<Map<String, Object>> getDeliveryAnalytics() {
+        return ResponseEntity.ok(analyticsService.getDeliveryAnalytics());
+    }
+
+    @GetMapping("/recognition")
+    public ResponseEntity<Map<String, Object>> getRecognitionAnalytics() {
+        return ResponseEntity.ok(analyticsService.getRecognitionAnalytics());
+    }
+
+    @GetMapping("/audit")
+    public ResponseEntity<Map<String, Object>> getAuditAnalytics(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size) {
+        return ResponseEntity.ok(analyticsService.getAuditAnalytics(page, size));
     }
 }
