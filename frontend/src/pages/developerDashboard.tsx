@@ -826,9 +826,9 @@ export default function DeveloperDashboard() {
       {/* Premium Ambient Background Animation */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none z-0">
         <div className="absolute inset-0 bg-[linear-gradient(to_right,#80808008_1px,transparent_1px),linear-gradient(to_bottom,#80808008_1px,transparent_1px)] bg-[size:24px_24px]" />
-        <div className="absolute top-[-10%] left-[-10%] w-[50%] h-[50%] rounded-full bg-emerald-500/4 blur-[120px] animate-pulse" style={{ animationDuration: "12s" }} />
-        <div className="absolute bottom-[-10%] right-[-10%] w-[50%] h-[50%] rounded-full bg-teal-500/4 blur-[120px] animate-pulse" style={{ animationDuration: "16s" }} />
-        <div className="absolute top-[35%] left-[25%] w-[350px] h-[350px] rounded-full bg-amber-500/3 blur-[100px] animate-pulse" style={{ animationDuration: "20s" }} />
+        <div className="absolute top-[-10%] left-[-10%] w-[50%] h-[50%] rounded-full bg-emerald-500/4 blur-[120px]" />
+        <div className="absolute bottom-[-10%] right-[-10%] w-[50%] h-[50%] rounded-full bg-teal-500/4 blur-[120px]" />
+        <div className="absolute top-[35%] left-[25%] w-[350px] h-[350px] rounded-full bg-amber-500/3 blur-[100px]" />
       </div>
 
       {/* Main Container */}
