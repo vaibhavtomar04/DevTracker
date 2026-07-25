@@ -404,26 +404,26 @@
 /* ── Tailwind / shadcn HSL tokens (light) ────────────────────────── */
 @layer base {
   :root {
-    /* primary = #63a659 → HSL 112 30% 50% */
+    /* primary = #3d7835 → HSL 113 38% 34% (WCAG AA contrast >= 4.5:1 on light background) */
     --background:         120 28% 95%;
     --foreground:         112 30% 5%;
     --card:               120 28% 98%;
     --card-foreground:    112 30% 5%;
     --popover:            120 28% 98%;
     --popover-foreground: 112 30% 5%;
-    --primary:            112  30% 50%;   /* #63a659 */
+    --primary:            113  38% 34%;
     --primary-foreground:   0   0% 100%;
-    --secondary:          159  30% 50%;   /* #59a68b */
+    --secondary:          159  40% 32%;
     --secondary-foreground: 0   0% 100%;
-    --muted:              120  15% 90%;
-    --muted-foreground:   112  15% 40%;
-    --accent:             180  30% 50%;   /* #59a6a6 */
+    --muted:              120  15% 92%;
+    --muted-foreground:   112  25% 25%;
+    --accent:             180  40% 32%;
     --accent-foreground:    0   0% 100%;
-    --destructive:          0  84% 60%;
+    --destructive:          0  84% 45%;
     --destructive-foreground: 0 0% 100%;
-    --border:             120  15% 85%;
-    --input:              120  15% 85%;
-    --ring:               112  30% 50%;
+    --border:             120  15% 80%;
+    --input:              120  15% 80%;
+    --ring:               113  38% 34%;
     --radius:             0.85rem;
   }
 
@@ -765,6 +765,18 @@
 :root:not(.dark) [class*="divide-white/"],
 :root:not(.dark) [class*="divide-white/"] > * + * {
   border-color: hsl(var(--border)) !important;
+}
+
+/* ─── Accessibility: Reduced Motion Baseline ─────────────────────── */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
 }
 
 /* ─── Print Styles ───────────────────────────────────────────────── */
