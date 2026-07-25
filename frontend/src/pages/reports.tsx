@@ -31,6 +31,8 @@ import {
   Legend
 } from "recharts"
 import { motion } from "framer-motion"
+import { PremiumTooltip } from "@/components/charts/PremiumTooltip"
+import { CATEGORY_COLORS, TOOLTIP_CURSORS } from "@/components/charts/chartPalette"
 
 export default function Reports() {
   const { tasks, bugs, fetchData, setDownloadTarget } = useTaskStore()
@@ -245,7 +247,7 @@ export default function Reports() {
   })
   const pieData = Object.entries(categories).map(([name, value]) => ({ name, value }))
   
-  const COLORS = ["#8b5cf6", "#6366f1", "#06b6d4", "#10b981"]
+  const COLORS = CATEGORY_COLORS
 
   // Framer Motion configuration
   const gridVariants = {
@@ -400,15 +402,8 @@ export default function Reports() {
                         <XAxis dataKey="name" stroke="#64748b" fontSize={9} tickLine={false} axisLine={false} />
                         <YAxis stroke="#64748b" fontSize={9} tickLine={false} axisLine={false} />
                         <Tooltip
-                          contentStyle={{ 
-                            background: "rgba(7, 10, 20, 0.85)", 
-                            border: "1px solid rgba(255,255,255,0.08)", 
-                            borderRadius: "12px", 
-                            fontSize: "11px", 
-                            color: "white",
-                            backdropFilter: "blur(12px)",
-                            boxShadow: "0 10px 30px rgba(0,0,0,0.5)"
-                          }}
+                          cursor={TOOLTIP_CURSORS.bar}
+                          content={<PremiumTooltip />}
                         />
                         <Legend wrapperStyle={{ fontSize: "10px", color: "#94a3b8", paddingTop: "5px" }} />
                         <Bar dataKey="efforts" name="Logged Efforts (days)" fill="url(#effortsGrad)" radius={[4, 4, 0, 0]} />
@@ -469,15 +464,8 @@ export default function Reports() {
                         <XAxis dataKey="name" stroke="#64748b" fontSize={9} tickLine={false} axisLine={false} />
                         <YAxis stroke="#64748b" fontSize={9} tickLine={false} axisLine={false} />
                         <Tooltip
-                          contentStyle={{ 
-                            background: "rgba(7, 10, 20, 0.85)", 
-                            border: "1px solid rgba(255,255,255,0.08)", 
-                            borderRadius: "12px", 
-                            fontSize: "11px", 
-                            color: "white",
-                            backdropFilter: "blur(12px)",
-                            boxShadow: "0 10px 30px rgba(0,0,0,0.5)"
-                          }}
+                          cursor={TOOLTIP_CURSORS.line}
+                          content={<PremiumTooltip />}
                         />
                         <Legend wrapperStyle={{ fontSize: "10px", color: "#94a3b8", paddingTop: "5px" }} />
                         <Line type="monotone" dataKey="raised" name="Defects Raised" stroke="#f43f5e" strokeWidth={2.5} activeDot={{ r: 6 }} dot={{ r: 3, strokeWidth: 1 }} />
@@ -560,14 +548,7 @@ export default function Reports() {
                           ))}
                         </Pie>
                         <Tooltip
-                          contentStyle={{ 
-                            background: "rgba(7, 10, 20, 0.85)", 
-                            border: "1px solid rgba(255,255,255,0.08)", 
-                            borderRadius: "12px", 
-                            fontSize: "11px", 
-                            color: "white",
-                            backdropFilter: "blur(12px)"
-                          }}
+                          content={<PremiumTooltip />}
                         />
                       </PieChart>
                     </ResponsiveContainer>
