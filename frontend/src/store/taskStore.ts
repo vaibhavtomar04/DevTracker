@@ -73,7 +73,6 @@ export interface SprintTask {
 interface TaskState {
   tasks: Task[]
   bugs: Bug[]
-  auditLogs: AuditLog[]
   comments: Comment[]
   configs: AppConfig[]
   testCases: TestCase[]
@@ -92,7 +91,6 @@ interface TaskState {
 
   // Fetching
   fetchData: (force?: boolean) => Promise<void>
-  fetchAuditLogs: () => Promise<void>
   fetchUsers: () => Promise<void>
   fetchSprintTasks: (sprintId?: number) => Promise<void>
   createSprintTask: (sprintTaskData: any) => Promise<SprintTask>
@@ -169,7 +167,6 @@ interface TaskState {
 export const useTaskStore = create<TaskState>((set, get) => ({
   tasks: [],
   bugs: [],
-  auditLogs: [],
   comments: [],
   configs: [],
   testCases: [],
@@ -282,54 +279,19 @@ export const useTaskStore = create<TaskState>((set, get) => ({
         set({ isFetching: false })
         return
       }
-      if (FEATURES.ENABLE_LAZY_AUDIT) {
-        const [testCasesRes, bugReviewsRes, sprintTasksRes] = await Promise.all([
-          safeFetch("/api/test-cases"),
-          safeFetch("/api/bug-reviews"),
-          safeFetch("/api/sprint-tasks")
-        ]);
-        set({
-          testCases: testCasesRes || [],
-          bugReviews: mapBugReviews(bugReviewsRes),
-          sprintTasks: sprintTasksRes || [],
-          isFetching: false
-        });
-        if (!force) {
-          const scheduleIdle = (cb: () => void) =>
-            typeof (window as any).requestIdleCallback === "function"
-              ? (window as any).requestIdleCallback(cb, { timeout: 3000 })
-              : setTimeout(cb, 1200)
-          scheduleIdle(() => { get().fetchAuditLogs() })
-        }
-      } else {
-        const [auditRes, testCasesRes, bugReviewsRes, sprintTasksRes] = await Promise.all([
-          safeFetch("/api/audit"),
-          safeFetch("/api/test-cases"),
-          safeFetch("/api/bug-reviews"),
-          safeFetch("/api/sprint-tasks")
-        ]);
-
-        set({
-          auditLogs: auditRes || [],
-          testCases: testCasesRes || [],
-          bugReviews: mapBugReviews(bugReviewsRes),
-          sprintTasks: sprintTasksRes || [],
-          isFetching: false
-        });
-      }
+      const [testCasesRes, bugReviewsRes, sprintTasksRes] = await Promise.all([
+        safeFetch("/api/test-cases"),
+        safeFetch("/api/bug-reviews"),
+        safeFetch("/api/sprint-tasks")
+      ]);
+      set({
+        testCases: testCasesRes || [],
+        bugReviews: mapBugReviews(bugReviewsRes),
+        sprintTasks: sprintTasksRes || [],
+        isFetching: false
+      });
     } catch (err: any) {
       set({ error: err.message || "Failed to fetch database records", loading: false, isFetching: false })
-    }
-  },
-
-  fetchAuditLogs: async () => {
-    // Loads the full /api/audit list into the store. Called deferred (idle) after
-    // bootstrap when ENABLE_LAZY_AUDIT is on; also reusable for on-demand refresh.
-    try {
-      const auditRes = await apiClient("/api/audit")
-      set({ auditLogs: auditRes || [] })
-    } catch (err) {
-      console.error("Failed to fetch audit logs:", err)
     }
   },
 
@@ -457,11 +419,6 @@ export const useTaskStore = create<TaskState>((set, get) => ({
       sessionStorage.removeItem("devtrack_core_cache")
     } catch { }
 
-    // ── Fire-and-forget audit log refresh (non-blocking) ─────────────────────
-    apiClient("/api/audit")
-      .then(auditRes => set({ auditLogs: auditRes }))
-      .catch(err => console.warn("Audit log refresh failed (non-critical):", err))
-
     if (statusChanged && updatedTask.status === "CODE_REVIEW") {
       const admins = get().users.filter(u => u.roles?.includes("DEVADMIN") || u.roles?.includes("CODEREVIEWER"))
       for (const admin of admins) {
@@ -510,9 +467,6 @@ export const useTaskStore = create<TaskState>((set, get) => ({
     set(state => ({
       tasks: state.tasks.map(t => t.id === taskId ? updatedTask : t)
     }))
-    apiClient("/api/audit")
-      .then(auditRes => set({ auditLogs: auditRes }))
-      .catch(err => console.warn("Audit refresh after assignTester failed:", err))
     return updatedTask
   },
 
@@ -524,9 +478,6 @@ export const useTaskStore = create<TaskState>((set, get) => ({
     set(state => ({
       tasks: state.tasks.map(t => t.id === taskId ? updatedTask : t)
     }))
-    apiClient("/api/audit")
-      .then(auditRes => set({ auditLogs: auditRes }))
-      .catch(err => console.warn("Audit refresh after reassignTester failed:", err))
     return updatedTask
   },
 
@@ -538,12 +489,6 @@ export const useTaskStore = create<TaskState>((set, get) => ({
     set(state => ({
       tasks: state.tasks.map(t => t.id === taskId ? updatedTask : t)
     }))
-    try {
-      const auditRes = await apiClient("/api/audit")
-      set({ auditLogs: auditRes })
-    } catch (err) {
-      console.error("Failed to update audit logs:", err)
-    }
     return updatedTask
   },
 
@@ -554,13 +499,10 @@ export const useTaskStore = create<TaskState>((set, get) => ({
       body: JSON.stringify({ remarks })
     })
 
-    // Refresh tasks and audit logs after approval in the background
-    Promise.all([
-      apiClient("/api/tasks?page=0&size=100"),
-      apiClient("/api/audit")
-    ]).then(([tasksRes, auditRes]) => {
+    // Refresh tasks after approval in the background
+    apiClient("/api/tasks?page=0&size=100").then(tasksRes => {
       const rawTasks = tasksRes && tasksRes.content ? tasksRes.content : (Array.isArray(tasksRes) ? tasksRes : []);
-      set({ tasks: rawTasks, auditLogs: auditRes })
+      set({ tasks: rawTasks })
     }).catch(err => {
       console.error("Failed to refresh data after approve:", err)
     })
@@ -575,13 +517,10 @@ export const useTaskStore = create<TaskState>((set, get) => ({
       body: JSON.stringify({ remarks })
     })
 
-    // Refresh tasks and audit logs after rejection so "Sent Back By Admin" tag appears
-    Promise.all([
-      apiClient("/api/tasks?page=0&size=100"),
-      apiClient("/api/audit")
-    ]).then(([tasksRes, auditRes]) => {
+    // Refresh tasks after rejection so "Sent Back By Admin" tag appears
+    apiClient("/api/tasks?page=0&size=100").then(tasksRes => {
       const rawTasks = tasksRes && tasksRes.content ? tasksRes.content : (Array.isArray(tasksRes) ? tasksRes : []);
-      set({ tasks: rawTasks, auditLogs: auditRes })
+      set({ tasks: rawTasks })
     }).catch(err => {
       console.error("Failed to refresh data after reject:", err)
     })
@@ -617,11 +556,6 @@ export const useTaskStore = create<TaskState>((set, get) => ({
     set(state => ({
       bugs: state.bugs.map(b => b.id === bugId ? updatedBug : b)
     }))
-
-    // Fire-and-forget audit refresh (non-blocking)
-    apiClient("/api/audit")
-      .then(auditRes => set({ auditLogs: auditRes }))
-      .catch(err => console.warn("Audit refresh after bug update failed:", err))
 
     return updatedBug
   },

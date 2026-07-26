@@ -100,6 +100,9 @@ public class Bug {
     @Column(name = "updated_date")
     private LocalDateTime updatedDate;
 
+    @Column(name = "resolved_date")
+    private LocalDateTime resolvedDate;
+
     @ManyToOne
     @JoinColumn(name = "workflow_id")
     @ToString.Exclude

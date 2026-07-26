@@ -329,13 +329,25 @@ const InfoRow: React.FC<{ label: string; value?: string | React.ReactNode }> = (
 );
 
 function OverviewTab({ task, currentUser }: { task: Task; currentUser?: User | null }) {
-  const { auditLogs, updateTask, addToast } = useTaskStore();
+  const { updateTask, addToast } = useTaskStore();
   const isAdmin = (currentUser?.roles?.some(r => r.includes('ADMIN') || r.includes('DEVADMIN') || r.includes('TESTADMIN')) ?? false) || (currentUser as any)?.role?.includes('ADMIN');
 
   const [isEditingExpected, setIsEditingExpected] = useState(false);
   const [expSitDate, setExpSitDate] = useState(task.expectedSitDeploymentDate || '');
   const [expUatDate, setExpUatDate] = useState(task.expectedUatDeploymentDate || '');
   const [isSavingDates, setIsSavingDates] = useState(false);
+  const [entityAudit, setEntityAudit] = useState<any[]>([]);
+
+  useEffect(() => {
+    if (task?.id) {
+      fetch(`${APP_CONFIG.apiUrl}/api/audit/TASK/${task.id}`, {
+        headers: { Authorization: `Bearer ${localStorage.getItem('token')}` },
+      })
+        .then((r) => r.json())
+        .then((data) => setEntityAudit(Array.isArray(data) ? data : []))
+        .catch(() => setEntityAudit([]));
+    }
+  }, [task?.id]);
 
   const handleSaveExpectedDates = async () => {
     if (!currentUser) return;
@@ -359,9 +371,7 @@ function OverviewTab({ task, currentUser }: { task: Task; currentUser?: User | n
     }
   };
 
-  const rejectLog = auditLogs
-    ?.filter((l: any) => l.entityType === 'TASK' && l.entityId === task.id && l.fieldName === 'workflow_reject')
-    ?.sort((a: any, b: any) => new Date(b.changedDate || 0).getTime() - new Date(a.changedDate || 0).getTime())[0];
+  const rejectLog = entityAudit.find((l: any) => l.fieldName === 'workflow_reject');
 
   const reviewerName = typeof rejectLog?.changedBy === 'object' && rejectLog?.changedBy?.fullName 
     ? rejectLog.changedBy.fullName 
@@ -370,9 +380,7 @@ function OverviewTab({ task, currentUser }: { task: Task; currentUser?: User | n
   const displayRemarks = rejectLog?.remarks || task.remarks;
 
   // Last status change — for multi-developer "Who moved this CR" display
-  const lastStatusLog = auditLogs
-    ?.filter((l: any) => l.entityType === 'TASK' && l.entityId === task.id && l.fieldName === 'status')
-    ?.sort((a: any, b: any) => new Date(b.changedDate || 0).getTime() - new Date(a.changedDate || 0).getTime())[0];
+  const lastStatusLog = entityAudit.filter((l: any) => l.fieldName === 'status').at(-1);
   const lastMovedByName = lastStatusLog?.changedBy?.fullName || lastStatusLog?.changedBy || null;
   const lastMovedToStatus = lastStatusLog?.newValue?.replace(/_/g, ' ') || null;
 

@@ -604,6 +604,13 @@ public class BugController {
                         log.setChangedBy(currentUser);
                         auditLogRepository.save(log);
                     }
+                    // Persist resolution timestamp at transition — audit stays purely historical.
+                    String resolveCheck = bug.getStatus();
+                    if (resolveCheck != null
+                            && (resolveCheck.contains("RESOLVED") || resolveCheck.contains("VERIFIED") || resolveCheck.contains("CLOSED"))
+                            && bug.getResolvedDate() == null) {
+                        bug.setResolvedDate(java.time.LocalDateTime.now());
+                    }
                     Bug savedBug = bugRepository.save(bug);
                     if (savedBug.getBugTask() != null) {
                         try {

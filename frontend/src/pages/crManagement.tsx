@@ -36,7 +36,6 @@ export default function CrManagement() {
   const {
     tasks,
     deleteTask,
-    auditLogs,
     bugs,
     searchQuery,
     addToast,
@@ -51,33 +50,37 @@ export default function CrManagement() {
   } = useTaskStore()
   const { user } = useAuthStore()
 
+  const [taskAuditLogs, setTaskAuditLogs] = useState<any[]>([])
+
   React.useEffect(() => {
     fetchData(true)
     // const timer = setInterval(() => fetchData(true), 5000)
     // return () => clearInterval(timer)
   }, [])
 
+  const [selectedTask, setSelectedTask] = useState<Task | null>(null)
+
+  useEffect(() => {
+    if (selectedTask?.id) {
+      fetch(`${APP_CONFIG.apiUrl}/api/audit/TASK/${selectedTask.id}`, {
+        headers: { Authorization: `Bearer ${localStorage.getItem('token')}` },
+      })
+        .then(r => r.json())
+        .then(data => setTaskAuditLogs(Array.isArray(data) ? data : []))
+        .catch(() => setTaskAuditLogs([]))
+    } else {
+      setTaskAuditLogs([])
+    }
+  }, [selectedTask?.id])
+
   const [deleteModalTask, setDeleteModalTask] = useState<any>(null)
   const [deleteRemarks, setDeleteRemarks] = useState("")
   const [isDeleting, setIsDeleting] = useState(false)
 
-  const getAuditDate = (taskId: number, status: string) => {
-    const log = auditLogs
-      .filter(l => l.entityType === "TASK" && l.entityId === taskId && l.fieldName === "status" && l.newValue === status)
-      .sort((a, b) => new Date(a.changedDate || 0).getTime() - new Date(b.changedDate || 0).getTime())[0]
-    return log?.changedDate ? new Date(log.changedDate).toISOString().split('T')[0] : "—";
-  }
 
-  const getBugResolveDate = (bugId: number) => {
-    const log = auditLogs
-      .filter(l => l.entityType === "BUG" && l.entityId === bugId && l.fieldName === "status" && l.newValue === "RESOLVED")
-      .sort((a, b) => new Date(a.changedDate || 0).getTime() - new Date(b.changedDate || 0).getTime())[0]
-    return log?.changedDate ? new Date(log.changedDate).toISOString().split('T')[0] : "—";
-  }
 
   const [search, setSearch] = useState("")
   const [filterCategory, setFilterCategory] = useState("all")
-  const [selectedTask, setSelectedTask] = useState<Task | null>(null)
   const [isRaiseBugOpen, setIsRaiseBugOpen] = useState(false)
   const [selectedBugId, setSelectedBugId] = useState<number | null>(null)
   const [selectedTaskForBugs, setSelectedTaskForBugs] = useState<Task | null>(null)
@@ -144,11 +147,11 @@ export default function CrManagement() {
         let dateVal: string | undefined | null
         if (exportDateType === "created") dateVal = t.createdDate
         else if (exportDateType === "production") dateVal = t.productionDate
-        else if (exportDateType === "sit_deploy") dateVal = getAuditDate(t.id, "SIT_DEPLOYED") !== "—" ? getAuditDate(t.id, "SIT_DEPLOYED") : null
-        else if (exportDateType === "sit_completed") dateVal = getAuditDate(t.id, "SIT_COMPLETED") !== "—" ? getAuditDate(t.id, "SIT_COMPLETED") : null
-        else if (exportDateType === "code_review") dateVal = getAuditDate(t.id, "CODE_REVIEW") !== "—" ? getAuditDate(t.id, "CODE_REVIEW") : null
-        else if (exportDateType === "uat_deploy") dateVal = getAuditDate(t.id, "MOVE_TO_UAT") !== "—" ? getAuditDate(t.id, "MOVE_TO_UAT") : null
-        else if (exportDateType === "prod_deployed") dateVal = getAuditDate(t.id, "PROD_DEPLOYED") !== "—" ? getAuditDate(t.id, "PROD_DEPLOYED") : null
+        else if (exportDateType === "sit_deploy") dateVal = t.sitDate
+        else if (exportDateType === "sit_completed") dateVal = t.sitCompletedDate
+        else if (exportDateType === "code_review") dateVal = t.codeReviewDate
+        else if (exportDateType === "uat_deploy") dateVal = t.uatDate
+        else if (exportDateType === "prod_deployed") dateVal = t.productionDate
         if (!dateVal) return false
         const taskDateStr = typeof dateVal === "string" && dateVal.length === 10 ? dateVal : new Date(dateVal as string).toISOString().split('T')[0]
         if (exportStartDate && taskDateStr < exportStartDate) return false
@@ -181,7 +184,7 @@ export default function CrManagement() {
       const { base64Data, defaultFileName } = await exportCrAuditReport({
         tasks: filteredExport,
         bugs,
-        auditLogs,
+        auditLogs: [],
         generatedBy: user?.fullName || "DevTrack User",
         baseUrl,
       })
@@ -279,7 +282,7 @@ export default function CrManagement() {
   // Paginate sorted tasks
   const pagedTasks = paginate(sortedTasks, crPage, crPageSize)
 
-  const activeLogs = selectedTask ? auditLogs.filter(l => l.entityType === "TASK" && l.entityId === selectedTask.id) : []
+  const activeLogs = taskAuditLogs
   const relatedBugs = selectedTask ? bugs.filter(b => b.crTaskId === selectedTask.id) : []
   const isTester = user?.roles?.some(r => r === "TESTER" || r === "TESTADMIN")
   const isAdmin = user?.roles?.some(r => r === "DEVADMIN" || r === "TESTADMIN")
@@ -677,59 +680,37 @@ export default function CrManagement() {
                           </span>
                         </td>
                         <td className="p-4">
-                          {(() => {
-                            const latestReject = auditLogs
-                              .filter(l => l.entityType === "TASK" && l.entityId === task.id && l.fieldName === "workflow_reject")
-                              .sort((a: any, b: any) => new Date(b.changedDate || 0).getTime() - new Date(a.changedDate || 0).getTime())[0]
-                            return (
-                              <div className="flex flex-wrap gap-1.5 items-center">
-                                {!(task.status === "CHANGES_REQUESTED" && latestReject) && (
-                                  <span className={`text-[10px] font-bold px-2 py-0.5 rounded-lg uppercase tracking-wider border ${getCRStatusBadgeClass(task.status)}`}>
-                                    {task.status === "BUG_FOUND" ? "OPEN" : task.status.replace(/_/g, " ")}
-                                  </span>
-                                )}
-                                {latestReject && (task.status === "IN_PROGRESS" || task.status === "CHANGES_REQUESTED") && (
-                                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-amber-500/15 border border-amber-500/30 text-amber-400 text-[9px] font-bold tracking-wider animate-pulse">
-                                    <AlertTriangle className="h-2.5 w-2.5" />
-                                    Change Requested
-                                  </span>
-                                )}
-                              </div>
-                            )
-                          })()}
+                          <div className="flex flex-wrap gap-1.5 items-center">
+                            {!(task.status === "CHANGES_REQUESTED" && task.changesRequested) && (
+                              <span className={`text-[10px] font-bold px-2 py-0.5 rounded-lg uppercase tracking-wider border ${getCRStatusBadgeClass(task.status)}`}>
+                                {task.status === "BUG_FOUND" ? "OPEN" : task.status.replace(/_/g, " ")}
+                              </span>
+                            )}
+                            {task.changesRequested && (task.status === "IN_PROGRESS" || task.status === "CHANGES_REQUESTED") && (
+                              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-amber-500/15 border border-amber-500/30 text-amber-400 text-[9px] font-bold tracking-wider animate-pulse">
+                                <AlertTriangle className="h-2.5 w-2.5" />
+                                Change Requested
+                              </span>
+                            )}
+                          </div>
                         </td>
                         <td className="p-4 font-mono text-slate-400">
                           {task.createdDate ? new Date(task.createdDate).toISOString().split('T')[0] : "NA"}
                         </td>
                         <td className="p-4 font-semibold text-slate-300 whitespace-nowrap">
-                          {(() => {
-                            const d = getAuditDate(task.id, "SIT_DEPLOYED")
-                            return d !== "—" ? d : ""
-                          })()}
+                          {task.sitDate ? fmtDate(task.sitDate) : "—"}
                         </td>
                         <td className="p-4 font-semibold text-slate-300 whitespace-nowrap">
-                          {(() => {
-                            const d = getAuditDate(task.id, "SIT_COMPLETED")
-                            return d !== "—" ? d : ""
-                          })()}
+                          {task.sitCompletedDate ? fmtDate(task.sitCompletedDate) : "—"}
                         </td>
                         <td className="p-4 font-semibold text-slate-300 whitespace-nowrap">
-                          {(() => {
-                            const d = getAuditDate(task.id, "CODE_REVIEW")
-                            return d !== "—" ? d : ""
-                          })()}
+                          {task.codeReviewDate ? fmtDate(task.codeReviewDate) : "—"}
                         </td>
                         <td className="p-4 font-semibold text-slate-300 whitespace-nowrap">
-                          {(() => {
-                            const d = getAuditDate(task.id, "MOVE_TO_UAT")
-                            return d !== "—" ? d : ""
-                          })()}
+                          {task.uatDate ? fmtDate(task.uatDate) : "—"}
                         </td>
                         <td className="p-4 font-semibold text-slate-300 whitespace-nowrap">
-                          {(() => {
-                            const rawD = task.testingCompletedDate ? new Date(task.testingCompletedDate).toISOString().split('T')[0] : getAuditDate(task.id, "TESTING_COMPLETED")
-                            return rawD !== "—" ? rawD : ""
-                          })()}
+                          {task.testingCompletedDate ? fmtDate(task.testingCompletedDate) : "—"}
                         </td>
                         <td className="p-4 whitespace-nowrap">
                           {(() => {
@@ -753,26 +734,20 @@ export default function CrManagement() {
                         <td className="p-4 font-semibold text-slate-300 whitespace-nowrap">
                           {(() => {
                             const taskBugs = bugs.filter(b => b.crTaskId === task.id)
-                            return taskBugs.map(b => b.createdDate ? new Date(b.createdDate).toISOString().split('T')[0] : "").filter(Boolean).join(", ")
+                            return taskBugs.map(b => b.createdDate ? fmtDate(b.createdDate) : "").filter(Boolean).join(", ")
                           })()}
                         </td>
                         <td className="p-4 font-semibold text-slate-300 whitespace-nowrap">
                           {(() => {
                             const taskBugs = bugs.filter(b => b.crTaskId === task.id)
-                            return taskBugs.map(b => getBugResolveDate(b.id)).filter(d => d !== "—").join(", ")
+                            return taskBugs.map(b => b.resolvedDate ? fmtDate(b.resolvedDate) : "").filter(Boolean).join(", ")
                           })()}
                         </td>
                         <td className="p-4 font-semibold text-slate-300 whitespace-nowrap">
-                          {(() => {
-                            const rawD = task.testingCompletedDate ? new Date(task.testingCompletedDate).toISOString().split('T')[0] : getAuditDate(task.id, "TESTING_COMPLETED")
-                            return rawD !== "—" ? rawD : ""
-                          })()}
+                          {task.uatCompletedDate ? fmtDate(task.uatCompletedDate) : (task.testingCompletedDate ? fmtDate(task.testingCompletedDate) : "—")}
                         </td>
                         <td className="p-4 font-semibold text-slate-300 whitespace-nowrap">
-                          {(() => {
-                            const d = getAuditDate(task.id, "PROD_DEPLOYED")
-                            return d !== "—" ? d : ""
-                          })()}
+                          {task.productionDate ? fmtDate(task.productionDate) : "—"}
                         </td>
                         <td className="p-4 font-semibold text-slate-300">
                           {getAssignedDevNames(task)}
@@ -935,9 +910,7 @@ export default function CrManagement() {
 
               {/* Admin Feedback / Change Requested Banner */}
               {(() => {
-                const rejectLog = auditLogs
-                  .filter(l => l.entityType === "TASK" && l.entityId === selectedTask.id && l.fieldName === "workflow_reject")
-                  .sort((a: any, b: any) => new Date(b.changedDate || 0).getTime() - new Date(a.changedDate || 0).getTime())[0]
+                const rejectLog = taskAuditLogs.find(l => l.fieldName === "workflow_reject")
 
                 const reviewerName = typeof rejectLog?.changedBy === 'object' && rejectLog?.changedBy?.fullName
                   ? rejectLog.changedBy.fullName
@@ -1027,23 +1000,23 @@ export default function CrManagement() {
                 </div>
               </div>
 
-              {/* Workflow Transition Dates — Event-Driven */}
+              {/* Workflow Transition Dates — Flat Fields */}
               {(() => {
-                const devStartDate = selectedTask.devStartDate || getAuditDate(selectedTask.id, "IN_PROGRESS")
-                const sitDeployDate = getAuditDate(selectedTask.id, "SIT_DEPLOYED")
-                const sitCompletedDate = getAuditDate(selectedTask.id, "SIT_COMPLETED")
-                const codeReviewDate = getAuditDate(selectedTask.id, "CODE_REVIEW")
-                const uatDeployDate = getAuditDate(selectedTask.id, "MOVE_TO_UAT")
-                const testingCompletedDate = getAuditDate(selectedTask.id, "UAT_COMPLETED")
-                const prodDeployDate = getAuditDate(selectedTask.id, "PROD_DEPLOYED")
+                const devStartDate = selectedTask.devStartDate ? fmtDate(selectedTask.devStartDate) : null
+                const sitDeployDate = selectedTask.sitDate ? fmtDate(selectedTask.sitDate) : null
+                const sitCompletedDate = selectedTask.sitCompletedDate ? fmtDate(selectedTask.sitCompletedDate) : null
+                const codeReviewDate = selectedTask.codeReviewDate ? fmtDate(selectedTask.codeReviewDate) : null
+                const uatDeployDate = selectedTask.uatDate ? fmtDate(selectedTask.uatDate) : null
+                const testingCompletedDate = selectedTask.testingCompletedDate ? fmtDate(selectedTask.testingCompletedDate) : null
+                const prodDeployDate = selectedTask.productionDate ? fmtDate(selectedTask.productionDate) : null
 
-                const hasDevStartDate = devStartDate && devStartDate !== "—"
-                const hasSitDeployDate = sitDeployDate && sitDeployDate !== "—"
-                const hasSitCompletedDate = sitCompletedDate && sitCompletedDate !== "—"
-                const hasCodeReviewDate = codeReviewDate && codeReviewDate !== "—"
-                const hasUatDeployDate = uatDeployDate && uatDeployDate !== "—"
-                const hasTestingCompletedDate = testingCompletedDate && testingCompletedDate !== "—"
-                const hasProdDeployDate = prodDeployDate && prodDeployDate !== "—"
+                const hasDevStartDate = !!devStartDate
+                const hasSitDeployDate = !!sitDeployDate
+                const hasSitCompletedDate = !!sitCompletedDate
+                const hasCodeReviewDate = !!codeReviewDate
+                const hasUatDeployDate = !!uatDeployDate
+                const hasTestingCompletedDate = !!testingCompletedDate
+                const hasProdDeployDate = !!prodDeployDate
 
                 const hasAnyDate = hasDevStartDate || hasSitDeployDate || hasSitCompletedDate || hasCodeReviewDate || hasUatDeployDate || hasTestingCompletedDate || hasProdDeployDate
 
@@ -1100,10 +1073,10 @@ export default function CrManagement() {
                 )
               })()}
 
-              {/* Testing Information — Event-Driven */}
+              {/* Testing Information — Flat Fields */}
               {(() => {
-                const uatDeployDate = getAuditDate(selectedTask.id, "MOVE_TO_UAT")
-                const hasUatDeployDate = uatDeployDate && uatDeployDate !== "—"
+                const uatDeployDate = selectedTask.uatDate ? fmtDate(selectedTask.uatDate) : null
+                const hasUatDeployDate = !!uatDeployDate
                 const isUatOrLater = hasUatDeployDate || ["MOVE_TO_UAT", "UAT_TESTING", "BUG_FOUND", "UAT_COMPLETED", "PROD_DEPLOYED", "CLOSED"].includes(selectedTask.status)
 
                 if (!isUatOrLater) return null
@@ -1200,8 +1173,8 @@ export default function CrManagement() {
 
               {/* Admin Reassignment Form */}
               {isAdmin && (() => {
-                const uatDeployDate = getAuditDate(selectedTask.id, "MOVE_TO_UAT")
-                const hasUatDeployDate = uatDeployDate && uatDeployDate !== "—"
+                const uatDeployDate = selectedTask.uatDate ? fmtDate(selectedTask.uatDate) : null
+                const hasUatDeployDate = !!uatDeployDate
                 const isUatOrLater = hasUatDeployDate || ["MOVE_TO_UAT", "UAT_TESTING", "BUG_FOUND", "UAT_COMPLETED", "PROD_DEPLOYED", "CLOSED"].includes(selectedTask.status)
 
                 if (!isUatOrLater) return null

@@ -44,7 +44,10 @@ export interface Task {
   expectedSitDeploymentDate?: string
   expectedUatDeploymentDate?: string
   sitDate?: string
+  sitCompletedDate?: string
+  codeReviewDate?: string
   uatDate?: string
+  uatCompletedDate?: string
   preprodDate?: string
   productionDate?: string
   status: string
@@ -91,6 +94,7 @@ export interface Task {
   module?: string
   project?: string
   isQualityRisk?: boolean
+  changesRequested?: boolean
   previousTester?: User
 }
 
@@ -124,6 +128,7 @@ export interface Bug {
   remarks?: string
   createdDate: string
   updatedDate: string
+  resolvedDate?: string
   resolvedOn?: string
   workflow?: Workflow
   tester?: User

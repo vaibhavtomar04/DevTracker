@@ -56,6 +56,13 @@ public class Task {
     @Column(name = "brd_document_id")
     private Long brdDocumentId;
 
+    @Column(name = "code_review_date")
+    private LocalDateTime codeReviewDate;
+    @Column(name = "sit_completed_date")
+    private LocalDateTime sitCompletedDate;
+    @Column(name = "uat_completed_date")
+    private LocalDateTime uatCompletedDate;
+
     @ManyToOne
     @JoinColumn(name = "assigned_developer_id")
     @ToString.Exclude

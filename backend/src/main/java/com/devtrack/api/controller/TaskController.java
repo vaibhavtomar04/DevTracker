@@ -55,6 +55,8 @@ import com.devtrack.api.event.RecognitionTriggerEvent;
 import com.devtrack.api.services.EmailNotificationService;
 import com.devtrack.api.services.WorkflowExecutionService;
 import org.springframework.context.ApplicationEventPublisher;
+import com.devtrack.api.mapper.TaskMapper;
+import com.devtrack.api.dto.TaskListDto;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -123,94 +125,60 @@ public class TaskController {
 
         // ── Command Palette full-text search ─────────────────────────────────
         if (search != null && !search.isBlank()) {
-            Pageable pageable = PageRequest.of(
-                    page != null ? page : 0,
-                    size != null ? size : 10,
-                    Sort.by("id").descending());
-            return ResponseEntity.ok(taskRepository.searchAll(search.trim(), pageable));
-        }
+    Pageable pageable = PageRequest.of(page != null ? page : 0, size != null ? size : 10, Sort.by("id").descending());
+    return ResponseEntity.ok(taskRepository.searchAll(search.trim(), pageable).map(TaskMapper::toListDto));
+}
 
-        if (page == null && size == null) {
-            // Default: return first 50 active CRs (excludes terminal states) instead of
-            // loading the entire tasks table with 7-way JOINs (unbounded dump anti-pattern).
-            // Callers that genuinely need ALL records must explicitly pass ?page=0&size=N.
-            Pageable defaultPage = PageRequest.of(0, 50, Sort.by("id").descending());
-            return ResponseEntity.ok(taskRepository.findAllOptimizedByStatusNotIn(
-                    List.of("CLOSED", "PROD_COMPLETED"), defaultPage));
-        }
+if (page == null && size == null) {
+    Pageable defaultPage = PageRequest.of(0, 50, Sort.by("id").descending());
+    return ResponseEntity.ok(taskRepository.findAllOptimizedByStatusNotIn(
+            List.of("CLOSED", "PROD_COMPLETED"), defaultPage).map(TaskMapper::toListDto));
+}
 
-        Pageable pageable = PageRequest.of(page != null ? page : 0, size != null ? size : 10, Sort.by("id").descending());
-        if(status!=null && !status.isBlank() && priority!=null && !priority.isBlank()) {
-        	return ResponseEntity.ok(taskRepository.findAllOptimizedByStatusAndPriority(List.of(status), priority, pageable));
-        }
-        else if(status!=null && !status.isBlank()) {
-        	return ResponseEntity.ok(taskRepository.findAllOptimizedByStatusIn(List.of(status), pageable));
-        }
-        else if(priority!=null && !priority.isBlank()) {
-        	return ResponseEntity.ok(taskRepository.findAllOptimizedByPriority(priority, pageable));
-        }
-        else {
-            return ResponseEntity.ok(taskRepository.findAllOptimizedByStatusNotIn(List.of("CLOSED","PROD_COMPLETED"), pageable));
-        }
+Pageable pageable = PageRequest.of(page != null ? page : 0, size != null ? size : 10, Sort.by("id").descending());
+if (status != null && !status.isBlank() && priority != null && !priority.isBlank()) {
+    return ResponseEntity.ok(taskRepository.findAllOptimizedByStatusAndPriority(List.of(status), priority, pageable).map(TaskMapper::toListDto));
+} else if (status != null && !status.isBlank()) {
+    return ResponseEntity.ok(taskRepository.findAllOptimizedByStatusIn(List.of(status), pageable).map(TaskMapper::toListDto));
+} else if (priority != null && !priority.isBlank()) {
+    return ResponseEntity.ok(taskRepository.findAllOptimizedByPriority(priority, pageable).map(TaskMapper::toListDto));
+} else {
+    return ResponseEntity.ok(taskRepository.findAllOptimizedByStatusNotIn(List.of("CLOSED", "PROD_COMPLETED"), pageable).map(TaskMapper::toListDto));
+}
 
     }
     
     @GetMapping("/download-tasks")
-    public Page<Task> downloadTasks(@RequestParam(required = false) String status, 
-            @RequestParam(required = false) String priority) {
-    	
-        if(status!=null && !status.isBlank() && priority!=null && !priority.isBlank()) {
-        	return taskRepository.findAllOptimizedByStatusAndPriority(List.of(status), priority, null);
-        }
-        else if(status!=null && !status.isBlank()) {
-        	return taskRepository.findAllOptimizedByStatusIn(List.of(status), null);
-        }
-        else if(priority!=null && !priority.isBlank()) {
-        	return taskRepository.findAllOptimizedByPriority(priority, null);
-        }
-        else {
-            return taskRepository.findAllOptimizedByStatusNotIn(List.of("CLOSED","PROD_COMPLETED"), null);
-        }
-        
+public Page<TaskListDto> downloadTasks(@RequestParam(required = false) String status,
+        @RequestParam(required = false) String priority) {
+    if (status != null && !status.isBlank() && priority != null && !priority.isBlank()) {
+        return taskRepository.findAllOptimizedByStatusAndPriority(List.of(status), priority, null).map(TaskMapper::toListDto);
+    } else if (status != null && !status.isBlank()) {
+        return taskRepository.findAllOptimizedByStatusIn(List.of(status), null).map(TaskMapper::toListDto);
+    } else if (priority != null && !priority.isBlank()) {
+        return taskRepository.findAllOptimizedByPriority(priority, null).map(TaskMapper::toListDto);
+    } else {
+        return taskRepository.findAllOptimizedByStatusNotIn(List.of("CLOSED", "PROD_COMPLETED"), null).map(TaskMapper::toListDto);
     }
-
-    @GetMapping("/my")
-    public Page<Task> getMyTasks(
-            @RequestParam(defaultValue = "0") int page, @RequestParam(defaultValue = "10") int size,
-            @RequestParam(required = false) String status, @RequestParam(required = false) String priority) {
-    	
-        String username = SecurityContextHolder.getContext().getAuthentication().getName();
-        User user = userRepository.findByUsername(username).orElseThrow();
-        Pageable pageable = PageRequest.of(page, size, Sort.by("id").descending());
-        
-        if(status!=null && !status.isBlank() && priority!=null && !priority.isBlank()) {
-        	return taskRepository.findAllOptimizedByDeveloperAndStatusAndPriority(user.getId(), List.of(status), priority, pageable);
-        }
-        else if(status!=null && !status.isBlank()) {
-        	return taskRepository.findAllOptimizedByAssignedDeveloperIdAndStatusIn(user.getId(), List.of(status), pageable);
-        }
-        else if(priority!=null && !priority.isBlank()) {
-        	return taskRepository.findAllOptimizedByDeveloperAndPriority(user.getId(), priority, pageable);
-        } else {
-            return taskRepository.findAllOptimizedByAssignedDeveloperIdAndStatusNot(user.getId(), List.of("CLOSED","PROD_COMPLETED"), pageable);
-        }
-    }
+}
 
     @GetMapping("/{id}")
-    public ResponseEntity<Task> getTaskById(@PathVariable Long id) {
-        return taskRepository.findByIdOptimized(id)
-                .map(ResponseEntity::ok)
-                .orElse(ResponseEntity.notFound().build());
-    }
+public ResponseEntity<TaskListDto> getTaskById(@PathVariable Long id) {
+    return taskRepository.findByIdOptimized(id)
+            .map(TaskMapper::toListDto)
+            .map(ResponseEntity::ok)
+            .orElse(ResponseEntity.notFound().build());
+}
+
 
     @PostMapping("/batch-details")
-    public ResponseEntity<List<Task>> getTasksBatch(@RequestBody java.util.Map<String, List<Long>> payload) {
-        List<Long> ids = payload != null ? payload.get("ids") : null;
-        if (ids == null || ids.isEmpty()) {
-            return ResponseEntity.ok(java.util.Collections.emptyList());
-        }
-        return ResponseEntity.ok(taskRepository.findAllById(ids));
+public ResponseEntity<List<TaskListDto>> getTasksBatch(@RequestBody java.util.Map<String, List<Long>> payload) {
+    List<Long> ids = payload != null ? payload.get("ids") : null;
+    if (ids == null || ids.isEmpty()) {
+        return ResponseEntity.ok(java.util.Collections.emptyList());
     }
+    return ResponseEntity.ok(taskRepository.findAllById(ids).stream().map(TaskMapper::toListDto).toList());
+}
 
     private String generateUniqueJtrackId(String requestedJtrackId) {
         if (requestedJtrackId == null || requestedJtrackId.trim().isEmpty()) {
@@ -421,6 +389,15 @@ public class TaskController {
                     if (currentTargetStatus.equals("PROD_DEPLOYED") && taskDetails.getProductionDate() == null && task.getProductionDate() == null) {
                         taskDetails.setProductionDate(LocalDate.now());
                     }
+                    if (currentTargetStatus.equals("CODE_REVIEW")   && task.getCodeReviewDate()   == null) {
+    task.setCodeReviewDate(LocalDateTime.now());
+}
+if (currentTargetStatus.equals("SIT_COMPLETED") && task.getSitCompletedDate() == null) {
+    task.setSitCompletedDate(LocalDateTime.now());
+}
+if (currentTargetStatus.equals("UAT_COMPLETED") && task.getUatCompletedDate() == null) {
+    task.setUatCompletedDate(LocalDateTime.now());
+}
 
                     if (currentTargetStatus.equals("IN_PROGRESS") && taskDetails.getDevStartDate() == null && task.getDevStartDate() == null) {
                         return ResponseEntity.badRequest().body("Dev Start Date is mandatory for IN_PROGRESS status.");
@@ -757,7 +734,7 @@ public class TaskController {
 
                     Task reloaded = taskRepository.findByIdOptimized(saved.getId()).orElse(saved);
                     emitTaskEvent(reloaded, "UPDATED", currentUser.getId());
-                    return ResponseEntity.ok(reloaded);
+                    return ResponseEntity.ok(TaskMapper.toListDto(reloaded));
                 })
                 .orElse(ResponseEntity.notFound().build());
     }
@@ -909,6 +886,10 @@ public class TaskController {
                     
                     task.setStatus("TESTING_COMPLETED");
                     task.setTestingCompletedDate(LocalDateTime.now());
+                    task.setTestingCompletedDate(LocalDateTime.now());
+if (task.getUatCompletedDate() == null) {
+    task.setUatCompletedDate(LocalDateTime.now());  
+}
                     task.setTestingComments(comments);
                     task.setUpdatedDate(LocalDateTime.now());
                     
@@ -945,7 +926,7 @@ public class TaskController {
                         System.err.println("Failed to send test complete mail: " + e.getMessage());
                     }
                     
-                    return ResponseEntity.ok(saved);
+                    return ResponseEntity.ok(TaskMapper.toListDto(saved));
                 })
                 .orElse(ResponseEntity.notFound().build());
     }
@@ -1269,6 +1250,9 @@ public class TaskController {
             String username = SecurityContextHolder.getContext().getAuthentication().getName();
             User currentUser = userRepository.findByUsername(username).orElseThrow();
             
+            if (task.getUatCompletedDate() == null) {
+    task.setUatCompletedDate(LocalDateTime.now());   
+}
             AuditLog log = new AuditLog();
             log.setEntityType("TASK");
             log.setEntityId(task.getId());
@@ -1281,7 +1265,7 @@ public class TaskController {
             
             emailNotificationService.sendMailOnUATTestingComplete(task, taskDetails.getRemarks(), currentUser);
             
-            return ResponseEntity.ok(taskRepository.save(task));
+            return ResponseEntity.ok(TaskMapper.toListDto(taskRepository.save(task)));  
         }).orElse(ResponseEntity.notFound().build());
     }
 
@@ -1345,9 +1329,9 @@ public class TaskController {
 
     // Dynamic Workflow Endpoints
     @GetMapping("/current")
-    public List<Task> getTasksByStepType(@RequestParam String type) {
-        return taskWorkflowMapRepository.findTasksByStepType(type);
-    }
+public List<TaskListDto> getTasksByStepType(@RequestParam String type) {
+    return taskWorkflowMapRepository.findTasksByStepType(type).stream().map(TaskMapper::toListDto).toList();
+}
 
     @PostMapping("/{id}/approve")
     public ResponseEntity<?> approveWorkflowStep(@PathVariable Long id, @RequestBody(required = false) Task taskDetails) {

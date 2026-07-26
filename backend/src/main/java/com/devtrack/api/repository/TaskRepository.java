@@ -250,7 +250,7 @@ public interface TaskRepository extends JpaRepository<Task, Long>, org.springfra
         SELECT COUNT(DISTINCT t.id) FROM tasks t
         WHERE (t.assigned_developer_id = :userId
                OR EXISTS (SELECT 1 FROM task_developers td WHERE td.task_id = t.id AND td.developer_id = :userId))
-          AND t.status IN ('UAT_TESTING','PROD_DEPLOYED','PROD_COMPLETED','CLOSED')
+          AND t.status IN ('PROD_COMPLETED','CLOSED')
         """, nativeQuery = true)
     long countCompletedUatCrsForUser(@Param("userId") Long userId);
 

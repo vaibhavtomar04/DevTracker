@@ -19,16 +19,41 @@ import {
 } from "lucide-react"
 import { motion, AnimatePresence } from "framer-motion"
 import type { Task } from "@/services/mockData"
+import { APP_CONFIG } from "@/config/appConfig"
 
 
 export default function Deployments() {
-  const { tasks, fetchData, updateTask, searchQuery, testCases, addToast, auditLogs } = useTaskStore()
+  const { tasks, fetchData, updateTask, searchQuery, testCases, addToast } = useTaskStore()
   const { user } = useAuthStore()
   const [selectedTaskForDetails, setSelectedTaskForDetails] = useState<Task | null>(null)
+  const [recentAuditLogs, setRecentAuditLogs] = useState<any[]>([])
+  const [taskAuditLogs, setTaskAuditLogs] = useState<any[]>([])
 
   useEffect(() => {
     fetchData()
+    fetch(`${APP_CONFIG.apiUrl}/api/audit/page?page=0&size=8`, {
+      headers: { Authorization: `Bearer ${localStorage.getItem('token')}` },
+    })
+      .then(r => r.json())
+      .then(data => {
+        const content = data && data.content ? data.content : (Array.isArray(data) ? data : [])
+        setRecentAuditLogs(content)
+      })
+      .catch(() => setRecentAuditLogs([]))
   }, [])
+
+  useEffect(() => {
+    if (selectedTaskForDetails?.id) {
+      fetch(`${APP_CONFIG.apiUrl}/api/audit/TASK/${selectedTaskForDetails.id}`, {
+        headers: { Authorization: `Bearer ${localStorage.getItem('token')}` },
+      })
+        .then(r => r.json())
+        .then(data => setTaskAuditLogs(Array.isArray(data) ? data : []))
+        .catch(() => setTaskAuditLogs([]))
+    } else {
+      setTaskAuditLogs([])
+    }
+  }, [selectedTaskForDetails?.id])
 
   const handleRollback = async (task: Task) => {
     if (!user) return
@@ -234,8 +259,8 @@ export default function Deployments() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-white/[0.04]">
-                {auditLogs
-                  .filter(log => log.fieldName.includes("workflow") || log.remarks?.includes("ROLLBACK"))
+                {recentAuditLogs
+                  .filter(log => log.fieldName?.includes("workflow") || log.remarks?.includes("ROLLBACK"))
                   .slice(0, 8)
                   .map((log) => (
                     <tr key={log.id} className="hover:bg-white/[0.01] transition-colors">
@@ -247,7 +272,7 @@ export default function Deployments() {
                           {tasks.find(t => t.id === log.entityId)?.jtrackId || `DT-${100 + log.entityId}`}
                         </span>
                       </td>
-                      <td className="p-4 font-semibold text-white">{log.changedBy.fullName}</td>
+                      <td className="p-4 font-semibold text-white">{log.changedBy?.fullName || log.changedBy}</td>
                       <td className="p-4">
                         <span className={`px-2 py-0.5 rounded-full font-bold text-[9px] border ${
                           log.remarks?.includes("ROLLBACK") 
@@ -441,20 +466,20 @@ export default function Deployments() {
                 </div>
 
                 {/* Emergency Rollback History */}
-                {auditLogs.filter(l => l.entityId === selectedTaskForDetails.id && l.entityType === "TASK" && l.remarks?.includes("ROLLBACK")).length > 0 && (
+                {taskAuditLogs.filter(l => l.remarks?.includes("ROLLBACK")).length > 0 && (
                   <div className="space-y-1.5">
                     <span className="text-rose-400 block text-[10px] font-semibold uppercase tracking-wider flex items-center gap-1">
                       <AlertTriangle className="h-3.5 w-3.5 text-rose-400 animate-pulse" />
                       <span>Rollback History / Alerts</span>
                     </span>
                     <div className="space-y-2 border border-rose-500/20 rounded-xl p-3 bg-rose-500/5 text-rose-300">
-                      {auditLogs
-                        .filter(l => l.entityId === selectedTaskForDetails.id && l.entityType === "TASK" && l.remarks?.includes("ROLLBACK"))
+                      {taskAuditLogs
+                        .filter(l => l.remarks?.includes("ROLLBACK"))
                         .map(l => (
                           <div key={l.id} className="border-b border-white/[0.04] pb-1.5 last:border-0 last:pb-0 text-[10px]">
                             <div className="flex justify-between items-center font-bold">
                               <span>Date: {new Date(l.changedDate).toLocaleString()}</span>
-                              <span>By: {l.changedBy?.fullName}</span>
+                              <span>By: {l.changedBy?.fullName || l.changedBy}</span>
                             </div>
                             <p className="mt-1 leading-snug text-rose-200/90">{l.remarks}</p>
                           </div>

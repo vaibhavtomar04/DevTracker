@@ -471,8 +471,8 @@ export function AuditTimeline({ logs, jtrackId }: { logs: any[]; jtrackId: strin
 export default function Audits() {
   const AUDIT_PAGINATION = FEATURES.ENABLE_AUDIT_PAGINATION
 
-  const { auditLogs: auditLogsRaw, fetchData, tasks: tasksRaw } = useTaskStore()
-  const auditLogs = Array.isArray(auditLogsRaw) ? auditLogsRaw : []
+  const { fetchData, tasks: tasksRaw } = useTaskStore()
+  const auditLogs: any[] = []
   const tasks = Array.isArray(tasksRaw) ? tasksRaw : []
 
   const [search, setSearch] = useState("")

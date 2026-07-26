@@ -29,7 +29,7 @@ import {
 import { motion, AnimatePresence } from "framer-motion"
 import { Pagination } from "@/components/shared/Pagination"
 import type { Task, Bug, AuditLog } from "@/services/mockData"
-import { FEATURES } from "@/config/appConfig"
+import { APP_CONFIG, FEATURES } from "@/config/appConfig"
 
 export function getDeploymentSlaDetails(task: Task) {
   const todayStr = new Date().toISOString().split('T')[0];
@@ -98,7 +98,6 @@ export default function DeveloperDashboard() {
   const {
     tasks,
     bugs,
-    auditLogs,
     fetchData,
     updateTask,
     searchQuery,
@@ -114,6 +113,20 @@ export default function DeveloperDashboard() {
   const { fetchSummary, summary: dashSummary, loading: dashLoading } = useDashboardStore()
   const { sprints, fetchSprints } = useSprintStore()
   const { user } = useAuthStore()
+
+  const [recentAuditLogs, setRecentAuditLogs] = useState<any[]>([])
+
+  useEffect(() => {
+    fetch(`${APP_CONFIG.apiUrl}/api/audit/page?page=0&size=20`, {
+      headers: { Authorization: `Bearer ${localStorage.getItem('token')}` },
+    })
+      .then(r => r.json())
+      .then(data => {
+        const content = data && data.content ? data.content : (Array.isArray(data) ? data : [])
+        setRecentAuditLogs(content)
+      })
+      .catch(() => setRecentAuditLogs([]))
+  }, [])
 
   // --- Core Page States ---
   const [selectedTask, setSelectedTask] = useState<Task | null>(null)
@@ -267,13 +280,6 @@ export default function DeveloperDashboard() {
     }
   }, [selectedTask])
 
-  // Get transition dates from audit log
-  const getAuditDate = (taskId: number, status: string) => {
-    const log = (auditLogs || [])
-      .filter(l => l.entityType === "TASK" && l.entityId === taskId && l.fieldName === "status" && l.newValue === status)
-      .sort((a, b) => new Date(a.changedDate || 0).getTime() - new Date(b.changedDate || 0).getTime())[0]
-    return log?.changedDate ? new Date(log.changedDate).toISOString().split('T')[0] : "—"
-  }
 
   // Fetch initial data & start periodic polling (every 5s) so co-developer workflow updates sync live
   useEffect(() => {
@@ -452,13 +458,13 @@ export default function DeveloperDashboard() {
 
       // Summary Card click filtering
       if (filterCard === "active_crs") {
-        return t.status !== "CLOSED" && t.status !== "PROD_DEPLOYED"
+        return t.status !== "CLOSED" && t.status !== "PROD_COMPLETED"
       }
       if (filterCard === "pending_deployments") {
         return t.status === "MOVE_TO_UAT" || t.status === "SIT_DEPLOYED"
       }
       if (filterCard === "closed_crs") {
-        return t.status === "CLOSED" || t.status === "PROD_DEPLOYED"
+        return t.status === "CLOSED" || t.status === "PROD_COMPLETED"
       }
       if (filterCard === "pending_approvals") {
         return t.status === "CODE_REVIEW"
@@ -472,7 +478,7 @@ export default function DeveloperDashboard() {
       }
 
       // Default (no filter card clicked): return active tasks only
-      return t.status !== "CLOSED" && t.status !== "PROD_DEPLOYED"
+      return t.status !== "CLOSED" && t.status !== "PROD_COMPLETED"
     })
     return [...filtered].sort((a, b) => b.id - a.id)
   }, [tasks, user, searchQuery, filterCard, pendingReviews, isAssignedToMe])
@@ -558,9 +564,9 @@ export default function DeveloperDashboard() {
     const devTaskIds = new Set(tasks.filter(t => t.assignedDeveloper?.id === user?.id).map(t => t.id))
     const devBugIds = new Set(bugs.filter(b => b.assignedDeveloper?.id === user?.id).map(b => b.id))
 
-    const filtered = (auditLogs || []).filter(log => log.entityType === "TASK" || log.entityType === "BUG")
+    const filtered = (recentAuditLogs || []).filter((log: any) => log.entityType === "TASK" || log.entityType === "BUG")
 
-    const specificLogs = filtered.filter(log => {
+    const specificLogs = filtered.filter((log: any) => {
       if (log.entityType === "TASK" && devTaskIds.has(log.entityId)) return true
       if (log.entityType === "BUG" && devBugIds.has(log.entityId)) return true
       return false
@@ -568,9 +574,9 @@ export default function DeveloperDashboard() {
 
     const displayLogs = specificLogs.length > 0 ? specificLogs : filtered
     return displayLogs
-      .sort((a, b) => new Date(b.changedDate).getTime() - new Date(a.changedDate).getTime())
+      .sort((a: any, b: any) => new Date(b.changedDate).getTime() - new Date(a.changedDate).getTime())
       .slice(0, 8)
-  }, [auditLogs, tasks, bugs, user])
+  }, [recentAuditLogs, tasks, bugs, user])
 
 
   // --- Handlers ---
@@ -925,7 +931,7 @@ export default function DeveloperDashboard() {
                           id: "active_crs",
                           label: "Active CRs",
                           // Use server-side MINE-scope count while available; fall back to local calc once taskStore loads
-                          value: dashSummary ? dashSummary.stats.totalCrs : tasks.filter(t => isAssignedToMe(t) && t.status !== "CLOSED" && t.status !== "PROD_DEPLOYED").length,
+                          value: dashSummary ? dashSummary.stats.totalCrs : tasks.filter(t => isAssignedToMe(t) && t.status !== "CLOSED" && t.status !== "PROD_COMPLETED").length,
                           loading: dashLoading && !dashSummary,
                           type: "cyan",
                           icon: "⚡"
@@ -951,7 +957,7 @@ export default function DeveloperDashboard() {
                         {
                           id: "closed_crs",
                           label: "Closed CRs",
-                          value: dashSummary ? dashSummary.stats.completedUat : tasks.filter(t => isAssignedToMe(t) && (t.status === "CLOSED" || t.status === "PROD_DEPLOYED")).length,
+                          value: dashSummary ? dashSummary.stats.completedUat : tasks.filter(t => isAssignedToMe(t) && (t.status === "CLOSED" || t.status === "PROD_COMPLETED")).length,
                           loading: dashLoading && !dashSummary,
                           type: "emerald",
                           icon: "✅"
@@ -1121,7 +1127,7 @@ export default function DeveloperDashboard() {
                     {/* Deadlines list */}
                     {(() => {
                       const taskList = Array.isArray(tasks) ? tasks : ((tasks as any)?.content || []);
-                      const myCrs = taskList.filter((t: any) => isAssignedToMe(t) && t.status !== "CLOSED");
+                      const myCrs = taskList.filter((t: any) => isAssignedToMe(t) && t.status !== "CLOSED" && t.status !== "PROD_COMPLETED");
                       const crsWithCommitments = myCrs.filter((t: any) => t.expectedSitDeploymentDate || t.expectedUatDeploymentDate);
 
                       if (crsWithCommitments.length === 0) {
@@ -1317,11 +1323,8 @@ export default function DeveloperDashboard() {
                                         );
                                       })()}
                                       {(() => {
-                                        const latestReject = auditLogs
-                                          .filter(l => l.entityType === "TASK" && l.entityId === task.id && l.fieldName === "workflow_reject")
-                                          .sort((a: any, b: any) => new Date(b.changedDate || 0).getTime() - new Date(a.changedDate || 0).getTime())[0]
-                                        const showRejectBadge = latestReject && (task.status === "IN_PROGRESS" || task.status === "CHANGES_REQUESTED")
-                                        const hideStatusBadge = task.status === "CHANGES_REQUESTED" && latestReject
+                                         const showRejectBadge = task.changesRequested && (task.status === "IN_PROGRESS" || task.status === "CHANGES_REQUESTED")
+                                         const hideStatusBadge = task.status === "CHANGES_REQUESTED" && task.changesRequested
                                         return (
                                           <>
                                             {!hideStatusBadge && (
@@ -1407,11 +1410,8 @@ export default function DeveloperDashboard() {
                                     <td className="p-3">
                                       <div className="flex flex-wrap gap-1.5 items-center">
                                         {(() => {
-                                          const latestReject = auditLogs
-                                            .filter(l => l.entityType === "TASK" && l.entityId === task.id && l.fieldName === "workflow_reject")
-                                            .sort((a: any, b: any) => new Date(b.changedDate || 0).getTime() - new Date(a.changedDate || 0).getTime())[0]
-                                          const showRejectBadge = latestReject && (task.status === "IN_PROGRESS" || task.status === "CHANGES_REQUESTED")
-                                          const hideStatusBadge = task.status === "CHANGES_REQUESTED" && latestReject
+                                          const showRejectBadge = task.changesRequested && (task.status === "IN_PROGRESS" || task.status === "CHANGES_REQUESTED")
+                                          const hideStatusBadge = task.status === "CHANGES_REQUESTED" && task.changesRequested
                                           return (
                                             <>
                                               {!hideStatusBadge && (
@@ -1818,17 +1818,10 @@ export default function DeveloperDashboard() {
                   <div className="space-y-4">
                     {/* Admin Feedback / Change Requested Banner */}
                     {(() => {
-                      const rejectLog = auditLogs
-                        .filter(l => l.entityType === "TASK" && l.entityId === selectedTask.id && l.fieldName === "workflow_reject")
-                        .sort((a: any, b: any) => new Date(b.changedDate || 0).getTime() - new Date(a.changedDate || 0).getTime())[0]
+                      const reviewerName = selectedTask.codeReviewer?.fullName || 'Code Reviewer';
+                      const displayRemarks = selectedTask.remarks;
 
-                      const reviewerName = typeof rejectLog?.changedBy === 'object' && rejectLog?.changedBy?.fullName
-                        ? rejectLog.changedBy.fullName
-                        : (typeof rejectLog?.changedBy === 'string' ? rejectLog.changedBy : (selectedTask.codeReviewer?.fullName || 'Code Reviewer'));
-
-                      const displayRemarks = rejectLog?.remarks || selectedTask.remarks;
-
-                      return (rejectLog || selectedTask.status === "CHANGES_REQUESTED") && (selectedTask.status === "IN_PROGRESS" || selectedTask.status === "CHANGES_REQUESTED") ? (
+                      return (selectedTask.changesRequested || selectedTask.status === "CHANGES_REQUESTED") && (selectedTask.status === "IN_PROGRESS" || selectedTask.status === "CHANGES_REQUESTED") ? (
                         <div className="rounded-2xl border border-rose-500/40 bg-gradient-to-r from-rose-950/90 via-rose-900/60 to-amber-950/40 backdrop-blur-md p-4.5 shadow-lg shadow-rose-950/50 space-y-3.5 text-left">
                           {/* Header */}
                           <div className="flex items-center gap-3">
@@ -2095,17 +2088,17 @@ export default function DeveloperDashboard() {
 
                     {/* Key Workflow Dates Grid */}
                     {(() => {
-                      const devStart = selectedTask.devStartDate || getAuditDate(selectedTask.id, "IN_PROGRESS")
-                      const sitComplete = selectedTask.sitDate || getAuditDate(selectedTask.id, "SIT_COMPLETED")
-                      const uatComplete = selectedTask.testingCompletedDate || getAuditDate(selectedTask.id, "TESTING_COMPLETED")
-                      const prodDeploy = selectedTask.productionDate || getAuditDate(selectedTask.id, "PROD_DEPLOYED")
-                      const uatDeploy = selectedTask.uatDate || getAuditDate(selectedTask.id, "MOVE_TO_UAT")
+                      const devStart = selectedTask.devStartDate ? fmtDate(selectedTask.devStartDate) : null
+                      const sitComplete = selectedTask.sitCompletedDate ? fmtDate(selectedTask.sitCompletedDate) : (selectedTask.sitDate ? fmtDate(selectedTask.sitDate) : null)
+                      const uatComplete = selectedTask.uatCompletedDate ? fmtDate(selectedTask.uatCompletedDate) : (selectedTask.testingCompletedDate ? fmtDate(selectedTask.testingCompletedDate) : null)
+                      const prodDeploy = selectedTask.productionDate ? fmtDate(selectedTask.productionDate) : null
+                      const uatDeploy = selectedTask.uatDate ? fmtDate(selectedTask.uatDate) : null
 
-                      const hasDevStart = devStart && devStart !== "—"
-                      const hasSitComplete = sitComplete && sitComplete !== "—"
-                      const hasUatComplete = uatComplete && uatComplete !== "—"
-                      const hasProdDeploy = prodDeploy && prodDeploy !== "—"
-                      const hasUatDeploy = uatDeploy && uatDeploy !== "—"
+                      const hasDevStart = !!devStart
+                      const hasSitComplete = !!sitComplete
+                      const hasUatComplete = !!uatComplete
+                      const hasProdDeploy = !!prodDeploy
+                      const hasUatDeploy = !!uatDeploy
 
                       const hasAnyDate = hasDevStart || hasSitComplete || hasUatComplete || hasProdDeploy || hasUatDeploy
 
@@ -2146,8 +2139,8 @@ export default function DeveloperDashboard() {
                     })()}
 
                     {(() => {
-                      const uatDeploy = selectedTask.uatDate || getAuditDate(selectedTask.id, "MOVE_TO_UAT")
-                      const hasUatDeploy = uatDeploy && uatDeploy !== "—"
+                      const uatDeploy = selectedTask.uatDate ? fmtDate(selectedTask.uatDate) : null
+                      const hasUatDeploy = !!uatDeploy
                       const isUatOrLater = hasUatDeploy || ["MOVE_TO_UAT", "UAT_TESTING", "BUG_FOUND", "UAT_COMPLETED", "PROD_DEPLOYED", "CLOSED"].includes(selectedTask.status)
 
                       if (!isUatOrLater) return null
