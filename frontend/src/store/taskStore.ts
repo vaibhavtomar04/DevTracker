@@ -270,6 +270,10 @@ export const useTaskStore = create<TaskState>((set, get) => ({
 
       // 2. Secondary Batch: Supplementary metadata — notifications excluded
       //    (notifications handled exclusively by notificationStore via WebSocket + REST)
+      if (force && FEATURES.ENABLE_LEAN_POLL) {
+        set({ isFetching: false })
+        return
+      }
       if (FEATURES.ENABLE_LAZY_AUDIT) {
         const [testCasesRes, bugReviewsRes, sprintTasksRes] = await Promise.all([
           safeFetch("/api/test-cases"),
