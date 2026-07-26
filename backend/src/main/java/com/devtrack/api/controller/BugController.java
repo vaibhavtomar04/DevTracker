@@ -94,6 +94,9 @@ public class BugController {
     @Autowired
     private com.devtrack.api.repository.BugDeveloperRepository bugDeveloperRepository;
 
+    @Autowired
+    private com.devtrack.api.event.DomainEventPublisher domainEventPublisher;
+
     @GetMapping
     public ResponseEntity<?> getAllBugs(
             @RequestParam(required = false) Integer page,
@@ -299,6 +302,7 @@ public class BugController {
             taskAuditLog.setChangedBy(currentUser);
             taskAuditLog.setChangedDate(java.time.LocalDateTime.now());
             auditLogRepository.save(taskAuditLog);
+            emitTaskEvent(task, "UPDATED", currentUser.getId());
         }
 
         // Save attachments if present
@@ -377,7 +381,7 @@ public class BugController {
             createAndPushNotification(savedBug.getRaisedBy().getId(), "Bug Created: " + savedBug.getJtrackId(),
                 "You have raised a Bug: '" + savedBug.getTitle() + "'.");
         }
-
+           emitBugEvent(savedBug, "CREATED", currentUser.getId());
 
         return savedBug;
     }
@@ -496,6 +500,7 @@ public class BugController {
                                         Task cr = bug.getBugTask();
                                         cr.setTotalRetests((cr.getTotalRetests() != null ? cr.getTotalRetests() : 0) + 1);
                                         taskRepository.save(cr);
+                                        emitTaskEvent(cr, "UPDATED", null);
                                     }
                                     bug.setStatus(devStep.getStepName());
                                     // Override bugDetails.status so it gets set correctly below
@@ -700,11 +705,13 @@ try {
                                 taskAuditLog.setChangedBy(currentUser);
                                 taskAuditLog.setChangedDate(java.time.LocalDateTime.now());
                                 auditLogRepository.save(taskAuditLog);
+                                emitTaskEvent(task, "UPDATED", currentUser.getId());
                             }
                         }
                     }
 
                     notificationService.sendMailOnBugUpdate(savedBug, bugDetails.getRemarks());
+                    emitBugEvent(savedBug, "UPDATED", currentUser.getId());
                     return ResponseEntity.ok(savedBug);
                 })
                 .orElse(ResponseEntity.notFound().build());
@@ -723,6 +730,7 @@ try {
 
                     bugWorkflowMapRepository.deleteByBugId(id);
                     bugRepository.delete(bug);
+                    emitBugEvent(bug, "DELETED", null);
                     return ResponseEntity.ok().build();
                 })
                 .orElse(ResponseEntity.notFound().build());
@@ -1134,6 +1142,46 @@ private boolean isBugCoOwner(Bug bug, String username) {
         }
     }
     return false;
+}
+
+private void emitBugEvent(Bug bug, String action, Long actorId) {
+    if (bug == null) return;
+    try {
+        java.util.Set<Long> recipients = new java.util.LinkedHashSet<>();
+        if (bug.getAssignedDeveloper() != null) recipients.add(bug.getAssignedDeveloper().getId());
+        if (bug.getDevelopers() != null) {
+            for (BugDeveloper bd : bug.getDevelopers()) {
+                if (bd.getDeveloper() != null) recipients.add(bd.getDeveloper().getId());
+            }
+        }
+        if (bug.getTester() != null) recipients.add(bug.getTester().getId());
+        if (bug.getRaisedBy() != null) recipients.add(bug.getRaisedBy().getId());
+        if (recipients.isEmpty()) return;
+        domainEventPublisher.publish(new java.util.ArrayList<>(recipients),
+            com.devtrack.api.event.DomainEventPayload.of("BUG", action, bug.getId(), actorId));
+    } catch (Exception e) {
+        log.warn("Failed to emit typed BUG event ({}) for id={}: {}", action, bug.getId(), e.getMessage());
+    }
+}
+
+private void emitTaskEvent(Task task, String action, Long actorId) {
+    if (task == null) return;
+    try {
+        java.util.Set<Long> recipients = new java.util.LinkedHashSet<>();
+        if (task.getAssignedDeveloper() != null) recipients.add(task.getAssignedDeveloper().getId());
+        if (task.getDevelopers() != null) {
+            for (com.devtrack.api.model.TaskDeveloper td : task.getDevelopers()) {
+                if (td.getDeveloper() != null) recipients.add(td.getDeveloper().getId());
+            }
+        }
+        if (task.getTester() != null) recipients.add(task.getTester().getId());
+        if (task.getCreatedBy() != null) recipients.add(task.getCreatedBy().getId());
+        if (recipients.isEmpty()) return;
+        domainEventPublisher.publish(new java.util.ArrayList<>(recipients),
+            com.devtrack.api.event.DomainEventPayload.of("TASK", action, task.getId(), actorId));
+    } catch (Exception e) {
+        log.warn("Failed to emit typed parent-CR TASK event ({}) for id={}: {}", action, task.getId(), e.getMessage());
+    }
 }
 
     private void createAndPushNotification(Long userId, String title, String desc) {

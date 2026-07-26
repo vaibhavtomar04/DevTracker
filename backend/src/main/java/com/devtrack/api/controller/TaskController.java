@@ -106,6 +106,9 @@ public class TaskController {
     @Autowired
     private ApplicationEventPublisher applicationEventPublisher;
 
+    @Autowired
+    private com.devtrack.api.event.DomainEventPublisher domainEventPublisher;
+
     TaskController(EmailNotificationService emailNotificationService) {
         this.emailNotificationService = emailNotificationService;
     }
@@ -331,8 +334,8 @@ public class TaskController {
         }
         
         notifyAllDevelopersAndTester(savedTask, "New CR Created: " + savedTask.getJtrackId(), 
-            "Change Request (CR) '" + savedTask.getTitle() + "' has been successfully created and assigned.");
-            
+            savedTask.getTitle() + "' has been successfully created and assigned.");
+            emitTaskEvent(savedTask, "CREATED", currentUser.getId());
         return savedTask;
     }
 
@@ -753,6 +756,7 @@ public class TaskController {
                     }
 
                     Task reloaded = taskRepository.findByIdOptimized(saved.getId()).orElse(saved);
+                    emitTaskEvent(reloaded, "UPDATED", currentUser.getId());
                     return ResponseEntity.ok(reloaded);
                 })
                 .orElse(ResponseEntity.notFound().build());
@@ -1057,7 +1061,7 @@ public class TaskController {
 
                     // Finally, delete the task itself
                     taskRepository.delete(task);
-                    
+                    emitTaskEvent(task, "DELETED", currentUser.getId());
                     return ResponseEntity.ok().build();
                 })
                 .orElse(ResponseEntity.notFound().build());
@@ -1547,6 +1551,25 @@ public class TaskController {
         }
     }
 
+    private void emitTaskEvent(Task task, String action, Long actorId) {
+    if (task == null) return;
+    try {
+        java.util.Set<Long> recipients = new java.util.LinkedHashSet<>();
+        if (task.getAssignedDeveloper() != null) recipients.add(task.getAssignedDeveloper().getId());
+        if (task.getDevelopers() != null) {
+            for (TaskDeveloper td : task.getDevelopers()) {
+                if (td.getDeveloper() != null) recipients.add(td.getDeveloper().getId());
+            }
+        }
+        if (task.getTester() != null) recipients.add(task.getTester().getId());
+        if (task.getCreatedBy() != null) recipients.add(task.getCreatedBy().getId());
+        if (recipients.isEmpty()) return;
+        domainEventPublisher.publish(new java.util.ArrayList<>(recipients),
+            com.devtrack.api.event.DomainEventPayload.of("TASK", action, task.getId(), actorId));
+    } catch (Exception e) {
+        log.warn("Failed to emit typed TASK event ({}) for id={}: {}", action, task.getId(), e.getMessage());
+    }
+}
     private void notifyAllDevelopersAndTester(Task task, String title, String desc) {
         if (task == null) return;
         if (task.getAssignedDeveloper() != null) {
