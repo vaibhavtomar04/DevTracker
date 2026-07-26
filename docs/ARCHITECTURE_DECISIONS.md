@@ -129,3 +129,41 @@ Set `ENABLE_WS_LIFECYCLE_V2=false` (runtime `window.__FEATURES__` or `VITE_ENABL
 **Verification (2026-07-26, user-captured):** clean DevTools WS capture (Preserve log off, hard reload) confirmed exactly **1** `notifications?userId=` socket after settle, holding at **1** across repeated back/forth navigation (the exact repro that previously climbed), with no idle REST fan-out from notifications. Accepted and tagged `perf-phase1-stable` @ `423d199`.
 
 **Follow-up logged (out of Phase 1.1 scope — candidate for the Phase 2/4 backend pass):** add stale-session reaping in `NotificationWebSocketHandler.sendToUser` (its comment claims it removes closed sessions, but the code only skips them) and verify prompt close-handshake completion server-side.
+
+---
+
+## ADR-004: Single Dashboard Bootstrap Owner (Bootstrap De-duplication)
+
+- **Status:** Accepted (Phase 1.2 build + cold-load network verification passed; immutable checkpoint tag `perf-phase1.2-bootstrap` = commit `81a97bc` created 2026-07-26)
+- **Date:** 2026-07-26
+- **Branch:** `feature/performance-architecture-migration`
+- **Phase:** 1.2 (Stabilize — bootstrap de-duplication)
+
+### Problem
+Runtime verification (Phase 0) showed the developer dashboard cold load issuing the full core data batch **twice, concurrently**. `DashboardLayout` (rendered for every authenticated route via `<ProtectedRoute>`) fires `useTaskStore.fetchData()` (non-forced) + `fetchSprints()` on mount, while `developerDashboard` independently fired `fetchData(true)` (**forced**) + `fetchSprints()` in its own mount effect. Because the forced call bypasses the store's in-flight / 10s throttle guards, both ran in parallel on first paint — producing two overlapping copies of `/api/tasks?page=0&size=100` (~786 kB each), `/api/bugs` (~175 kB), `/api/audit` (~4.3 MB each), `/api/configs`, `/api/users`, and the batch-2 endpoints. This doubled the initial payload and REST count against the P1 cold-load budget with zero functional benefit (identical data fetched twice).
+
+### Decision
+Establish `DashboardLayout` as the **single owner** of the core task + sprint bootstrap. Pages assume the core data is already loading/loaded by the Layout and do not re-issue it. In `developerDashboard` the mount-effect `fetchData(true)` and `fetchSprints()` are gated behind `!FEATURES.ENABLE_NEW_BOOTSTRAP` (default on), so with the flag enabled the page trusts the Layout bootstrap and skips the duplicate forced fetch. `fetchSummary()` (role KPI cards) and `fetchBugReviews()` (page-specific data the Layout does not own) remain unconditional — they are not duplicates.
+
+The 5s `setInterval(fetchData(true))` poll on the developer dashboard is intentionally **left unchanged** in this phase; polling removal is a separate, later strangler-fig step gated by `ENABLE_POLLING_REMOVAL`.
+
+### Feature Flag
+`ENABLE_NEW_BOOTSTRAP` (frontend `FEATURES`, env `VITE_ENABLE_NEW_BOOTSTRAP`, runtime override `window.__FEATURES__`, default **enabled**). The flag was registered in `appConfig.ts` (commit `82634f8`). Disabling it restores the legacy double-bootstrap (the page re-issues its own forced fetch) with no redeploy.
+
+### Alternatives Considered
+1. **Delete the page's fetch outright** — rejected; not reversible without a redeploy, violating the strangler-fig / reversible-flag mandate.
+2. **Fold every dashboard into the flag at once** — deferred; `testerDashboard` / `adminDashboard` call `fetchData()` **non-forced**, so the in-flight / throttle guard already dedupes them against the Layout — they do not cause the P1 double-fetch. They can be gated later for symmetry.
+3. **Dedupe in the store by demoting forced calls to non-forced while a fetch is in flight** — rejected; changes global fetch semantics and risks masking legitimately-needed forced refreshes elsewhere.
+
+### Verification (2026-07-26, user-captured)
+Cold hard reload (DevTools Network, Disable cache on) confirmed a **single** set of the bootstrap endpoints — one `/api/tasks?page=0&size=100` (786 kB), one `/api/bugs` (175 kB), one `/api/configs`, one `/api/audit` (4,313 kB), one each of `test-cases` / `bug-reviews` / `sprint-tasks` — where the pre-fix load issued two concurrent copies. KPI cards still populate from `fetchSummary`; no functional regression. DOMContentLoaded ≈ 2.19 s, Load ≈ 2.39 s. Accepted and tagged `perf-phase1.2-bootstrap` @ `81a97bc`.
+
+### Consequences
+- **Positive:** Eliminates the duplicate concurrent core batch on developer-dashboard cold load, removing a redundant ~4.3 MB `/api/audit` + ~786 kB `/api/tasks` + ~175 kB `/api/bugs` (plus batch-2) from first paint; clean per-flag rollback with no redeploy.
+- **Trade-offs:** Pages now depend on the Layout having initiated the bootstrap; any page rendered outside `DashboardLayout` (none today) would need its own fetch or the flag off.
+- **Note:** The remaining single `/api/audit` (~4.3 MB, ~930 ms) is now the largest cold-load cost and is the target of **Phase 1.3 (lazy `/api/audit`)**. A second, independent `/api/users` fetch observed in the capture is unrelated to this duplication and is flagged for the **Phase 1.4** reference-data split.
+
+### Related Files
+- `frontend/src/pages/developerDashboard.tsx` (import `FEATURES`; gate forced `fetchData(true)` + `fetchSprints()` behind `!ENABLE_NEW_BOOTSTRAP`)
+- `DashboardLayout` (designated bootstrap owner — unchanged this phase)
+- `frontend/src/config/appConfig.ts` (`ENABLE_NEW_BOOTSTRAP` flag)
