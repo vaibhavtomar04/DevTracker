@@ -92,6 +92,20 @@ export const FEATURES = {
     import.meta.env.VITE_ENABLE_NEW_BOOTSTRAP,
     true,
   ),
+
+  // Phase 1.3 (perf) — /api/audit (~4MB, the single heaviest cold-load payload) is
+  // removed from the blocking secondary batch in taskStore.fetchData and loaded
+  // deferred (requestIdleCallback, setTimeout fallback) after first paint. auditLogs
+  // remains the single store source every consumer reads; it just populates off the
+  // critical path so the initial payload stays lean. Reversible without a code change:
+  //   • runtime:    window.__FEATURES__.ENABLE_LAZY_AUDIT = false (before bootstrap)
+  //   • build-time: VITE_ENABLE_LAZY_AUDIT=false
+  // Disabling restores the eager audit load inside the secondary batch (rollback for perf-phase1.3).
+  ENABLE_LAZY_AUDIT: readFlag(
+    'ENABLE_LAZY_AUDIT',
+    import.meta.env.VITE_ENABLE_LAZY_AUDIT,
+    true,
+  ),
 };
 
 export default APP_CONFIG;
