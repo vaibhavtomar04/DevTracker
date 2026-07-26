@@ -68,3 +68,50 @@ A Change Request historically belonged to exactly one developer via `tasks.assig
 - **Positive:** True team co-ownership with equal standing and no primary-owner hierarchy; single-developer flows are provably unchanged (N = 1 union collapse); a clean UI kill-switch for staged rollout.
 - **Trade-offs:** Immutable teams mean a mis-assignment requires a new CR rather than an in-place edit; equal point-splitting is a deliberate policy choice over weighted contribution.
 - **Git Safety:** Executed entirely on `feature/multi-developer-cr` with immutable tagged phase checkpoints (`mdev-phase0-verified` through `mdev-phase5-cleanup`); `main` is never directly committed and the PR is approval-gated.
+
+---
+
+## ADR-003: WebSocket Lifecycle — Singleton Connection Manager
+
+- **Status:** Proposed (flips to Accepted once Phase 1.1 build + regression checklist pass and tag `perf-phase1-stable` is created)
+- **Date:** 2026-07-26
+- **Branch:** `feature/performance-architecture-migration`
+- **Phase:** 1.1 (Stabilize — WebSocket lifecycle)
+
+### Problem
+While idle on the dashboard, REST traffic compounded without ever plateauing (P2). Runtime verification (Phase 0) confirmed **~9 → ~13 and climbing** simultaneous `/ws/notifications?userId=` sockets (DevTools WS tab), all initiated by `notificationStore.ts`, growing on back/forth navigation.
+
+Root cause in `notificationStore.ts` `connect()`: `reconnectAttempts`, `doConnect`, `fetchDataDebounceTimer` and the reconnect `setTimeout` were **closure-locals recreated on every `connect()` call**. `connect()` only closed the stored `_ws` and cleared the stored `_pollInterval` — it never cancelled a prior closure's pending reconnect timer. So each extra `connect()` (React StrictMode double-invoke, route remount, re-login) spawned an **independent, self-perpetuating reconnect chain**. Every surviving chain kept its own socket + `onmessage` handler, and each notification triggered a debounced `useTaskStore.fetchData(true)` → **8 REST calls** → N chains × 8 = the compounding curve. Two further defects: `ws.onclose` reconnected even after an intentional `disconnect()` (no intentional-close flag), and `reconnectAttempts` was reset to 0 on **every** `onopen`, removing the retry bound.
+
+### Alternatives Considered
+1. **Guard with a boolean `isConnected` flag** — insufficient; does not cancel already-scheduled reconnect timers from superseded closures.
+2. **Move socket/timers into Zustand state** — possible, but exposes transport internals to React and still needs explicit supersession logic.
+3. **Module-level singleton manager with a generation token (chosen).**
+
+### Decision
+Introduce a module-scoped singleton connection manager in `notificationStore.ts` that owns a single `activeSocket`, one reconnect chain (`reconnectTimer`), one poll timer (`pollTimer`) and one debounce timer (`debounceTimer`). A monotonically increasing `connectionGeneration` token is captured by every socket callback; any callback whose generation is stale returns immediately, so a superseded chain cannot act. `startManagedConnection()` is **idempotent** (reuses a live/connecting socket for the same user). An `intentionalDisconnect` flag suppresses reconnection after `disconnect()`. `reconnectAttempts` is bounded (max 5) and is **no longer reset on every `onopen`** — it resets only after the socket stays open for a `STABILITY_RESET_MS` (10s) stability window.
+
+Gated behind `FEATURES.ENABLE_WS_LIFECYCLE_V2` (default on). The **legacy connection manager is preserved verbatim** and restored when the flag is off (strangler-fig; rollback without redeploy via `window.__FEATURES__` or `VITE_ENABLE_WS_LIFECYCLE_V2=false`).
+
+### Technical Rationale
+A generation token is the only approach that reliably neutralises already-scheduled timers from earlier `connect()` invocations without tracking each closure individually. Module scope guarantees a true per-tab singleton independent of React's component/StrictMode lifecycle.
+
+### Trade-offs
+- Connection state lives at module scope rather than in the store (transport is deliberately kept out of React state).
+- The stability-window reset is a heuristic; a server that stays up >10s then flaps will still get a fresh retry budget (acceptable, and strictly better than resetting on every onopen).
+
+### Risks
+- If some caller depended on the store fields `_ws` / `_pollInterval` being populated in v2 mode, they will now be null (audited: only `connect`/`disconnect` reference them). Mitigated by the flag.
+- Behavioural change to reconnect cadence under a flapping server; covered by the regression checklist.
+
+### Expected Performance Impact
+- Active WebSocket connections per user: **~9–13 → 1**.
+- Idle REST requests driven by leaked chains: **eliminated** (a single healthy socket triggers at most one debounced refresh per notification burst; the legacy `fetchData(true)` fan-out is removed later in Phase 3).
+- No change to notification correctness (dedupe-by-id + reconnect re-sync retained).
+
+### Rollback Strategy
+Set `ENABLE_WS_LIFECYCLE_V2=false` (runtime `window.__FEATURES__` or `VITE_ENABLE_WS_LIFECYCLE_V2=false`) to restore the legacy connection manager. No data migration involved.
+
+### Related Files
+- `frontend/src/store/notificationStore.ts`
+- `frontend/src/config/appConfig.ts`

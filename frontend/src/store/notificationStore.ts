@@ -3,14 +3,19 @@
  *
  * Architecture:
  *  - Primary: WebSocket at /ws/notifications?userId={userId}
- *  - Fallback: HTTP polling every 10 seconds when WS is disconnected
+ *  - Fallback: HTTP polling every 15 seconds when WS is disconnected
  *  - On reconnect: re-sync via REST to catch any missed messages
  *  - Frontend never loses notifications even if WS drops
+ *
+ * Phase 1.1 (perf): a module-level singleton connection manager guarantees
+ * exactly one socket, one message handler, one reconnect chain and one poll
+ * timer per logged-in user. Gated behind FEATURES.ENABLE_WS_LIFECYCLE_V2; when
+ * disabled the legacy connection manager (preserved below) is restored.
  */
 
 import { create } from 'zustand';
 import { useTaskStore } from './taskStore';
-import { APP_CONFIG } from '@/config/appConfig';
+import { APP_CONFIG, FEATURES } from '@/config/appConfig';
 
 export interface AppNotification {
   id: number;
@@ -54,7 +59,7 @@ interface NotificationState {
   connect: (userId: number) => void;
   disconnect: () => void;
   
-  // Internal
+  // Internal (legacy manager only; the v2 singleton manager is module-scoped)
   _ws: WebSocket | null;
   _pollInterval: ReturnType<typeof setInterval> | null;
 }
@@ -257,6 +262,13 @@ export const useNotificationStore = create<NotificationState>((set, get) => ({
 
   // ── WebSocket connect ────────────────────────────────────────────
   connect: (userId: number) => {
+    if (FEATURES.ENABLE_WS_LIFECYCLE_V2) {
+      // v2: delegate to the module-level singleton connection manager.
+      startManagedConnection(userId);
+      return;
+    }
+
+    // ===== LEGACY connection manager (rollback: ENABLE_WS_LIFECYCLE_V2=false) =====
     const state = get();
     
     // Close existing connection
@@ -345,6 +357,12 @@ export const useNotificationStore = create<NotificationState>((set, get) => ({
 
   // ── WebSocket disconnect ─────────────────────────────────────────
   disconnect: () => {
+    if (FEATURES.ENABLE_WS_LIFECYCLE_V2) {
+      stopManagedConnection();
+      return;
+    }
+
+    // ===== LEGACY disconnect =====
     const state = get();
     if (state._ws) {
       try { state._ws.close(); } catch { /* ignore */ }
@@ -355,3 +373,178 @@ export const useNotificationStore = create<NotificationState>((set, get) => ({
     set({ _ws: null, _pollInterval: null, wsStatus: 'disconnected' });
   },
 }));
+
+// ─────────────────────────────────────────────────────────────────────────
+// Phase 1.1 — Singleton WebSocket connection manager (module-scoped)
+//
+// Guarantees per logged-in user, regardless of how many times connect() is
+// called (StrictMode double-invoke, route remounts, re-login):
+//   • exactly one active socket        • exactly one poll interval
+//   • exactly one message handler      • exactly one reconnect chain
+//   • bounded retry that does NOT reset reconnectAttempts on every onopen
+//   • no reconnect after an intentional disconnect
+//
+// A monotonically increasing `connectionGeneration` token invalidates every
+// callback (onopen/onmessage/onclose/reconnect) belonging to a superseded
+// connect() call, so an old orphan chain can never keep firing fetchData(true)
+// in the background — the P2 compounding root cause.
+// ─────────────────────────────────────────────────────────────────────────
+
+const MAX_RECONNECT_ATTEMPTS = 5;
+const RECONNECT_BASE_MS = 1000;
+const RECONNECT_MAX_MS = 30000;
+const STABILITY_RESET_MS = 10000;
+const FETCH_DEBOUNCE_MS = 500;
+const POLL_INTERVAL_MS = 15000;
+
+let activeSocket: WebSocket | null = null;
+let reconnectTimer: ReturnType<typeof setTimeout> | null = null;
+let stabilityTimer: ReturnType<typeof setTimeout> | null = null;
+let debounceTimer: ReturnType<typeof setTimeout> | null = null;
+let pollTimer: ReturnType<typeof setInterval> | null = null;
+let reconnectAttempts = 0;
+let intentionalDisconnect = false;
+let connectionGeneration = 0;
+let activeUserId: number | null = null;
+
+function clearManagerTimers(): void {
+  if (reconnectTimer) { clearTimeout(reconnectTimer); reconnectTimer = null; }
+  if (stabilityTimer) { clearTimeout(stabilityTimer); stabilityTimer = null; }
+  if (debounceTimer) { clearTimeout(debounceTimer); debounceTimer = null; }
+  if (pollTimer) { clearInterval(pollTimer); pollTimer = null; }
+}
+
+function teardownSocket(): void {
+  if (activeSocket) {
+    const old = activeSocket;
+    activeSocket = null;
+    try {
+      old.onopen = null;
+      old.onmessage = null;
+      old.onclose = null;
+      old.onerror = null;
+      old.close();
+    } catch { /* ignore */ }
+  }
+}
+
+function scheduleReconnect(userId: number, myGen: number): void {
+  if (myGen !== connectionGeneration) return;      // superseded chain
+  if (intentionalDisconnect) return;               // do not reconnect after disconnect()
+  if (reconnectAttempts >= MAX_RECONNECT_ATTEMPTS) return; // bounded retry
+  const delay = Math.min(RECONNECT_BASE_MS * Math.pow(2, reconnectAttempts), RECONNECT_MAX_MS);
+  reconnectAttempts++;
+  if (reconnectTimer) clearTimeout(reconnectTimer);
+  reconnectTimer = setTimeout(() => {
+    reconnectTimer = null;
+    if (myGen !== connectionGeneration || intentionalDisconnect) return;
+    openManagedSocket(userId, myGen);
+  }, delay);
+}
+
+function openManagedSocket(userId: number, myGen: number): void {
+  if (myGen !== connectionGeneration) return;
+  const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+  const wsUrl = `${wsProtocol}//${window.location.host}${APP_CONFIG.contextPath}/ws/notifications?userId=${userId}`;
+  useNotificationStore.setState({ wsStatus: 'connecting' });
+
+  let ws: WebSocket;
+  try {
+    ws = new WebSocket(wsUrl);
+  } catch {
+    useNotificationStore.setState({ wsStatus: 'error' });
+    scheduleReconnect(userId, myGen);
+    return;
+  }
+  activeSocket = ws;
+
+  ws.onopen = () => {
+    if (myGen !== connectionGeneration) { try { ws.close(); } catch { /* ignore */ } return; }
+    useNotificationStore.setState({ wsStatus: 'connected' });
+    // Intentionally do NOT reset reconnectAttempts on every onopen — that turns
+    // a flapping server into an unbounded reconnect storm. Reset only after the
+    // socket has proven stable for STABILITY_RESET_MS.
+    if (stabilityTimer) clearTimeout(stabilityTimer);
+    stabilityTimer = setTimeout(() => {
+      stabilityTimer = null;
+      if (myGen === connectionGeneration) reconnectAttempts = 0;
+    }, STABILITY_RESET_MS);
+    // Re-sync on (re)connect to catch any missed messages
+    useNotificationStore.getState().fetchNotifications(userId);
+  };
+
+  ws.onmessage = (event: MessageEvent) => {
+    if (myGen !== connectionGeneration) return;
+    try {
+      const data = JSON.parse(event.data) as { type: string; notification: AppNotification };
+      if (data.type === 'NOTIFICATION' && data.notification) {
+        useNotificationStore.getState().addNotification(data.notification);
+        // Strangler-fig fallback until typed events land (Phase 2). A single
+        // shared debounce timer collapses a burst into one refresh.
+        if (debounceTimer) clearTimeout(debounceTimer);
+        debounceTimer = setTimeout(() => {
+          debounceTimer = null;
+          useTaskStore.getState().fetchData(true);
+        }, FETCH_DEBOUNCE_MS);
+      }
+    } catch { /* malformed message */ }
+  };
+
+  ws.onclose = () => {
+    if (myGen !== connectionGeneration) return;    // superseded socket — ignore
+    if (stabilityTimer) { clearTimeout(stabilityTimer); stabilityTimer = null; }
+    if (activeSocket === ws) activeSocket = null;
+    useNotificationStore.setState({ wsStatus: 'disconnected' });
+    if (intentionalDisconnect) return;             // intentional close: no reconnect
+    scheduleReconnect(userId, myGen);
+  };
+
+  ws.onerror = () => {
+    if (myGen !== connectionGeneration) return;
+    useNotificationStore.setState({ wsStatus: 'error' });
+    try { ws.close(); } catch { /* ignore */ }
+    // onclose drives the reconnect decision
+  };
+}
+
+function startManagedConnection(userId: number): void {
+  // Idempotent: reuse an existing live/connecting socket for the same user
+  // instead of opening another → exactly one socket across remounts/StrictMode.
+  if (
+    activeUserId === userId &&
+    activeSocket &&
+    (activeSocket.readyState === WebSocket.OPEN ||
+      activeSocket.readyState === WebSocket.CONNECTING)
+  ) {
+    return;
+  }
+
+  // Supersede any prior generation and fully tear it down (socket + all timers).
+  connectionGeneration++;
+  const myGen = connectionGeneration;
+  intentionalDisconnect = false;
+  reconnectAttempts = 0;
+  activeUserId = userId;
+  clearManagerTimers();
+  teardownSocket();
+
+  // Initial REST sync + single fallback poll timer.
+  useNotificationStore.getState().fetchNotifications(userId);
+  pollTimer = setInterval(() => {
+    if (useNotificationStore.getState().wsStatus !== 'connected') {
+      useNotificationStore.getState().fetchNotifications(userId);
+    }
+  }, POLL_INTERVAL_MS);
+
+  openManagedSocket(userId, myGen);
+}
+
+function stopManagedConnection(): void {
+  intentionalDisconnect = true;
+  connectionGeneration++; // invalidate every in-flight callback / reconnect chain
+  activeUserId = null;
+  reconnectAttempts = 0;
+  clearManagerTimers();
+  teardownSocket();
+  useNotificationStore.setState({ wsStatus: 'disconnected' });
+}

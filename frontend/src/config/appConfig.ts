@@ -44,9 +44,40 @@ export const APP_CONFIG = {
   apiUrl: `${currentConfig.hostname}${currentConfig.contextPath}`,
 };
 
+/**
+ * Reads a runtime feature flag with two override layers, most specific first:
+ *   1. window.__FEATURES__[winKey] (boolean) — flip at runtime before app
+ *      bootstrap without a rebuild (true reversibility for canary/rollback).
+ *   2. Vite env var (VITE_*) — build-time default.
+ *   3. `fallback` — hard default when neither is set.
+ */
+const readFlag = (winKey: string, envValue: unknown, fallback = true): boolean => {
+  if (
+    typeof window !== 'undefined' &&
+    typeof (window as any).__FEATURES__ === 'object' &&
+    (window as any).__FEATURES__ !== null &&
+    typeof (window as any).__FEATURES__[winKey] === 'boolean'
+  ) {
+    return (window as any).__FEATURES__[winKey];
+  }
+  if (envValue === undefined || envValue === null) return fallback;
+  return String(envValue).toLowerCase() !== 'false';
+};
+
 export const FEATURES = {
   ENABLE_MULTI_DEV_CR:
     String(import.meta.env.VITE_ENABLE_MULTI_DEV_CR ?? 'true').toLowerCase() !== 'false',
+
+  // Phase 1.1 (perf) — singleton WebSocket connection manager in
+  // notificationStore.ts. Reversible without a code change:
+  //   • runtime:    window.__FEATURES__.ENABLE_WS_LIFECYCLE_V2 = false (before bootstrap)
+  //   • build-time: VITE_ENABLE_WS_LIFECYCLE_V2=false
+  // Disabling restores the legacy connection manager (rollback for perf-phase1).
+  ENABLE_WS_LIFECYCLE_V2: readFlag(
+    'ENABLE_WS_LIFECYCLE_V2',
+    import.meta.env.VITE_ENABLE_WS_LIFECYCLE_V2,
+    true,
+  ),
 };
 
 export default APP_CONFIG;
