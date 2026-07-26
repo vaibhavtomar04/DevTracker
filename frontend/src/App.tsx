@@ -2,7 +2,6 @@ import React, { Component, lazy, Suspense, useEffect } from "react"
 import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom"
 import { useAuthStore } from "@/store/authStore"
 import { useThemeStore } from "@/store/themeStore"
-import DashboardLayout from "@/layouts/DashboardLayout"
 import DownloadPromptModal from "@/components/shared/DownloadPromptModal"
 import { APP_CONFIG } from "@/config/appConfig"
 
@@ -28,6 +27,8 @@ const TestedCrsPage = lazy(() => import("@/pages/testedCrs"))
 const MissedDeadlinesPage = lazy(() => import("@/pages/missedDeadlines"))
 const RecognitionPage = lazy(() => import("@/pages/recognition"))
 const LeaderboardPage = lazy(() => import("@/pages/leaderboard"))
+const DashboardLayout = lazy(() => import("@/layouts/DashboardLayout"))
+
 
 // Dynamic main workspace redirect depending on user roles
 function RoleBasedWorkspace() {
@@ -39,7 +40,7 @@ function RoleBasedWorkspace() {
   if (user.roles.includes("DEVADMIN") || user.roles.includes("CODEREVIEWER")) {
     return <AdminDashboard />
   }
-  
+
   // DEVELOPER landing
   if (user.roles.includes("DEVELOPER")) {
     return <DeveloperDashboard />
@@ -77,7 +78,7 @@ function ProtectedRoute({ children, allowedRoles }: ProtectedRouteProps) {
   if (allowedRoles && !allowedRoles.some(role => user.roles.includes(role))) {
     return <Navigate to="/dashboard" replace />
   }
-  
+
   return <DashboardLayout>{children}</DashboardLayout>
 }
 
@@ -90,7 +91,7 @@ function LoadingSpinner() {
     <div className="min-h-screen bg-background flex flex-col items-center justify-center text-foreground overflow-hidden relative">
       {/* Background ambient orbs */}
       <div className="absolute w-72 h-72 bg-primary/10 rounded-full blur-[100px]" />
-      
+
       <div className="relative flex flex-col items-center z-10">
         {/* Pulsing rings and icon */}
         <div className="relative h-16 w-16 mb-6 flex items-center justify-center">
@@ -172,12 +173,7 @@ class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState> {
           <div className="absolute -top-24 -right-24 w-96 h-96 bg-rose-500/10 blur-[120px] rounded-full pointer-events-none" />
           <div className="absolute -bottom-24 -left-24 w-96 h-96 bg-violet-600/10 blur-[120px] rounded-full pointer-events-none" />
 
-          <motion.div
-            initial={{ opacity: 0, y: 16, scale: 0.98 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            transition={{ duration: 0.4, ease: "easeOut" }}
-            className="relative z-10 w-full max-w-lg rounded-3xl border border-white/[0.08] bg-white/[0.03] backdrop-blur-xl p-8 shadow-[0_24px_80px_rgba(0,0,0,0.5)] text-center"
-          >
+          <div className="relative z-10 w-full max-w-lg rounded-3xl border border-white/[0.08] bg-white/[0.03] backdrop-blur-xl p-8 shadow-[0_24px_80px_rgba(0,0,0,0.5)] text-center">
             {/* Icon badge */}
             <div className="mx-auto mb-5 flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-rose-500/20 to-fuchsia-500/10 border border-rose-500/20 shadow-[0_0_30px_rgba(244,63,94,0.15)]">
               <AlertTriangle className="h-7 w-7 text-rose-400" strokeWidth={1.75} />
@@ -220,7 +216,7 @@ class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState> {
                 </pre>
               </details>
             )}
-          </motion.div>
+          </div>
         </div>
       )
     }
@@ -255,7 +251,7 @@ function App() {
                 )
               }
             />
-            
+
             {/* Set New Password — forced first-login password reset */}
             <Route path="/set-new-password" element={<SetNewPasswordPage />} />
 
@@ -271,7 +267,7 @@ function App() {
                 </ProtectedRoute>
               }
             />
-            
+
             <Route
               path="/dashboard/crs"
               element={
@@ -280,7 +276,7 @@ function App() {
                 </ProtectedRoute>
               }
             />
-            
+
             <Route
               path="/dashboard/code-review"
               element={
