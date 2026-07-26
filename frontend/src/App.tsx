@@ -2,6 +2,7 @@ import React, { Component, lazy, Suspense, useEffect } from "react"
 import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom"
 import { useAuthStore } from "@/store/authStore"
 import { useThemeStore } from "@/store/themeStore"
+import DashboardLayout from "@/layouts/DashboardLayout"
 import DownloadPromptModal from "@/components/shared/DownloadPromptModal"
 import { APP_CONFIG } from "@/config/appConfig"
 
@@ -27,8 +28,6 @@ const TestedCrsPage = lazy(() => import("@/pages/testedCrs"))
 const MissedDeadlinesPage = lazy(() => import("@/pages/missedDeadlines"))
 const RecognitionPage = lazy(() => import("@/pages/recognition"))
 const LeaderboardPage = lazy(() => import("@/pages/leaderboard"))
-const DashboardLayout = lazy(() => import("@/layouts/DashboardLayout"))
-
 
 // Dynamic main workspace redirect depending on user roles
 function RoleBasedWorkspace() {
@@ -40,7 +39,7 @@ function RoleBasedWorkspace() {
   if (user.roles.includes("DEVADMIN") || user.roles.includes("CODEREVIEWER")) {
     return <AdminDashboard />
   }
-
+  
   // DEVELOPER landing
   if (user.roles.includes("DEVELOPER")) {
     return <DeveloperDashboard />
@@ -78,12 +77,12 @@ function ProtectedRoute({ children, allowedRoles }: ProtectedRouteProps) {
   if (allowedRoles && !allowedRoles.some(role => user.roles.includes(role))) {
     return <Navigate to="/dashboard" replace />
   }
-
+  
   return <DashboardLayout>{children}</DashboardLayout>
 }
 
 import { Terminal, AlertTriangle, RefreshCw, LayoutDashboard } from "lucide-react"
-
+import { motion } from "framer-motion"
 
 // Premium Animated Loading Spinner
 function LoadingSpinner() {
@@ -91,34 +90,51 @@ function LoadingSpinner() {
     <div className="min-h-screen bg-background flex flex-col items-center justify-center text-foreground overflow-hidden relative">
       {/* Background ambient orbs */}
       <div className="absolute w-72 h-72 bg-primary/10 rounded-full blur-[100px]" />
-
+      
       <div className="relative flex flex-col items-center z-10">
         {/* Pulsing rings and icon */}
         <div className="relative h-16 w-16 mb-6 flex items-center justify-center">
           {[0, 1, 2].map((i) => (
-            <span
+            <motion.div
               key={i}
-              className="absolute inset-0 rounded-full border border-primary/40 animate-ping"
-              style={{ animationDuration: "2.2s", animationDelay: `${i * 0.7}s` }}
+              className="absolute rounded-full border border-primary/40"
+              style={{ width: "100%", height: "100%" }}
+              initial={{ scale: 0.6, opacity: 0.8 }}
+              animate={{
+                scale: [0.6, 1.8, 2.2],
+                opacity: [0.8, 0.4, 0]
+              }}
+              transition={{
+                duration: 2.2,
+                repeat: Infinity,
+                delay: i * 0.7,
+                ease: "easeOut"
+              }}
             />
           ))}
-          <div
-            className="relative h-12 w-12 rounded-xl bg-gradient-to-tr from-primary to-secondary flex items-center justify-center shadow-[0_0_24px_rgba(var(--primary-rgb),0.4)] animate-spin"
-            style={{ animationDuration: "8s" }}
+          <motion.div
+            animate={{ rotate: 360 }}
+            transition={{ duration: 8, repeat: Infinity, ease: "linear" }}
+            className="relative h-12 w-12 rounded-xl bg-gradient-to-tr from-primary to-secondary flex items-center justify-center shadow-[0_0_24px_rgba(var(--primary-rgb),0.4)]"
           >
             <Terminal className="h-5 w-5 text-white" />
-          </div>
+          </motion.div>
         </div>
 
         {/* Text */}
-        <div className="flex flex-col items-center gap-1.5">
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5 }}
+          className="flex flex-col items-center gap-1.5"
+        >
           <span className="text-sm font-black tracking-[0.2em] text-foreground uppercase font-mono">
             DEVTRACK
           </span>
           <span className="text-[10px] font-bold text-primary/80 tracking-widest uppercase animate-pulse">
             Loading Workspace...
           </span>
-        </div>
+        </motion.div>
       </div>
     </div>
   )
@@ -156,52 +172,57 @@ class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState> {
           <div className="absolute -top-24 -right-24 w-96 h-96 bg-rose-500/10 blur-[120px] rounded-full pointer-events-none" />
           <div className="absolute -bottom-24 -left-24 w-96 h-96 bg-violet-600/10 blur-[120px] rounded-full pointer-events-none" />
 
-          <div className="relative z-10 w-full max-w-lg rounded-3xl border border-white/[0.08] bg-white/[0.03] backdrop-blur-xl p-8 shadow-[0_24px_80px_rgba(0,0,0,0.5)] text-center">
+          <motion.div
+            initial={{ opacity: 0, y: 16, scale: 0.98 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            transition={{ duration: 0.4, ease: "easeOut" }}
+            className="relative z-10 w-full max-w-lg rounded-3xl border border-white/[0.08] bg-white/[0.03] backdrop-blur-xl p-8 shadow-[0_24px_80px_rgba(0,0,0,0.5)] text-center"
+          >
             {/* Icon badge */}
-          <div className="mx-auto mb-5 flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-rose-500/20 to-fuchsia-500/10 border border-rose-500/20 shadow-[0_0_30px_rgba(244,63,94,0.15)]">
-            <AlertTriangle className="h-7 w-7 text-rose-400" strokeWidth={1.75} />
-          </div>
+            <div className="mx-auto mb-5 flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-rose-500/20 to-fuchsia-500/10 border border-rose-500/20 shadow-[0_0_30px_rgba(244,63,94,0.15)]">
+              <AlertTriangle className="h-7 w-7 text-rose-400" strokeWidth={1.75} />
+            </div>
 
-          <h2 className="text-xl font-black tracking-tight text-foreground">
-            Something went wrong
-          </h2>
-          <p className="mt-2 text-sm text-muted-foreground leading-relaxed">
-            This section hit an unexpected error. Your data is safe — try reloading, or head back to your dashboard.
-          </p>
+            <h2 className="text-xl font-black tracking-tight text-foreground">
+              Something went wrong
+            </h2>
+            <p className="mt-2 text-sm text-muted-foreground leading-relaxed">
+              This section hit an unexpected error. Your data is safe — try reloading, or head back to your dashboard.
+            </p>
 
-          {/* Actions */}
-          <div className="mt-6 flex flex-col sm:flex-row items-center justify-center gap-2.5">
-            <button
-              onClick={() => window.location.reload()}
-              className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-5 py-2.5 text-xs font-bold rounded-xl bg-gradient-to-r from-violet-600 to-indigo-600 text-white hover:opacity-90 transition-opacity cursor-pointer shadow-lg shadow-violet-900/30"
-            >
-              <RefreshCw className="h-3.5 w-3.5" /> Reload Application
-            </button>
-            <button
-              onClick={() => { window.location.href = (APP_CONFIG.contextPath || "") + "/dashboard" }}
-              className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-5 py-2.5 text-xs font-bold rounded-xl border border-white/[0.1] bg-white/[0.04] text-slate-200 hover:bg-white/[0.08] transition-colors cursor-pointer"
-            >
-              <LayoutDashboard className="h-3.5 w-3.5" /> Back to Dashboard
-            </button>
-          </div>
+            {/* Actions */}
+            <div className="mt-6 flex flex-col sm:flex-row items-center justify-center gap-2.5">
+              <button
+                onClick={() => window.location.reload()}
+                className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-5 py-2.5 text-xs font-bold rounded-xl bg-gradient-to-r from-violet-600 to-indigo-600 text-white hover:opacity-90 transition-opacity cursor-pointer shadow-lg shadow-violet-900/30"
+              >
+                <RefreshCw className="h-3.5 w-3.5" /> Reload Application
+              </button>
+              <button
+                onClick={() => { window.location.href = (APP_CONFIG.contextPath || "") + "/dashboard" }}
+                className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-5 py-2.5 text-xs font-bold rounded-xl border border-white/[0.1] bg-white/[0.04] text-slate-200 hover:bg-white/[0.08] transition-colors cursor-pointer"
+              >
+                <LayoutDashboard className="h-3.5 w-3.5" /> Back to Dashboard
+              </button>
+            </div>
 
-          {/* Collapsible technical details */}
-          {this.state.error && (
-            <details className="mt-6 text-left group">
-              <summary className="cursor-pointer select-none text-[11px] font-semibold text-muted-foreground/70 hover:text-muted-foreground transition-colors list-none flex items-center gap-1.5">
-                <span className="inline-block transition-transform group-open:rotate-90">▸</span>
-                Technical details
-              </summary>
-              <pre className="mt-3 text-[10px] text-rose-300/80 bg-black/40 border border-white/[0.06] p-3 rounded-xl overflow-auto max-h-40 font-mono select-all whitespace-pre-wrap">
-                {this.state.error.toString()}
-                {"\n"}
-                {this.state.error.stack}
-              </pre>
-            </details>
-          )}
+            {/* Collapsible technical details */}
+            {this.state.error && (
+              <details className="mt-6 text-left group">
+                <summary className="cursor-pointer select-none text-[11px] font-semibold text-muted-foreground/70 hover:text-muted-foreground transition-colors list-none flex items-center gap-1.5">
+                  <span className="inline-block transition-transform group-open:rotate-90">▸</span>
+                  Technical details
+                </summary>
+                <pre className="mt-3 text-[10px] text-rose-300/80 bg-black/40 border border-white/[0.06] p-3 rounded-xl overflow-auto max-h-40 font-mono select-all whitespace-pre-wrap">
+                  {this.state.error.toString()}
+                  {"\n"}
+                  {this.state.error.stack}
+                </pre>
+              </details>
+            )}
+          </motion.div>
         </div>
-      </div>
-    )
+      )
     }
 
     return this.props.children
@@ -234,7 +255,7 @@ function App() {
                 )
               }
             />
-
+            
             {/* Set New Password — forced first-login password reset */}
             <Route path="/set-new-password" element={<SetNewPasswordPage />} />
 
@@ -250,7 +271,7 @@ function App() {
                 </ProtectedRoute>
               }
             />
-
+            
             <Route
               path="/dashboard/crs"
               element={
@@ -259,7 +280,7 @@ function App() {
                 </ProtectedRoute>
               }
             />
-
+            
             <Route
               path="/dashboard/code-review"
               element={
