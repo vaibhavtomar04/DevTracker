@@ -106,6 +106,22 @@ export const FEATURES = {
     import.meta.env.VITE_ENABLE_LAZY_AUDIT,
     true,
   ),
+
+  // Phase 1.3.1 (perf) — the 5s FORCED dashboard pollers exist only to keep the hot
+  // core data (tasks/bugs/configs/users, Batch 1) live-synced. With this flag on, a
+  // forced fetchData(true) skips the entire supplementary secondary batch
+  // (audit / test-cases / bug-reviews / sprint-tasks) — each of which is already
+  // refreshed by its own mutating store action — eliminating the remaining idle REST
+  // churn from the poll. The initial non-forced bootstrap still loads everything.
+  // Reversible without a code change:
+  //   • runtime:    window.__FEATURES__.ENABLE_LEAN_POLL = false (before bootstrap)
+  //   • build-time: VITE_ENABLE_LEAN_POLL=false
+  // Disabling restores the full secondary batch on every forced poll (rollback for perf-phase1.3.1).
+  ENABLE_LEAN_POLL: readFlag(
+    'ENABLE_LEAN_POLL',
+    import.meta.env.VITE_ENABLE_LEAN_POLL,
+    true,
+  ),
 };
 
 export default APP_CONFIG;
