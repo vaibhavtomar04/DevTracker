@@ -233,27 +233,35 @@ export const useTaskStore = create<TaskState>((set, get) => ({
     try {
       // 1. Core Batch: Fetch critical data first so UI renders immediately
       // /api/tasks now returns paginated (page=0, size=100) by default — ~5x smaller payload
+      const skipReference =
+        force &&
+        FEATURES.ENABLE_REFERENCE_CACHE &&
+        get().configs.length > 0 &&
+        get().users.length > 0
       const [tasksRes, bugsRes, configsRes, usersRes] = await Promise.all([
         safeFetch("/api/tasks?page=0&size=100"),
         safeFetch("/api/bugs"),
-        safeFetch("/api/configs"),
-        safeFetch("/api/users"),
+        skipReference ? Promise.resolve(null) : safeFetch("/api/configs"),
+        skipReference ? Promise.resolve(null) : safeFetch("/api/users"),
       ]);
 
       // Unwrap paginated tasks response (Page<Task> has a 'content' field)
       const rawTasks = tasksRes && tasksRes.content ? tasksRes.content : (Array.isArray(tasksRes) ? tasksRes : []);
 
-      const normalizedUsers = (usersRes || []).map((u: any) => ({
-        ...u,
-        roles: Array.isArray(u.roles) ? u.roles.map((r: string) => r.replace(/^ROLE_/, "")) : []
-      }));
+      const nextConfigs = skipReference ? get().configs : (configsRes || []);
+      const nextUsers = skipReference
+        ? get().users
+        : (usersRes || []).map((u: any) => ({
+          ...u,
+          roles: Array.isArray(u.roles) ? u.roles.map((r: string) => r.replace(/^ROLE_/, "")) : []
+        }));
 
       // Immediately display core UI
       set({
         tasks: rawTasks,
         bugs: bugsRes || [],
-        configs: configsRes || [],
-        users: normalizedUsers,
+        configs: nextConfigs,
+        users: nextUsers,
         loading: false,
       });
 
@@ -263,7 +271,7 @@ export const useTaskStore = create<TaskState>((set, get) => ({
           tasks: rawTasks,
           bugs: bugsRes || [],
           configs: configsRes || [],
-          users: normalizedUsers,
+          users: nextUsers,
           timestamp: Date.now()
         }))
       } catch { /* ignore quota errors */ }
