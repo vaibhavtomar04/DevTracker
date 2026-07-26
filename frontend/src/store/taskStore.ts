@@ -1,6 +1,7 @@
 import { create } from "zustand"
 import type { Task, Bug, Comment, AuditLog, AppConfig, TestCase, User, Notification } from "@/services/mockData"
 import { apiClient } from "@/utils/apiClient"
+import { FEATURES } from "@/config/appConfig"
 
 const unwrapTasks = (tasksRes: any): any[] =>
   tasksRes && Array.isArray(tasksRes.content)
@@ -40,7 +41,6 @@ const mapBugReviews = (reviews: any[]) => {
     }
   })
 }
-
 
 export interface ToastMessage {
   id: string
@@ -92,6 +92,7 @@ interface TaskState {
 
   // Fetching
   fetchData: (force?: boolean) => Promise<void>
+  fetchAuditLogs: () => Promise<void>
   fetchUsers: () => Promise<void>
   fetchSprintTasks: (sprintId?: number) => Promise<void>
   createSprintTask: (sprintTaskData: any) => Promise<SprintTask>
@@ -128,9 +129,7 @@ interface TaskState {
 
   // Comments
   addComment: (entityType: "TASK" | "BUG", entityId: number, text: string, user: User) => Promise<Comment>
-
-
-  fetchComments: (entityType: "TASK" | "BUG", entityId: number ) => Promise<Comment[]>
+  fetchComments: (entityType: "TASK" | "BUG", entityId: number) => Promise<Comment[]>
 
   // Configurations
   updateConfig: (key: string, value: string) => Promise<void>
@@ -271,22 +270,54 @@ export const useTaskStore = create<TaskState>((set, get) => ({
 
       // 2. Secondary Batch: Supplementary metadata — notifications excluded
       //    (notifications handled exclusively by notificationStore via WebSocket + REST)
-      const [auditRes, testCasesRes, bugReviewsRes, sprintTasksRes] = await Promise.all([
-        safeFetch("/api/audit"),
-        safeFetch("/api/test-cases"),
-        safeFetch("/api/bug-reviews"),
-        safeFetch("/api/sprint-tasks")
-      ]);
+      if (FEATURES.ENABLE_LAZY_AUDIT) {
+        const [testCasesRes, bugReviewsRes, sprintTasksRes] = await Promise.all([
+          safeFetch("/api/test-cases"),
+          safeFetch("/api/bug-reviews"),
+          safeFetch("/api/sprint-tasks")
+        ]);
+        set({
+          testCases: testCasesRes || [],
+          bugReviews: mapBugReviews(bugReviewsRes),
+          sprintTasks: sprintTasksRes || [],
+          isFetching: false
+        });
+        if (!force) {
+          const scheduleIdle = (cb: () => void) =>
+            typeof (window as any).requestIdleCallback === "function"
+              ? (window as any).requestIdleCallback(cb, { timeout: 3000 })
+              : setTimeout(cb, 1200)
+          scheduleIdle(() => { get().fetchAuditLogs() })
+        }
+      } else {
+        const [auditRes, testCasesRes, bugReviewsRes, sprintTasksRes] = await Promise.all([
+          safeFetch("/api/audit"),
+          safeFetch("/api/test-cases"),
+          safeFetch("/api/bug-reviews"),
+          safeFetch("/api/sprint-tasks")
+        ]);
 
-      set({
-        auditLogs: auditRes || [],
-        testCases: testCasesRes || [],
-        bugReviews: mapBugReviews(bugReviewsRes),
-        sprintTasks: sprintTasksRes || [],
-        isFetching: false
-      });
+        set({
+          auditLogs: auditRes || [],
+          testCases: testCasesRes || [],
+          bugReviews: mapBugReviews(bugReviewsRes),
+          sprintTasks: sprintTasksRes || [],
+          isFetching: false
+        });
+      }
     } catch (err: any) {
       set({ error: err.message || "Failed to fetch database records", loading: false, isFetching: false })
+    }
+  },
+
+  fetchAuditLogs: async () => {
+    // Loads the full /api/audit list into the store. Called deferred (idle) after
+    // bootstrap when ENABLE_LAZY_AUDIT is on; also reusable for on-demand refresh.
+    try {
+      const auditRes = await apiClient("/api/audit")
+      set({ auditLogs: auditRes || [] })
+    } catch (err) {
+      console.error("Failed to fetch audit logs:", err)
     }
   },
 
@@ -412,7 +443,7 @@ export const useTaskStore = create<TaskState>((set, get) => ({
 
     try {
       sessionStorage.removeItem("devtrack_core_cache")
-    } catch {}
+    } catch { }
 
     // ── Fire-and-forget audit log refresh (non-blocking) ─────────────────────
     apiClient("/api/audit")
@@ -623,13 +654,11 @@ export const useTaskStore = create<TaskState>((set, get) => ({
     return newComment
   },
 
-
   fetchComments: async (entityType, entityId) => {
-    const comments = await apiClient( `/api/comments/${entityType}/${entityId}`)
+    const comments = await apiClient(`/api/comments/${entityType}/${entityId}`)
     set({ comments })
-     return comments
+    return comments
   },
-
 
   updateConfig: async (key, value) => {
     const updatedConfig = await apiClient(`/api/configs/${key}`, {
@@ -724,7 +753,7 @@ export const useTaskStore = create<TaskState>((set, get) => ({
       method: "POST",
       body: JSON.stringify(reviewData)
     })
-    
+
     // Background refresh
     apiClient("/api/tasks?page=0&size=100")
       .then(tasksRes => {
@@ -747,7 +776,7 @@ export const useTaskStore = create<TaskState>((set, get) => ({
     const res = await apiClient(`/api/bug-reviews/${reviewId}/accept`, {
       method: "POST"
     })
-    
+
     // Background refresh
     Promise.all([
       apiClient("/api/tasks?page=0&size=100"),
@@ -771,7 +800,7 @@ export const useTaskStore = create<TaskState>((set, get) => ({
       method: "POST",
       body: JSON.stringify(dto)
     })
-    
+
     // Background refresh
     apiClient("/api/tasks")
       .then(tasksRes => {
@@ -794,7 +823,7 @@ export const useTaskStore = create<TaskState>((set, get) => ({
     const res = await apiClient(`/api/bug-reviews/${reviewId}/tester-accept`, {
       method: "POST"
     })
-    
+
     // Background refresh
     apiClient("/api/tasks")
       .then(tasksRes => {
@@ -817,7 +846,7 @@ export const useTaskStore = create<TaskState>((set, get) => ({
     const res = await apiClient(`/api/bug-reviews/${reviewId}/raise-again`, {
       method: "POST"
     })
-    
+
     // Background refresh
     apiClient("/api/tasks")
       .then(tasksRes => {
@@ -840,7 +869,7 @@ export const useTaskStore = create<TaskState>((set, get) => ({
     const res = await apiClient(`/api/bug-reviews/${reviewId}/challenge`, {
       method: "POST"
     })
-    
+
     // Background refresh
     apiClient("/api/tasks")
       .then(tasksRes => {
@@ -863,7 +892,7 @@ export const useTaskStore = create<TaskState>((set, get) => ({
     const res = await apiClient(`/api/bug-reviews/${reviewId}/admin-accept`, {
       method: "POST"
     })
-    
+
     // Background refresh
     apiClient("/api/tasks")
       .then(tasksRes => {
@@ -886,7 +915,7 @@ export const useTaskStore = create<TaskState>((set, get) => ({
     const res = await apiClient(`/api/bug-reviews/${reviewId}/admin-force`, {
       method: "POST"
     })
-    
+
     // Background refresh
     Promise.all([
       apiClient("/api/tasks"),
