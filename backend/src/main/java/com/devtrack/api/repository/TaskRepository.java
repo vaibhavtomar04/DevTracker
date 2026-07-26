@@ -15,8 +15,6 @@ import java.util.List;
 @Repository
 public interface TaskRepository extends JpaRepository<Task, Long>, org.springframework.data.jpa.repository.JpaSpecificationExecutor<Task> {
 
-    // -- Single-entity optimized fetches (no pagination -> safe collection fetch) --
-
     @Query("SELECT DISTINCT t FROM Task t " +
            "LEFT JOIN FETCH t.type " +
            "LEFT JOIN FETCH t.assignedDeveloper " +
@@ -77,8 +75,6 @@ public interface TaskRepository extends JpaRepository<Task, Long>, org.springfra
         return new PageImpl<>(ordered, pageable, idPage.getTotalElements());
     }
 
-    // -- Step 1 queries: paginate IDs only (DB-side pagination) --
-
     @Query(value = "SELECT t.id FROM Task t",
            countQuery = "SELECT COUNT(t) FROM Task t")
     Page<Long> findIdsAll(Pageable pageable);
@@ -129,8 +125,6 @@ public interface TaskRepository extends JpaRepository<Task, Long>, org.springfra
            "ORDER BY t.id DESC",
            countQuery = "SELECT COUNT(DISTINCT t) FROM Task t WHERE (t.assignedDeveloper.id = :userId OR t.tester.id = :userId OR EXISTS (SELECT subTd FROM TaskDeveloper subTd WHERE subTd.task = t AND subTd.developer.id = :userId)) AND t.status NOT IN :excludedStatuses")
     Page<Long> findIdsPendingForUser(@Param("userId") Long userId, @Param("excludedStatuses") List<String> excludedStatuses, Pageable pageable);
-
-    // -- Public paginated methods (unchanged signatures, now two-step) --
 
     default Page<Task> findAllOptimized(Pageable pageable) {
         return hydratePage(findIdsAll(pageable), pageable);
@@ -186,10 +180,6 @@ public interface TaskRepository extends JpaRepository<Task, Long>, org.springfra
     @Query("SELECT COUNT(t) FROM Task t WHERE t.status NOT IN :statuses")
     long countByStatusNotIn(@Param("statuses") List<String> statuses);
 
-    /**
-     * Full-text search used by the Command Palette.
-     * Searches across: jtrackId, title, description, branch name, developer name, tester name.
-     */
     @Query(value = "SELECT DISTINCT t FROM Task t " +
             "LEFT JOIN FETCH t.type " +
             "LEFT JOIN FETCH t.assignedDeveloper " +
@@ -233,23 +223,12 @@ public interface TaskRepository extends JpaRepository<Task, Long>, org.springfra
     @Query("SELECT t.jtrackId FROM Task t WHERE t.jtrackId LIKE CONCAT(:prefix, '%')")
     List<String> findJtrackIdsByPrefix(@Param("prefix") String prefix);
 
-    // -- Dashboard Aggregate Count Queries (native SQL for speed) --
-
-    /**
-     * Count tasks in a given sprint -- replaces full entity load for sprint summary.
-     */
     @Query(value = "SELECT COUNT(*) FROM tasks WHERE sprint_id = :sprintId", nativeQuery = true)
     int countBySprintIdNative(@Param("sprintId") Long sprintId);
 
-    /**
-     * Count completed tasks in a given sprint -- terminal statuses only.
-     */
     @Query(value = "SELECT COUNT(*) FROM tasks WHERE sprint_id = :sprintId AND status IN ('CLOSED','PROD_DEPLOYED','PROD_COMPLETED')", nativeQuery = true)
     int countCompletedBySprintIdNative(@Param("sprintId") Long sprintId);
 
-    /**
-     * Scope=MINE: count active (non-terminal) tasks assigned to a specific user.
-     */
     @Query(value = """
         SELECT COUNT(DISTINCT t.id) FROM tasks t
         WHERE (t.assigned_developer_id = :userId
@@ -259,9 +238,6 @@ public interface TaskRepository extends JpaRepository<Task, Long>, org.springfra
         """, nativeQuery = true)
     long countActiveCrsForUser(@Param("userId") Long userId);
 
-    /**
-     * Scope=MINE: count tasks pending approval (CODE_REVIEW or PENDING_APPROVAL) for a user.
-     */
     @Query(value = """
         SELECT COUNT(DISTINCT t.id) FROM tasks t
         WHERE (t.assigned_developer_id = :userId
@@ -270,9 +246,6 @@ public interface TaskRepository extends JpaRepository<Task, Long>, org.springfra
         """, nativeQuery = true)
     long countPendingApprovalCrsForUser(@Param("userId") Long userId);
 
-    /**
-     * Scope=MINE: count completed/closed tasks for a user (UAT_TESTING or PROD_DEPLOYED or beyond).
-     */
     @Query(value = """
         SELECT COUNT(DISTINCT t.id) FROM tasks t
         WHERE (t.assigned_developer_id = :userId
@@ -281,17 +254,7 @@ public interface TaskRepository extends JpaRepository<Task, Long>, org.springfra
         """, nativeQuery = true)
     long countCompletedUatCrsForUser(@Param("userId") Long userId);
 
-    /**
- * Dashboard "Recent CRs" projection -- 7 columns, no entity hydration.
- * Avoids loading 50+ columns and 7 JOINs just for the dashboard recent list.
- * Returns: id, jtrack_id, title, priority, status, updated_date, assigned_developer_name
- *
- * Multi-developer co-ownership: assigned_developer_name is the comma-joined
- * union of {assignedDeveloper} and {task_developers}, deduped and ordered by name.
- * Single-dev CRs (N=1, empty task_developers) fall back to the legacy
- * assigned_developer_id mirror, so the output is byte-identical for them.
- */
-@Query(value = """
+    @Query(value = """
     SELECT t.id, t.jtrack_id, t.title, t.priority, t.status, t.updated_date,
            GROUP_CONCAT(DISTINCT du.full_name ORDER BY du.full_name SEPARATOR ', ') AS assigned_developer_name
     FROM tasks t
@@ -310,10 +273,6 @@ public interface TaskRepository extends JpaRepository<Task, Long>, org.springfra
     """, nativeQuery = true)
     List<Object[]> findRecentTaskProjections(@Param("lim") int limit);
 
-    /**
-     * Dashboard "Pending Tasks for user" projection -- 6 columns, no entity hydration.
-     * Returns: id, jtrack_id, title, priority, status, due_date
-     */
     @Query(value = """
         SELECT t.id, t.jtrack_id, t.title, t.priority, t.status, t.due_date
         FROM tasks t
@@ -330,36 +289,26 @@ public interface TaskRepository extends JpaRepository<Task, Long>, org.springfra
         @Param("excluded2") String excluded2
     );
 
-    // -- Recognition Score metric queries --
-    // All use native SQL for aggregate performance.
-    // Spec section 13: escaped-defect penalties apply to PRODUCTION-escaped bugs only.
-
-    /** CRs in terminal success states (PROD_COMPLETED or CLOSED) for a developer. */
-@Query(value = """
+    @Query(value = """
     SELECT COUNT(*) FROM tasks t
     WHERE (t.assigned_developer_id = :userId
            OR EXISTS (SELECT 1 FROM task_developers td WHERE td.task_id = t.id AND td.developer_id = :userId))
       AND t.status IN ('PROD_COMPLETED','CLOSED')
     """, nativeQuery = true)
-int countSuccessfulCrsForUser(@Param("userId") Long userId);
+    int countSuccessfulCrsForUser(@Param("userId") Long userId);
 
-    /** All CRs ever assigned to this developer (for rate denominators). */
     @Query(value = """
     SELECT COUNT(*) FROM tasks t
     WHERE (t.assigned_developer_id = :userId
            OR EXISTS (SELECT 1 FROM task_developers td WHERE td.task_id = t.id AND td.developer_id = :userId))
     """, nativeQuery = true)
-int countCrsAssignedToUser(@Param("userId") Long userId);
+    int countCrsAssignedToUser(@Param("userId") Long userId);
 
-    /**
-     * CRs approved first-time: reached SIT_DEPLOYED/UAT_DEPLOYED without ever
-     * having a CHANGES_REQUESTED row in task_workflow_history.
-     */
     @Query(value = """
         SELECT COUNT(DISTINCT t.id) FROM tasks t
-WHERE (t.assigned_developer_id = :userId
-       OR EXISTS (SELECT 1 FROM task_developers td WHERE td.task_id = t.id AND td.developer_id = :userId))
-  AND t.status IN ('SIT_DEPLOYED','UAT_DEPLOYED','SIT_COMPLETED',
+        WHERE (t.assigned_developer_id = :userId
+               OR EXISTS (SELECT 1 FROM task_developers td WHERE td.task_id = t.id AND td.developer_id = :userId))
+          AND t.status IN ('SIT_DEPLOYED','UAT_DEPLOYED','SIT_COMPLETED',
                            'UAT_COMPLETED','PROD_DEPLOYED','PROD_COMPLETED','CLOSED')
           AND NOT EXISTS (
               SELECT 1 FROM task_workflow_history h
@@ -369,22 +318,20 @@ WHERE (t.assigned_developer_id = :userId
         """, nativeQuery = true)
     int countFirstPassApprovedCrsForUser(@Param("userId") Long userId);
 
-    /** Prod deployments: CRs that reached PROD_DEPLOYED or beyond. */
     @Query(value = """
         SELECT COUNT(*) FROM tasks t
-WHERE (t.assigned_developer_id = :userId
-       OR EXISTS (SELECT 1 FROM task_developers td WHERE td.task_id = t.id AND td.developer_id = :userId))
-  AND t.status IN ('PROD_DEPLOYED','PROD_COMPLETED','CLOSED')
+        WHERE (t.assigned_developer_id = :userId
+               OR EXISTS (SELECT 1 FROM task_developers td WHERE td.task_id = t.id AND td.developer_id = :userId))
+          AND t.status IN ('PROD_DEPLOYED','PROD_COMPLETED','CLOSED')
         """, nativeQuery = true)
     int countProdDeploymentsForUser(@Param("userId") Long userId);
 
-    /** Successful prod deployments: reached PROD_DEPLOYED with rollback_count = 0 and no rollback history. */
     @Query(value = """
         SELECT COUNT(*) FROM tasks t
-WHERE (t.assigned_developer_id = :userId
-       OR EXISTS (SELECT 1 FROM task_developers td WHERE td.task_id = t.id AND td.developer_id = :userId))
-  AND t.status IN ('PROD_DEPLOYED','PROD_COMPLETED','CLOSED')
-  AND (t.rollback_count IS NULL OR t.rollback_count = 0)
+        WHERE (t.assigned_developer_id = :userId
+               OR EXISTS (SELECT 1 FROM task_developers td WHERE td.task_id = t.id AND td.developer_id = :userId))
+          AND t.status IN ('PROD_DEPLOYED','PROD_COMPLETED','CLOSED')
+          AND (t.rollback_count IS NULL OR t.rollback_count = 0)
           AND NOT EXISTS (
               SELECT 1 FROM task_workflow_history h
               WHERE h.task_id = t.id
@@ -393,56 +340,89 @@ WHERE (t.assigned_developer_id = :userId
         """, nativeQuery = true)
     int countSuccessfulProdDeploymentsForUser(@Param("userId") Long userId);
 
-    /**
-     * Distinct sprints the developer participated in (had at least one task).
-     */
     @Query(value = """
         SELECT COUNT(DISTINCT t.sprint_id) FROM tasks t
-WHERE (t.assigned_developer_id = :userId
-       OR EXISTS (SELECT 1 FROM task_developers td WHERE td.task_id = t.id AND td.developer_id = :userId))
-  AND t.sprint_id IS NOT NULL
+        WHERE (t.assigned_developer_id = :userId
+               OR EXISTS (SELECT 1 FROM task_developers td WHERE td.task_id = t.id AND td.developer_id = :userId))
+          AND t.sprint_id IS NOT NULL
         """, nativeQuery = true)
     int countSprintsForUser(@Param("userId") Long userId);
 
-    /**
-     * Sprints where all tasks for this developer were completed before sprint end_date.
-     * A sprint is "on time" when every task's actual production date <= sprint end_date.
-     */
     @Query(value = """
         SELECT COUNT(DISTINCT t.sprint_id)
         FROM tasks t
         JOIN sprints s ON t.sprint_id = s.id
         WHERE (t.assigned_developer_id = :userId
-       OR EXISTS (SELECT 1 FROM task_developers td WHERE td.task_id = t.id AND td.developer_id = :userId))
-  AND t.sprint_id IS NOT NULL
-  AND NOT EXISTS (
-      SELECT 1 FROM tasks t2
-      WHERE (t2.assigned_developer_id = :userId
-             OR EXISTS (SELECT 1 FROM task_developers td2 WHERE td2.task_id = t2.id AND td2.developer_id = :userId))
-        AND t2.sprint_id = t.sprint_id
+               OR EXISTS (SELECT 1 FROM task_developers td WHERE td.task_id = t.id AND td.developer_id = :userId))
+          AND t.sprint_id IS NOT NULL
+          AND NOT EXISTS (
+              SELECT 1 FROM tasks t2
+              WHERE (t2.assigned_developer_id = :userId
+                     OR EXISTS (SELECT 1 FROM task_developers td2 WHERE td2.task_id = t2.id AND td2.developer_id = :userId))
+                AND t2.sprint_id = t.sprint_id
                 AND (t2.production_date IS NULL OR t2.production_date > s.end_date)
           )
         """, nativeQuery = true)
     int countOnTimeSprintsForUser(@Param("userId") Long userId);
 
-    /**
-     * CRs with at least one production-escaped bug.
-     */
     @Query(value = """
         SELECT COUNT(DISTINCT t.id) FROM tasks t
-WHERE (t.assigned_developer_id = :userId
-       OR EXISTS (SELECT 1 FROM task_developers td WHERE td.task_id = t.id AND td.developer_id = :userId))
-  AND EXISTS (
-      SELECT 1 FROM bugs b
+        WHERE (t.assigned_developer_id = :userId
+               OR EXISTS (SELECT 1 FROM task_developers td WHERE td.task_id = t.id AND td.developer_id = :userId))
+          AND EXISTS (
+              SELECT 1 FROM bugs b
               WHERE b.bug_task_id = t.id
                 AND b.status NOT IN ('REJECTED','INVALID')
           )
         """, nativeQuery = true)
     int countProdEscapedDefectCrsForUser(@Param("userId") Long userId);
 
-    /** All bugs on the user's CRs (for reopen-rate denominator). */
     @Query(value = """
         SELECT COUNT(*) FROM bugs b
-    JOIN tasks t ON b.bug_task_id = t.id
-    WHERE (t.assigned_developer_id = :userId
-           OR EXISTS (SELECT 1 FROM task_develop
+        JOIN tasks t ON b.bug_task_id = t.id
+        WHERE (t.assigned_developer_id = :userId
+               OR EXISTS (SELECT 1 FROM task_developers td WHERE td.task_id = t.id AND td.developer_id = :userId))
+          AND b.status NOT IN ('REJECTED','INVALID')
+        """, nativeQuery = true)
+    int countBugsForUserCrs(@Param("userId") Long userId);
+
+    @Query(value = """
+        SELECT COUNT(*) FROM bugs b
+        JOIN tasks t ON b.bug_task_id = t.id
+        WHERE (t.assigned_developer_id = :userId
+               OR EXISTS (SELECT 1 FROM task_developers td WHERE td.task_id = t.id AND td.developer_id = :userId))
+          AND UPPER(b.status) = 'REOPENED'
+        """, nativeQuery = true)
+    int countReopenedBugsForUserCrs(@Param("userId") Long userId);
+
+    @Query(value = """
+        SELECT COUNT(*) FROM bugs
+        WHERE raised_by_id = :userId
+          AND status NOT IN ('REJECTED','INVALID')
+        """, nativeQuery = true)
+    int countValidBugsRaisedByUser(@Param("userId") Long userId);
+
+    @Query(value = """
+        SELECT COUNT(DISTINCT t.sprint_id)
+        FROM tasks t
+        WHERE (t.assigned_developer_id = :userId
+               OR EXISTS (SELECT 1 FROM task_developers td WHERE td.task_id = t.id AND td.developer_id = :userId))
+          AND t.sprint_id IS NOT NULL
+          AND NOT EXISTS (
+              SELECT 1 FROM bugs b
+              WHERE b.bug_task_id = t.id
+                AND b.status NOT IN ('REJECTED','INVALID')
+          )
+        """, nativeQuery = true)
+    int countBugFreeSprintsForUser(@Param("userId") Long userId);
+
+    @Query(value = """
+        SELECT COUNT(*) FROM tasks t
+        WHERE (t.assigned_developer_id = :userId
+               OR EXISTS (SELECT 1 FROM task_developers td WHERE td.task_id = t.id AND td.developer_id = :userId))
+          AND t.expected_sit_deployment_date IS NOT NULL
+          AND t.sit_date IS NOT NULL
+          AND t.sit_date <= t.expected_sit_deployment_date
+        """, nativeQuery = true)
+    int countOnTimeDeliveriesForUser(@Param("userId") Long userId);
+}
