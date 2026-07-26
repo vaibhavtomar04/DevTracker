@@ -73,7 +73,7 @@ A Change Request historically belonged to exactly one developer via `tasks.assig
 
 ## ADR-003: WebSocket Lifecycle — Singleton Connection Manager
 
-- **Status:** Proposed (flips to Accepted once Phase 1.1 build + regression checklist pass and tag `perf-phase1-stable` is created)
+- **Status:** Accepted (Phase 1.1 build + WS regression checklist passed on clean-log capture; immutable checkpoint tag `perf-phase1-stable` = commit `423d199` created 2026-07-26)
 - **Date:** 2026-07-26
 - **Branch:** `feature/performance-architecture-migration`
 - **Phase:** 1.1 (Stabilize — WebSocket lifecycle)
@@ -116,7 +116,7 @@ Set `ENABLE_WS_LIFECYCLE_V2=false` (runtime `window.__FEATURES__` or `VITE_ENABL
 - `frontend/src/store/notificationStore.ts`
 - `frontend/src/config/appConfig.ts`
 
-### Revision r2 — 2026-07-26 (pre-acceptance; Status still Proposed)
+### Revision r2 — 2026-07-26 (Accepted; checkpoint tag `perf-phase1-stable` @ `423d199`)
 
 **Additional root cause found during Phase 1.1 runtime verification.** The singleton manager above eliminated *reconnect-storm* churn, but a clean-log capture (DevTools WS, Preserve log **off**, hard reload) still showed **4–5 concurrent `notifications?userId=` sockets** with staggered ages, growing on navigation.
 
@@ -125,5 +125,7 @@ Set `ENABLE_WS_LIFECYCLE_V2=false` (runtime `window.__FEATURES__` or `VITE_ENABL
 **Fix (still one module — `notificationStore.ts` — still gated by `ENABLE_WS_LIFECYCLE_V2`; no routing/Navbar/UI/backend changes, honoring the non-goals):**
 1. **Grace-period teardown.** `disconnect()` defers teardown by `TEARDOWN_GRACE_MS` (2s) instead of closing immediately. A `connect()` for the same user within that window cancels the pending teardown and reuses the existing live socket, collapsing navigation remounts + StrictMode double-invoke into **one socket per session**. A real logout has no following remount, so the deferred teardown fires and the socket closes.
 2. **CONNECTING-safe teardown.** When a socket that is still `CONNECTING` must be closed, the `close()` is deferred to its `onopen` so no half-open orphan is left on the server.
+
+**Verification (2026-07-26, user-captured):** clean DevTools WS capture (Preserve log off, hard reload) confirmed exactly **1** `notifications?userId=` socket after settle, holding at **1** across repeated back/forth navigation (the exact repro that previously climbed), with no idle REST fan-out from notifications. Accepted and tagged `perf-phase1-stable` @ `423d199`.
 
 **Follow-up logged (out of Phase 1.1 scope — candidate for the Phase 2/4 backend pass):** add stale-session reaping in `NotificationWebSocketHandler.sendToUser` (its comment claims it removes closed sessions, but the code only skips them) and verify prompt close-handshake completion server-side.
