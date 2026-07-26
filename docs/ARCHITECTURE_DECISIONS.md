@@ -284,3 +284,57 @@ The Batch-1 split was applied to `taskStore.ts`, committed (`7363e9dc` "perf: re
 ### Related Files
 - `frontend/src/store/taskStore.ts` (Batch-1 split: `skipReference` guard; conditional `/api/configs` + `/api/users` fetch; `nextConfigs` / `nextUsers` reuse cached store copies when skipped and are written to the `sessionStorage` core cache)
 - `frontend/src/config/appConfig.ts` (`ENABLE_REFERENCE_CACHE` flag)
+
+---
+
+## ADR-008: Server-Side Audit Pagination & Entity Index — Off-Load the Master Audit Page to the Backend
+
+- **Status:** Accepted (Phase 1.5 build committed and tagged by author; immutable checkpoint tag `perf-phase1.5-audit-pagination` = annotated tag → commit `d16cfc78` created 2026-07-26)
+- **Date:** 2026-07-26
+- **Branch:** `feature/performance-architecture-migration`
+- **Phase:** 1.5 (Stabilize — server-side audit aggregation)
+
+### Problem
+Through Phase 1.4, `/api/audit` was already off the cold-load critical path and off the idle poll (ADR-005), but every audit fetch still pulled the **entire unpaginated ~4.3 MB table** via `getAllAuditLogs()` = `findAll()`, hydrating heavy `User` objects (avatar, email, MFA, theme, password hash) per row. The master Audit page (`audits.tsx`) then did all aggregation client-side — dedupe-to-latest-per-entity, search, sort, and pagination over the full in-memory list. This kept the ~4.3 MB payload in play whenever the Audit page was opened and blew the ≤ 20 KB/page audit budget.
+
+### Decision
+Move audit aggregation, search, sort, and pagination to the backend, and migrate **only** `audits.tsx` (the master list) to consume it — gated by `ENABLE_AUDIT_PAGINATION`:
+1. **Lean DTO.** New `AuditLogDTO` (+ nested `AuditUserDTO{id, username, fullName, roles}`) excludes heavy `User` fields (avatar/email/MFA/theme/password), shrinking each row to audit-native data only.
+2. **Server aggregation endpoints (new, additive):**
+   - `GET /api/audit/summary` → `AuditSummaryDTO{totalEvents, distinctEntities, distinctAuditors, lastActivity}` for the hero KPI cards.
+   - `GET /api/audit/entity-index?page=&size=&search=&entityType=` → `Page<AuditLogDTO>` of the **latest record per entity**, aggregated / sorted (newest-first) / paginated / searched server-side. Search covers the 8 audit-native fields only. `entityType` is an optional filter mirroring the page's dropdown.
+   - `GET /api/audit/page?page=&size=` → dormant flat paginated feed (`Page<AuditLogDTO>`), reserved for a future "All Changes" tab; no consumer yet.
+3. **Strangler-fig migration.** With the flag on, `audits.tsx` fetches `/summary` (KPIs) + `/entity-index` (table) and **stops calling `fetchData()` on the Audit page**, so the full `/api/audit` table is no longer pulled there. With the flag off, the page falls back byte-for-byte to the legacy client path (`fetchData()` → store `auditLogs` → client dedupe / search / paginate).
+4. **Drill-down unchanged.** Clicking a row still calls the per-entity `/api/audit/groups/{entityType}/{entityId}` (+ `/export`), so the full trail / grouped / table / Excel export are untouched.
+5. **Everything else preserved.** `taskStore`, the store `auditLogs` field, the other five audit consumers, `/api/audit` (findAll, kept), and `/api/audit/{entityType}/{entityId}` are all unchanged — no functional regression outside the flagged Audit-page path.
+
+### Feature Flag
+`ENABLE_AUDIT_PAGINATION` (frontend `FEATURES`, env `VITE_ENABLE_AUDIT_PAGINATION`, runtime override `window.__FEATURES__`, default **enabled**). Registered in `appConfig.ts` (commit `c714dd50`). Disabling it restores the legacy client-side aggregation on the Audit page (rollback without redeploy). Backend endpoints are additive and dormant when the flag is off.
+
+### Alternatives Considered
+1. **Keep client aggregation but paginate `/api/audit`** — rejected; still ships heavy `User` rows and forces the client to hold the whole set to compute latest-per-entity.
+2. **DB-level window function for latest-per-entity** — deferred; the current `AuditIndexService` aggregates in memory (fetch → group latest-per-entity → sort → `subList` → `PageImpl`). Acceptable at current volume; a future phase can push the window/pagination fully into SQL.
+3. **Migrate all six audit consumers at once** — rejected; violates one-module-per-change and risks regressing dashboards / CR / deployments. Only `audits.tsx` moves; the rest keep reading the store.
+4. **Resolve jTrackId server-side in search** — rejected; jTrackId lives in tasks / bugs, not audit. Server search stays on the 8 audit-native fields; jTrackId remains a display-only lookup from the store.
+
+### Deliberate Deviations & Hardening
+- **`entityType` param** was added to `/entity-index` (beyond the original `search`-only spec) to preserve the page's existing Entity dropdown. Confirmed acceptable.
+- **Page-bound clamps.** `safeSize` is clamped (1–200). A matching **`safePage = Math.max(0, page)`** clamp is required so a negative `page` (surfaced by a manual `page=-1` test, and possible if the client `Pagination` base is off-by-one) degrades to page 0 instead of throwing `IllegalArgumentException` (`PageRequest.of`) / `IndexOutOfBoundsException` (`subList`).
+- **Pagination base.** The client sends 0-based `page` (`auditPage` starts at 0) to match Spring `PageRequest`; if the shared `Pagination` component is 1-based, send `auditPage - 1`.
+
+### Verification (2026-07-26)
+Backend (new DTOs, repository JPQL, `AuditIndexService`, `AuditLogController`) and frontend (`audits.tsx` rewired to `displayLogs` / `totalItems` / `stats`, the server block moved inside the component, `serverPage` → `auditPage`) were applied, built, committed (`8f027b50` backend + `d16cfc78` frontend rewire) and tagged `perf-phase1.5-audit-pagination` by the author. Expected/observed behavior with the flag on: the Audit page issues `/summary` + `/entity-index?page=0&size=…` and no longer pulls the full `/api/audit`; search fires one debounced `/entity-index` after ~250 ms; the Entity dropdown adds `entityType`; paging changes `page` / `size`; row drill-down still loads `/api/audit/groups/...`. Flag off restores the legacy client path. Quantitative payload / latency capture (target ≤ 20 KB/page) to be folded in as a revision if recorded.
+
+### Consequences
+- **Positive:** The master Audit page no longer downloads the ~4.3 MB table — it fetches a lean, server-paginated slice (targeting the ≤ 20 KB/page budget) plus a small summary; aggregation / search / sort move off the client; the single-source store and all other consumers are preserved; clean per-flag rollback.
+- **Trade-offs:** With the flag on, the Ticket column resolves jTrackId from the store's `tasks` / `bugs`, which must already be loaded by the app / dashboard bootstrap (the page no longer calls `fetchData()`); a hard-load straight onto `/audit` without a prior dashboard visit could show synthetic `DT-` / `BUG-` ids until those load — a lightweight tasks/bugs ensure-load can be added if needed. Latest-per-entity aggregation is currently in-memory in `AuditIndexService` (fine at current volume; DB-level windowing is a future option).
+- **Note:** The dormant `/api/audit/page` feed is reserved for a future flat "All Changes" tab. The 5 s forced poll (now `tasks` + `bugs` only, per ADR-007) still remains; its removal is the later `ENABLE_POLLING_REMOVAL` step once typed WS events (Phases 2–3) make it redundant.
+
+### Related Files
+- `backend/src/main/java/com/devtrack/api/dto/AuditLogDTO.java` (new; + nested `AuditUserDTO`)
+- `backend/src/main/java/com/devtrack/api/dto/AuditSummaryDTO.java` (new)
+- `backend/src/main/java/com/devtrack/api/repository/AuditLogRepository.java` (JPQL: `findLatestPerEntity`, `countDistinctEntities`, `countDistinctAuditors`, `findLastActivity`)
+- `backend/src/main/java/com/devtrack/api/services/AuditIndexService.java` (new; `getSummary`, `getEntityIndex`)
+- `backend/src/main/java/com/devtrack/api/controller/AuditLogController.java` (adds `/summary`, `/entity-index`, dormant `/page`; keeps `findAll` + `/{entityType}/{entityId}`)
+- `frontend/src/pages/audits.tsx` (server path behind `ENABLE_AUDIT_PAGINATION`; `displayLogs` / `totalItems` / `stats`)
+- `frontend/src/config/appConfig.ts` (`ENABLE_AUDIT_PAGINATION` flag)
