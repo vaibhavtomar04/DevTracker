@@ -11,6 +11,13 @@
  * exactly one socket, one message handler, one reconnect chain and one poll
  * timer per logged-in user. Gated behind FEATURES.ENABLE_WS_LIFECYCLE_V2; when
  * disabled the legacy connection manager (preserved below) is restored.
+ *
+ * Phase 3 (perf): a typed-event router consumes ENTITY_EVENT frames emitted by
+ * the backend DomainEventPublisher (Phase 2) and refreshes the task store off
+ * the real mutation signal, sharing a single debounce with the notification
+ * path. This lets Phase 4 remove the idle dashboard poll without losing
+ * freshness. No feature flag — the router only adds handling for a new frame
+ * type; existing NOTIFICATION handling is unchanged.
  */
 
 import { create } from 'zustand';
@@ -89,7 +96,7 @@ export const useNotificationStore = create<NotificationState>((set, get) => ({
   _ws: null,
   _pollInterval: null,
 
-  // ── Fetch from REST ───────────────────────────────────────────────
+  // ── Fetch from REST ────────────────────────────────────────
   fetchNotifications: async (userId: number) => {
     try {
       const data = await apiFetch<AppNotification[]>(
@@ -110,7 +117,7 @@ export const useNotificationStore = create<NotificationState>((set, get) => ({
     }
   },
 
-  // ── Mark single read ─────────────────────────────────────────────
+  // ── Mark single read ─────────────────────────────────────
   markRead: async (id: number) => {
     try {
       await fetch(`${API_BASE}/notifications/read/${id}`, {
@@ -129,7 +136,7 @@ export const useNotificationStore = create<NotificationState>((set, get) => ({
     } catch { /* silent */ }
   },
 
-  // ── Mark all read ────────────────────────────────────────────────
+  // ── Mark all read ───────────────────────────────────────
   markAllRead: async (userId: number) => {
     try {
       await fetch(`${API_BASE}/notifications/read-all/${userId}`, {
@@ -143,7 +150,7 @@ export const useNotificationStore = create<NotificationState>((set, get) => ({
     } catch { /* silent */ }
   },
 
-  // ── Clear all ────────────────────────────────────────────────────
+  // ── Clear all ─────────────────────────────────────────
   clearAll: async (userId: number) => {
     try {
       await fetch(`${API_BASE}/notifications/clear/${userId}`, {
@@ -205,7 +212,7 @@ export const useNotificationStore = create<NotificationState>((set, get) => ({
     }));
   },
 
-  // 📣 Add notification (from WS push) ─────────────────────────────────────────────────────────────────────────────────────────────────
+  // 📣 Add notification (from WS push) ─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
   addNotification: (notification: AppNotification) => {
     set((state) => {
       // Deduplication check: by ID only (title+desc would block real-time popups for same-text notifications)
@@ -260,7 +267,7 @@ export const useNotificationStore = create<NotificationState>((set, get) => ({
     });
   },
 
-  // ── WebSocket connect ────────────────────────────────────────────
+  // ── WebSocket connect ───────────────────────────────────
   connect: (userId: number) => {
     if (FEATURES.ENABLE_WS_LIFECYCLE_V2) {
       // v2: delegate to the module-level singleton connection manager.
@@ -309,7 +316,7 @@ export const useNotificationStore = create<NotificationState>((set, get) => ({
 
         ws.onmessage = (event) => {
           try {
-            const data = JSON.parse(event.data) as { type: string; notification: AppNotification };
+            const data = JSON.parse(event.data) as { type: string; notification?: AppNotification };
             if (data.type === 'NOTIFICATION' && data.notification) {
               get().addNotification(data.notification);
               // Debounced fetchData: batch rapid WS messages into one data refresh
@@ -319,6 +326,9 @@ export const useNotificationStore = create<NotificationState>((set, get) => ({
                 useTaskStore.getState().fetchData(true);
                 fetchDataDebounceTimer = null;
               }, 500);
+            } else if (data.type === 'ENTITY_EVENT') {
+              // Phase 3: typed domain event router (shared module-level helper).
+              routeEntityEvent(data as unknown as EntityEventPayload);
             }
           } catch { /* malformed message */ }
         };
@@ -355,7 +365,7 @@ export const useNotificationStore = create<NotificationState>((set, get) => ({
     set({ _pollInterval: pollInterval });
   },
 
-  // ── WebSocket disconnect ─────────────────────────────────────────
+  // ── WebSocket disconnect ────────────────────────────────
   disconnect: () => {
     if (FEATURES.ENABLE_WS_LIFECYCLE_V2) {
       stopManagedConnection();
@@ -374,7 +384,7 @@ export const useNotificationStore = create<NotificationState>((set, get) => ({
   },
 }));
 
-// ─────────────────────────────────────────────────────────────────────────
+// ────────────────────────────────────────────────────────────
 // Phase 1.1 — Singleton WebSocket connection manager (module-scoped)
 //
 // Guarantees per logged-in user, regardless of how many times connect() is
@@ -401,7 +411,7 @@ export const useNotificationStore = create<NotificationState>((set, get) => ({
 //      SAME live socket, so remounts + StrictMode collapse to one socket.
 //   2) CONNECTING-safe teardown: closing a not-yet-open socket is deferred to
 //      its onopen, so we never leave a half-open orphan the server keeps alive.
-// ─────────────────────────────────────────────────────────────────────────
+// ────────────────────────────────────────────────────────────
 
 const MAX_RECONNECT_ATTEMPTS = 5;
 const RECONNECT_BASE_MS = 1000;
@@ -427,6 +437,50 @@ function clearManagerTimers(): void {
   if (stabilityTimer) { clearTimeout(stabilityTimer); stabilityTimer = null; }
   if (debounceTimer) { clearTimeout(debounceTimer); debounceTimer = null; }
   if (pollTimer) { clearInterval(pollTimer); pollTimer = null; }
+}
+
+// ────────────────────────────────────────────────────────────
+// Phase 3 — Typed-event router (consumes ENTITY_EVENT frames from Phase 2)
+//
+// The backend DomainEventPublisher emits one ENTITY_EVENT frame per domain
+// mutation (TASK/BUG CREATED/UPDATED/DELETED) to every user in that entity's
+// audience, over the SAME socket as notifications (P2 "1 WS" budget). Reacting
+// to these real mutation signals — rather than a notification row or a timer —
+// is what lets Phase 4 drop the idle dashboard poll without losing freshness.
+// ────────────────────────────────────────────────────────────
+interface EntityEventPayload {
+  type: 'ENTITY_EVENT';
+  entity: string; // 'TASK' | 'BUG'
+  action: string; // 'CREATED' | 'UPDATED' | 'DELETED'
+  id: number;
+  actorId: number | null;
+  ts: number;
+}
+
+// Shared debounce: collapses a burst of refresh triggers (notifications and/or
+// typed events, including cross-entity ripples like a bug create flipping its
+// parent CR) into a single fetchData(true). A mutation that emits BOTH a
+// NOTIFICATION and an ENTITY_EVENT therefore refetches only once.
+function scheduleManagedRefresh(): void {
+  if (debounceTimer) clearTimeout(debounceTimer);
+  debounceTimer = setTimeout(() => {
+    debounceTimer = null;
+    useTaskStore.getState().fetchData(true);
+  }, FETCH_DEBOUNCE_MS);
+}
+
+function routeEntityEvent(payload: EntityEventPayload): void {
+  // Surgical local removal on delete keeps the list correct even if the row is
+  // already gone server-side; the coalesced refresh below still runs to catch
+  // any server-side cascade (e.g. a CR delete removing its child bugs).
+  if (payload.action === 'DELETED' && typeof payload.id === 'number') {
+    if (payload.entity === 'TASK') {
+      useTaskStore.setState((s) => ({ tasks: s.tasks.filter((t) => t.id !== payload.id) }));
+    } else if (payload.entity === 'BUG') {
+      useTaskStore.setState((s) => ({ bugs: s.bugs.filter((b) => b.id !== payload.id) }));
+    }
+  }
+  scheduleManagedRefresh();
 }
 
 function teardownSocket(): void {
@@ -507,16 +561,16 @@ function openManagedSocket(userId: number, myGen: number): void {
   ws.onmessage = (event: MessageEvent) => {
     if (myGen !== connectionGeneration) return;
     try {
-      const data = JSON.parse(event.data) as { type: string; notification: AppNotification };
+      const data = JSON.parse(event.data) as { type: string; notification?: AppNotification };
       if (data.type === 'NOTIFICATION' && data.notification) {
         useNotificationStore.getState().addNotification(data.notification);
-        // Strangler-fig fallback until typed events land (Phase 2). A single
-        // shared debounce timer collapses a burst into one refresh.
-        if (debounceTimer) clearTimeout(debounceTimer);
-        debounceTimer = setTimeout(() => {
-          debounceTimer = null;
-          useTaskStore.getState().fetchData(true);
-        }, FETCH_DEBOUNCE_MS);
+        // Notification frames still trigger a refresh. Shares the SAME debounce
+        // timer as the Phase 3 typed-event router, so a mutation that emits both
+        // a NOTIFICATION and an ENTITY_EVENT collapses into ONE refetch.
+        scheduleManagedRefresh();
+      } else if (data.type === 'ENTITY_EVENT') {
+        // Phase 3: typed domain event → targeted store refresh (no poll needed).
+        routeEntityEvent(data as unknown as EntityEventPayload);
       }
     } catch { /* malformed message */ }
   };
