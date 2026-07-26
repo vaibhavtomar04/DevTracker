@@ -167,3 +167,43 @@ Cold hard reload (DevTools Network, Disable cache on) confirmed a **single** set
 - `frontend/src/pages/developerDashboard.tsx` (import `FEATURES`; gate forced `fetchData(true)` + `fetchSprints()` behind `!ENABLE_NEW_BOOTSTRAP`)
 - `DashboardLayout` (designated bootstrap owner — unchanged this phase)
 - `frontend/src/config/appConfig.ts` (`ENABLE_NEW_BOOTSTRAP` flag)
+
+---
+
+## ADR-005: Lazy Audit Loading — Defer & De-poll the Audit Table
+
+- **Status:** Accepted (Phase 1.3 build + `/api/audit` network verification passed; immutable checkpoint tag `perf-phase1.3-lazy-audit` = commit `8859adc` created 2026-07-26)
+- **Date:** 2026-07-26
+- **Branch:** `feature/performance-architecture-migration`
+- **Phase:** 1.3 (Stabilize — lazy audit)
+
+### Problem
+After Phase 1.2 a single `/api/audit` (~4.3 MB, backend `getAllAuditLogs()` = unpaginated `findAll()`) was the largest remaining cold-load cost. Worse, runtime verification (DevTools Network filtered to `/api/audit`) revealed the full 4,313 kB table was being **re-downloaded ~21 times over a ~2-minute idle session** (~90 MB transferred; Finish ≈ 2 min) — a primary contributor to both **P1** (initial payload over the ≤ 2 MB budget) and **P2** (runaway idle traffic).
+
+Root cause: `taskStore.fetchData` fetched `/api/audit` inside its **blocking** secondary batch, and the 5-second **forced** pollers (`developerDashboard`, `crManagement`, `recognition` → `fetchData(true)`) bypass the store's in-flight / 10s throttle guard and re-ran that batch every cycle. So the entire audit history was pulled roughly every 5 s. `auditLogs` is read by **six** surfaces — `audits.tsx`, `developerDashboard` (`getAuditDate` status dates), `crManagement` (`getAuditDate`), `deployments` (workflow / `ROLLBACK` filter), `CRDetailSlideOver` (reject-log), and `crAuditReport.service` — so the naive fix of "only load on the Audit page" would regress the dashboards / CR / deployments and was rejected.
+
+### Decision
+1. **Single source preserved.** `auditLogs` remains the one store field every consumer reads — no consumer is changed, so there is no functional regression.
+2. **Off the critical path.** `/api/audit` is removed from the blocking secondary batch. With `ENABLE_LAZY_AUDIT` on, the remaining batch-2 endpoints (`test-cases`, `bug-reviews`, `sprint-tasks`) load as before and `isFetching` clears without waiting on audit, so audit is out of the initial payload and off the cold-load path.
+3. **Deferred idle load.** A new `fetchAuditLogs()` store action performs the audit fetch, scheduled via `requestIdleCallback` (with a `setTimeout(1200 ms)` fallback) after first paint — but **only on the initial non-forced bootstrap** (`!force`) and **only when `auditLogs` is empty**. Consequently the 5 s forced pollers never re-download audit.
+4. **Freshness by mutation, not by timer.** Every mutating store action (`updateTask`, `assignTester`, `reassignTester`, `completeTesting`, `approveTaskStep`, `rejectTaskStep`, bug updates) already refreshes `auditLogs` via its own fire-and-forget `/api/audit` reload, so audit updates exactly when it changes rather than on a 5 s cadence.
+
+### Feature Flag
+`ENABLE_LAZY_AUDIT` (frontend `FEATURES`, env `VITE_ENABLE_LAZY_AUDIT`, runtime override `window.__FEATURES__`, default **enabled**). Registered in `appConfig.ts` (commit `db8e289`). Disabling it restores the eager in-batch audit load (rollback without redeploy).
+
+### Alternatives Considered
+1. **Load audit only on the Audit page** — rejected; six surfaces read `auditLogs`, so dashboards / CR / deployments would regress.
+2. **Defer but fire on every `fetchData`** (the first naive patch) — rejected; it reproduced the ~21× storm because the forced 5 s polls re-triggered the deferred load. The `!force` + empty-guard is what actually removes the idle storm.
+3. **Per-entity audit (`/api/audit/{entityType}/{entityId}`) + pagination** — deferred to the Phase 4 backend pass (requires backend changes; out of this frontend-only scope).
+
+### Verification (2026-07-26, user-captured)
+With the `/api/audit` filter active: sat idle 1–2 min, then created a CR and advanced it (dev start → deploy). Result: exactly **3** audit fetches — 1 deferred bootstrap load (896 ms) + 2 from the two status transitions' own refreshes (2.58 s / 3.81 s) — and **zero during idle** (down from ~21 / ~90 MB). Initiator `dashboard:50`. Audit-derived UI (dashboard status dates, CR audit trail, deployments rollback rows, reject logs) still populates → no functional regression. Accepted and tagged `perf-phase1.3-lazy-audit` @ `8859adc`.
+
+### Consequences
+- **Positive:** Idle audit traffic eliminated (~90 MB → 0 during idle); audit off the cold-load critical path, dropping ~4.3 MB from the initial payload toward the ≤ 2 MB target; single-source store preserved so no consumer regresses; clean per-flag rollback.
+- **Trade-offs:** Audit now populates a beat after first paint, so audit-derived dashboard dates fill one idle-tick late; a direct hard-load straight onto the Audits page may briefly show an empty list before the idle load lands (a later micro-polish could have `audits.tsx` call `fetchAuditLogs()` on mount). Because the poll no longer refreshes audit, cross-user audit changes during a long idle session are not reflected until the local user's next mutating action or navigation — an accepted trade for the idle-traffic budget.
+- **Note (deferred to Phase 4 backend):** each remaining audit fetch is still the full unpaginated 4.3 MB table (0.9–3.8 s). Backend pagination of `/api/audit` + a lean DTO, and switching the per-action refreshes to per-entity (`/api/audit/{entityType}/{entityId}`), remain the backend job. The 5 s forced poll still re-runs the other batch-2 endpoints (`test-cases` / `bug-reviews` / `sprint-tasks`); polling removal is the later strangler-fig step gated by `ENABLE_POLLING_REMOVAL`.
+
+### Related Files
+- `frontend/src/store/taskStore.ts` (remove `/api/audit` from the blocking secondary batch; add `fetchAuditLogs()` action + `TaskState` entry; deferred idle load gated on `!force` && empty `auditLogs`)
+- `frontend/src/config/appConfig.ts` (`ENABLE_LAZY_AUDIT` flag)
