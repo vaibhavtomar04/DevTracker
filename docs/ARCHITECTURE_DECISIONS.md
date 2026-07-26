@@ -207,3 +207,42 @@ With the `/api/audit` filter active: sat idle 1–2 min, then created a CR and a
 ### Related Files
 - `frontend/src/store/taskStore.ts` (remove `/api/audit` from the blocking secondary batch; add `fetchAuditLogs()` action + `TaskState` entry; deferred idle load gated on `!force` && empty `auditLogs`)
 - `frontend/src/config/appConfig.ts` (`ENABLE_LAZY_AUDIT` flag)
+
+---
+
+## ADR-006: Lean Forced Poll — Skip the Secondary Batch on Forced Polls
+
+- **Status:** Accepted (Phase 1.3.1 build committed and tagged by author; immutable checkpoint tag `perf-phase1.3.1-lean-poll` = commit `efead225` created 2026-07-26)
+- **Date:** 2026-07-26
+- **Branch:** `feature/performance-architecture-migration`
+- **Phase:** 1.3.1 (Stabilize — lean forced poll)
+
+### Problem
+Phase 1.3 took `/api/audit` off both the cold-load path and the 5 s forced-poll cadence (deferred idle load gated on `!force`). But the 5 s **forced** pollers — chiefly `developerDashboard`'s `setInterval(fetchData(true), 5000)` (confirmed via DevTools initiator: `developerDashboard.tsx:290` → `taskStore` `fetchData` → `apiClient`), plus `crManagement` / `recognition` — still re-ran the store's **entire secondary batch** (`/api/test-cases`, `/api/bug-reviews`, `/api/sprint-tasks`) on every cycle, because forced calls bypass the in-flight / 10 s throttle guard. This left steady-state idle traffic re-downloading the supplementary datasets every 5 s even though nothing changed, against the P2 zero-idle-REST budget.
+
+### Decision
+Introduce a **lean forced-poll** short-circuit in `taskStore.fetchData`. On a forced call with the flag on (`force && FEATURES.ENABLE_LEAN_POLL`), the store completes **Batch 1** (the core `/api/tasks`, `/api/bugs`, `/api/configs`, `/api/users`) and then returns — clearing `isFetching` — **before** the secondary-batch / lazy-audit branch. The guard is inserted immediately before the `ENABLE_LAZY_AUDIT` branch so that:
+- **Forced 5 s polls** refresh only the core batch and skip `test-cases` / `bug-reviews` / `sprint-tasks` (and, via Phase 1.3, audit).
+- **Non-forced bootstrap** (`force === false`, the `DashboardLayout` mount fetch) is untouched — it still loads the full secondary batch once, so no surface loses its data.
+
+The secondary datasets therefore load once at bootstrap and refresh on mutating actions / navigation, not on the idle timer.
+
+### Feature Flag
+`ENABLE_LEAN_POLL` (frontend `FEATURES`, env `VITE_ENABLE_LEAN_POLL`, runtime override `window.__FEATURES__`, default **enabled**). Registered in `appConfig.ts` (commit `0e89785`). Disabling it restores the previous behavior where forced polls re-run the secondary batch (rollback without redeploy).
+
+### Alternatives Considered
+1. **Remove the 5 s poll entirely** — rejected for this phase; polling removal is the later strangler-fig step gated by `ENABLE_POLLING_REMOVAL` and depends on WS-driven sync (Phases 2–3). Lean-poll is the reversible intermediate that cuts idle cost without removing the safety-net poll.
+2. **Gate each secondary endpoint independently** — unnecessary; they share the same "supplementary, not needed every 5 s" property, so one guard covers them.
+3. **Demote forced polls to non-forced** — rejected (same reasoning as ADR-004); it changes global fetch semantics and could mask legitimately-needed forced refreshes.
+
+### Verification (2026-07-26)
+The `!force` guard was applied to `taskStore.ts`, committed (`efead225` "fixed lean poll") and tagged `perf-phase1.3.1-lean-poll` by the author. The patch structurally guarantees a forced poll returns before the secondary batch; the DevTools initiator capture confirmed forced 5 s polls continue to drive only the **core** batch (e.g. `/api/users` via `developerDashboard.tsx:290`), consistent with the secondary batch no longer firing on forced polls. No consumer loses data because the non-forced `DashboardLayout` bootstrap still loads the full secondary batch once.
+
+### Consequences
+- **Positive:** Steady-state idle traffic drops further — the supplementary datasets stop re-downloading every 5 s; combined with ADR-005 the idle poll now touches only the core batch.
+- **Trade-offs / Known remainder:** The forced 5 s poll **still re-fetches all of Batch 1** — `/api/tasks`, `/api/bugs`, and notably the near-static reference data `/api/configs` + `/api/users` — every cycle. This is the second `/api/users` and the repeating `users` stream seen in the network capture, and is the explicit target of **Phase 1.4 (reference-vs-business split, `ENABLE_REFERENCE_CACHE`)**. Cross-user changes to the secondary datasets during a long idle session now surface on the next mutating action / navigation rather than within 5 s (accepted, same trade as ADR-005).
+- **Note:** The safety-net poll itself is removed later via `ENABLE_POLLING_REMOVAL` once typed WS events (Phases 2–3) make it redundant.
+
+### Related Files
+- `frontend/src/store/taskStore.ts` (forced-poll short-circuit `if (force && FEATURES.ENABLE_LEAN_POLL) { set({ isFetching: false }); return }` before the secondary-batch / `ENABLE_LAZY_AUDIT` branch)
+- `frontend/src/config/appConfig.ts` (`ENABLE_LEAN_POLL` flag)
