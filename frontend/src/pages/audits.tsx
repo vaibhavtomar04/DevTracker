@@ -1,6 +1,5 @@
-import { useEffect, useMemo, useState } from "react"
+import { useEffect, useMemo, useState, useCallback } from "react"
 import { useTaskStore } from "@/store/taskStore"
-import APP_CONFIG from "@/config/appConfig"
 import { Card, CardContent } from "@/components/ui/card"
 import {
   Search, Filter, ShieldAlert, History, FileText, ArrowRight, ArrowLeft,
@@ -12,6 +11,7 @@ import {
 } from "lucide-react"
 import { motion, AnimatePresence } from "framer-motion"
 import { Pagination, paginate } from "@/components/shared/Pagination"
+import { APP_CONFIG, FEATURES } from '@/config/appConfig';
 
 /* ══════════════════════════════════════════════════════════════════
    AUDIT TRAIL — Enterprise redesign
@@ -35,7 +35,6 @@ const fmtRelative = (ms: number) => {
   if (days < 30) return `${days}d ago`
   return `${Math.floor(days / 30)}mo ago`
 }
-
 const fmtDuration = (ms: number) => {
   if (!ms || ms < 0) return ""
   const s = Math.floor(ms / 1000)
@@ -47,13 +46,11 @@ const fmtDuration = (ms: number) => {
   const d = Math.floor(h / 24)
   return `${d}d ${h % 24}h`
 }
-
 const humanize = (s?: string) =>
   (s || "")
     .replace(/[_-]+/g, " ")
     .replace(/\b\w/g, (c) => c.toUpperCase())
     .trim()
-
 const initials = (name?: string) =>
   (name || "System")
     .split(/\s+/)
@@ -61,7 +58,6 @@ const initials = (name?: string) =>
     .map((w) => w.charAt(0))
     .join("")
     .toUpperCase()
-
 const prettyRole = (u?: any) => {
   const r: string | undefined = u?.roles?.[0]
   if (!r) return "System"
@@ -71,7 +67,6 @@ const prettyRole = (u?: any) => {
   }
   return map[r] || humanize(r)
 }
-
 const dateGroupLabel = (d: Date) => {
   const now = new Date()
   const startOf = (x: Date) => new Date(x.getFullYear(), x.getMonth(), x.getDate()).getTime()
@@ -89,32 +84,30 @@ type CatKey =
   | "bug_raised" | "bug_fixed" | "testing" | "uat" | "production"
   | "approval" | "rejection" | "config" | "comment" | "attachment"
   | "export" | "admin" | "default"
-
 type CatDef = {
   label: string
   Icon: React.ComponentType<{ className?: string }>
   text: string; bg: string; border: string; dot: string; glow: string
 }
-
 const CATEGORIES: Record<CatKey, CatDef> = {
-  created:     { label: "Created",      Icon: Sparkles,       text: "text-emerald-300", bg: "bg-emerald-500/10", border: "border-emerald-500/30", dot: "bg-emerald-400", glow: "shadow-[0_0_12px_rgba(16,185,129,0.5)]" },
-  assignment:  { label: "Assignment",   Icon: UserPlus,       text: "text-sky-300",     bg: "bg-sky-500/10",     border: "border-sky-500/30",     dot: "bg-sky-400",     glow: "shadow-[0_0_12px_rgba(56,189,248,0.5)]" },
-  development: { label: "Development",   Icon: Code2,          text: "text-violet-300",  bg: "bg-violet-500/10",  border: "border-violet-500/30",  dot: "bg-violet-400",  glow: "shadow-[0_0_12px_rgba(139,92,246,0.5)]" },
-  review:      { label: "Code Review",  Icon: Eye,            text: "text-cyan-300",    bg: "bg-cyan-500/10",    border: "border-cyan-500/30",    dot: "bg-cyan-400",    glow: "shadow-[0_0_12px_rgba(34,211,238,0.5)]" },
-  sit:         { label: "SIT",          Icon: FlaskConical,   text: "text-teal-300",    bg: "bg-teal-500/10",    border: "border-teal-500/30",    dot: "bg-teal-400",    glow: "shadow-[0_0_12px_rgba(45,212,191,0.5)]" },
-  bug_raised:  { label: "Bug Raised",   Icon: Bug,            text: "text-rose-300",    bg: "bg-rose-500/10",    border: "border-rose-500/30",    dot: "bg-rose-400",    glow: "shadow-[0_0_12px_rgba(251,113,133,0.5)]" },
-  bug_fixed:   { label: "Bug Fixed",    Icon: Wrench,         text: "text-amber-300",   bg: "bg-amber-500/10",   border: "border-amber-500/30",   dot: "bg-amber-400",   glow: "shadow-[0_0_12px_rgba(251,191,36,0.5)]" },
-  testing:     { label: "Testing",      Icon: TestTube2,      text: "text-blue-300",    bg: "bg-blue-500/10",    border: "border-blue-500/30",    dot: "bg-blue-400",    glow: "shadow-[0_0_12px_rgba(96,165,250,0.5)]" },
-  uat:         { label: "UAT",          Icon: Rocket,         text: "text-fuchsia-300", bg: "bg-fuchsia-500/10", border: "border-fuchsia-500/30", dot: "bg-fuchsia-400", glow: "shadow-[0_0_12px_rgba(232,121,249,0.5)]" },
-  production:  { label: "Production",   Icon: Ship,           text: "text-green-300",   bg: "bg-green-500/10",   border: "border-green-500/30",   dot: "bg-green-400",   glow: "shadow-[0_0_12px_rgba(74,222,128,0.5)]" },
-  approval:    { label: "Approval",     Icon: Lock,           text: "text-indigo-300",  bg: "bg-indigo-500/10",  border: "border-indigo-500/30",  dot: "bg-indigo-400",  glow: "shadow-[0_0_12px_rgba(129,140,248,0.5)]" },
-  rejection:   { label: "Rejection",    Icon: CircleSlash,    text: "text-red-300",     bg: "bg-red-500/10",     border: "border-red-500/30",     dot: "bg-red-400",     glow: "shadow-[0_0_12px_rgba(248,113,113,0.5)]" },
-  config:      { label: "Configuration",Icon: Settings2,      text: "text-slate-300",   bg: "bg-slate-500/10",   border: "border-slate-500/30",   dot: "bg-slate-400",   glow: "shadow-[0_0_12px_rgba(148,163,184,0.4)]" },
-  comment:     { label: "Comment",      Icon: MessageSquare,  text: "text-zinc-300",    bg: "bg-zinc-500/10",    border: "border-zinc-500/30",    dot: "bg-zinc-400",    glow: "shadow-[0_0_12px_rgba(161,161,170,0.4)]" },
-  attachment:  { label: "Attachment",   Icon: Paperclip,      text: "text-orange-300",  bg: "bg-orange-500/10",  border: "border-orange-500/30",  dot: "bg-orange-400",  glow: "shadow-[0_0_12px_rgba(251,146,60,0.5)]" },
-  export:      { label: "Export",       Icon: FileDown,       text: "text-lime-300",    bg: "bg-lime-500/10",    border: "border-lime-500/30",    dot: "bg-lime-400",    glow: "shadow-[0_0_12px_rgba(163,230,53,0.5)]" },
-  admin:       { label: "Admin Action", Icon: Crown,          text: "text-yellow-300",  bg: "bg-yellow-500/10",  border: "border-yellow-500/30",  dot: "bg-yellow-400",  glow: "shadow-[0_0_12px_rgba(250,204,21,0.5)]" },
-  default:     { label: "Change",       Icon: Activity,       text: "text-zinc-300",    bg: "bg-white/[0.04]",   border: "border-white/[0.12]",   dot: "bg-zinc-400",    glow: "shadow-[0_0_10px_rgba(255,255,255,0.15)]" },
+  created: { label: "Created", Icon: Sparkles, text: "text-emerald-300", bg: "bg-emerald-500/10", border: "border-emerald-500/30", dot: "bg-emerald-400", glow: "shadow-[0_0_12px_rgba(16,185,129,0.5)]" },
+  assignment: { label: "Assignment", Icon: UserPlus, text: "text-sky-300", bg: "bg-sky-500/10", border: "border-sky-500/30", dot: "bg-sky-400", glow: "shadow-[0_0_12px_rgba(56,189,248,0.5)]" },
+  development: { label: "Development", Icon: Code2, text: "text-violet-300", bg: "bg-violet-500/10", border: "border-violet-500/30", dot: "bg-violet-400", glow: "shadow-[0_0_12px_rgba(139,92,246,0.5)]" },
+  review: { label: "Code Review", Icon: Eye, text: "text-cyan-300", bg: "bg-cyan-500/10", border: "border-cyan-500/30", dot: "bg-cyan-400", glow: "shadow-[0_0_12px_rgba(34,211,238,0.5)]" },
+  sit: { label: "SIT", Icon: FlaskConical, text: "text-teal-300", bg: "bg-teal-500/10", border: "border-teal-500/30", dot: "bg-teal-400", glow: "shadow-[0_0_12px_rgba(45,212,191,0.5)]" },
+  bug_raised: { label: "Bug Raised", Icon: Bug, text: "text-rose-300", bg: "bg-rose-500/10", border: "border-rose-500/30", dot: "bg-rose-400", glow: "shadow-[0_0_12px_rgba(251,113,133,0.5)]" },
+  bug_fixed: { label: "Bug Fixed", Icon: Wrench, text: "text-amber-300", bg: "bg-amber-500/10", border: "border-amber-500/30", dot: "bg-amber-400", glow: "shadow-[0_0_12px_rgba(251,191,36,0.5)]" },
+  testing: { label: "Testing", Icon: TestTube2, text: "text-blue-300", bg: "bg-blue-500/10", border: "border-blue-500/30", dot: "bg-blue-400", glow: "shadow-[0_0_12px_rgba(96,165,250,0.5)]" },
+  uat: { label: "UAT", Icon: Rocket, text: "text-fuchsia-300", bg: "bg-fuchsia-500/10", border: "border-fuchsia-500/30", dot: "bg-fuchsia-400", glow: "shadow-[0_0_12px_rgba(232,121,249,0.5)]" },
+  production: { label: "Production", Icon: Ship, text: "text-green-300", bg: "bg-green-500/10", border: "border-green-500/30", dot: "bg-green-400", glow: "shadow-[0_0_12px_rgba(74,222,128,0.5)]" },
+  approval: { label: "Approval", Icon: Lock, text: "text-indigo-300", bg: "bg-indigo-500/10", border: "border-indigo-500/30", dot: "bg-indigo-400", glow: "shadow-[0_0_12px_rgba(129,140,248,0.5)]" },
+  rejection: { label: "Rejection", Icon: CircleSlash, text: "text-red-300", bg: "bg-red-500/10", border: "border-red-500/30", dot: "bg-red-400", glow: "shadow-[0_0_12px_rgba(248,113,113,0.5)]" },
+  config: { label: "Configuration", Icon: Settings2, text: "text-slate-300", bg: "bg-slate-500/10", border: "border-slate-500/30", dot: "bg-slate-400", glow: "shadow-[0_0_12px_rgba(148,163,184,0.4)]" },
+  comment: { label: "Comment", Icon: MessageSquare, text: "text-zinc-300", bg: "bg-zinc-500/10", border: "border-zinc-500/30", dot: "bg-zinc-400", glow: "shadow-[0_0_12px_rgba(161,161,170,0.4)]" },
+  attachment: { label: "Attachment", Icon: Paperclip, text: "text-orange-300", bg: "bg-orange-500/10", border: "border-orange-500/30", dot: "bg-orange-400", glow: "shadow-[0_0_12px_rgba(251,146,60,0.5)]" },
+  export: { label: "Export", Icon: FileDown, text: "text-lime-300", bg: "bg-lime-500/10", border: "border-lime-500/30", dot: "bg-lime-400", glow: "shadow-[0_0_12px_rgba(163,230,53,0.5)]" },
+  admin: { label: "Admin Action", Icon: Crown, text: "text-yellow-300", bg: "bg-yellow-500/10", border: "border-yellow-500/30", dot: "bg-yellow-400", glow: "shadow-[0_0_12px_rgba(250,204,21,0.5)]" },
+  default: { label: "Change", Icon: Activity, text: "text-zinc-300", bg: "bg-white/[0.04]", border: "border-white/[0.12]", dot: "bg-zinc-400", glow: "shadow-[0_0_10px_rgba(255,255,255,0.15)]" },
 }
 
 /** Map a real audit log to a category — pure derivation, no invented data. */
@@ -122,7 +115,6 @@ const categorize = (log: any): CatKey => {
   const f = (log?.fieldName || "").toLowerCase()
   const nv = (log?.newValue || "").toUpperCase()
   const isBug = log?.entityType === "BUG" || log?.entityType === "BUG_TASK"
-
   // field-name signals take priority (explicit actions)
   if (/(comment)/.test(f)) return "comment"
   if (/(attach|file|screenshot|document|artifact|upload)/.test(f)) return "attachment"
@@ -132,7 +124,6 @@ const categorize = (log: any): CatKey => {
   if (/(reject)/.test(f)) return "rejection"
   if (/(approv|review_status|reviewstatus)/.test(f)) return "approval"
   if (/(assign|tester|reviewer|developer)/.test(f) && f !== "assigned_developer_id") return "assignment"
-
   // status-transition signals (newValue)
   if (nv) {
     if (/RESOLVED|FIXED/.test(nv)) return "bug_fixed"
@@ -182,7 +173,6 @@ const typeStyles = (t: string) =>
     : t === "BUG"
       ? "bg-rose-500/10 text-rose-300 border-rose-500/25"
       : "bg-amber-500/10 text-amber-300 border-amber-500/25"
-
 const typeDot = (t: string) =>
   t === "TASK" ? "bg-violet-400" : t === "BUG" ? "bg-rose-400" : "bg-amber-400"
 
@@ -217,7 +207,6 @@ function StatCard({
     </div>
   )
 }
-
 export function AuditSummary({ logs }: { logs: any[] }) {
   const s = useMemo(() => {
     const times = logs.map((l) => new Date(l.changedDate).getTime()).filter(Boolean).sort((a, b) => a - b)
@@ -232,7 +221,6 @@ export function AuditSummary({ logs }: { logs: any[] }) {
     const span = times.length > 1 ? fmtDuration(times[times.length - 1] - times[0]) : "—"
     return { total: logs.length, contributors, workflow, approvals, bugs, span, last: times[times.length - 1] || 0 }
   }, [logs])
-
   return (
     <div className="grid grid-cols-2 md:grid-cols-4 xl:grid-cols-7 gap-3">
       <StatCard icon={<Activity className="h-4 w-4 text-violet-300" />} label="Total Events" value={s.total} accent="bg-violet-500/20" />
@@ -297,9 +285,8 @@ export function AuditFilters({
                 key={c}
                 onClick={() => toggleCat(c)}
                 aria-pressed={on}
-                className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-semibold border transition-all ${
-                  on ? `${def.bg} ${def.border} ${def.text}` : "bg-white/[0.02] border-white/[0.08] text-zinc-500 hover:text-zinc-300 hover:border-white/[0.15]"
-                }`}
+                className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-semibold border transition-all ${on ? `${def.bg} ${def.border} ${def.text}` : "bg-white/[0.02] border-white/[0.08] text-zinc-500 hover:text-zinc-300 hover:border-white/[0.15]"
+                  }`}
               >
                 <Icon className="h-3 w-3" /> {def.label}
               </button>
@@ -344,7 +331,6 @@ const cardVariants = {
   hidden: { opacity: 0, y: 10 },
   show: { opacity: 1, y: 0, transition: { type: "spring" as const, stiffness: 140, damping: 16 } },
 }
-
 export function AuditEventCard({
   log, jtrackId, gapMs, expanded, onToggle,
 }: { log: any; jtrackId: string; gapMs: number; expanded: boolean; onToggle: () => void }) {
@@ -421,12 +407,10 @@ export function AuditEventCard({
 
 /* ══════════════════ reusable: AuditTimeline ═════════════════════ */
 const listVariants = { hidden: {}, show: { transition: { staggerChildren: 0.03 } } }
-
 export function AuditTimeline({ logs, jtrackId }: { logs: any[]; jtrackId: string }) {
   const [expanded, setExpanded] = useState<Set<number>>(new Set())
   const toggle = (id: number) =>
     setExpanded((prev) => { const n = new Set(prev); n.has(id) ? n.delete(id) : n.add(id); return n })
-
   const groups = useMemo(() => {
     const sorted = [...logs].sort((a, b) => new Date(a.changedDate).getTime() - new Date(b.changedDate).getTime())
     const byDay = new Map<string, any[]>()
@@ -438,7 +422,6 @@ export function AuditTimeline({ logs, jtrackId }: { logs: any[]; jtrackId: strin
     })
     return Array.from(byDay.entries())
   }, [logs])
-
   if (logs.length === 0) {
     return (
       <div className="text-center py-16 text-zinc-500 border border-white/[0.05] rounded-2xl bg-white/[0.01]">
@@ -447,7 +430,6 @@ export function AuditTimeline({ logs, jtrackId }: { logs: any[]; jtrackId: strin
       </div>
     )
   }
-
   return (
     <div className="space-y-6">
       {groups.map(([day, dayLogs], gi) => {
@@ -487,25 +469,76 @@ export function AuditTimeline({ logs, jtrackId }: { logs: any[]; jtrackId: strin
 
 /* ══════════════════ master list (entity index) ═════════════════ */
 export default function Audits() {
+  const AUDIT_PAGINATION = FEATURES.ENABLE_AUDIT_PAGINATION
+
   const { auditLogs: auditLogsRaw, fetchData, tasks: tasksRaw } = useTaskStore()
   const auditLogs = Array.isArray(auditLogsRaw) ? auditLogsRaw : []
   const tasks = Array.isArray(tasksRaw) ? tasksRaw : []
 
   const [search, setSearch] = useState("")
   const [entityFilter, setEntityFilter] = useState("all")
-
   const [selectedEntity, setSelectedEntity] = useState<{ entityType: string; entityId: number; jtrackId: string } | null>(null)
   const [groupedLogs, setGroupedLogs] = useState<any[]>([])
   const [viewMode, setViewMode] = useState<"timeline" | "grouped" | "table">("timeline")
   const [timelineSearch, setTimelineSearch] = useState("")
   const [timelineActor, setTimelineActor] = useState("")
   const [expandedGroups, setExpandedGroups] = useState<Record<string, boolean>>({ Created: true, Bug: true, Retest: true })
-
   const [auditPage, setAuditPage] = useState(0)
   const [auditPageSize, setAuditPageSize] = useState(20)
 
-  useEffect(() => { fetchData() }, [])
+  // ── server-aggregation state (used only when flag ON) ──
+  const [serverRows, setServerRows] = useState<any[]>([])
+  const [serverTotal, setServerTotal] = useState(0)
+  const [serverSummary, setServerSummary] = useState<{
+    totalEvents: number; distinctEntities: number; distinctAuditors: number; lastActivity: string | null
+  } | null>(null)
 
+  const authHeaders = () => ({ Authorization: `Bearer ${localStorage.getItem("token")}` })
+
+  const fetchEntityIndex = useCallback(async () => {
+    if (!AUDIT_PAGINATION) return
+    const safePage = Math.max(0, auditPage)
+    const params = new URLSearchParams({ page: String(safePage), size: String(auditPageSize) })
+    if (search.trim()) params.set("search", search.trim())
+    if (entityFilter && entityFilter !== "all") params.set("entityType", entityFilter)
+    try {
+      const res = await fetch(`${APP_CONFIG.apiUrl}/api/audit/entity-index?${params.toString()}`, { headers: authHeaders() })
+      const data = await res.json()
+      setServerRows(Array.isArray(data.content) ? data.content : [])
+      setServerTotal(data.totalElements ?? 0)
+    } catch {
+      setServerRows([])
+      setServerTotal(0)
+    }
+  }, [AUDIT_PAGINATION, auditPage, auditPageSize, search, entityFilter])
+
+  const fetchSummary = useCallback(async () => {
+    if (!AUDIT_PAGINATION) return
+    try {
+      const res = await fetch(`${APP_CONFIG.apiUrl}/api/audit/summary`, { headers: authHeaders() })
+      setServerSummary(await res.json())
+    } catch {
+      setServerSummary(null)
+    }
+  }, [AUDIT_PAGINATION])
+
+  // Mount: flag OFF → keep legacy store bootstrap; flag ON → load summary only.
+  // NOTE: on flag ON we intentionally do NOT call fetchData() (that pulls the full /api/audit table).
+  // tasks/bugs for jTrackId labels are expected from the app/dashboard bootstrap.
+  useEffect(() => {
+    if (AUDIT_PAGINATION) fetchSummary()
+    else fetchData()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
+  // Flag ON: (re)fetch the page whenever page/size/search/filter change (debounced for typing).
+  useEffect(() => {
+    if (!AUDIT_PAGINATION) return
+    const t = setTimeout(fetchEntityIndex, 250)
+    return () => clearTimeout(t)
+  }, [AUDIT_PAGINATION, fetchEntityIndex])
+
+  // Drill-down groups fetch (unchanged — per-entity endpoint).
   useEffect(() => {
     if (selectedEntity) {
       const params = new URLSearchParams()
@@ -532,12 +565,11 @@ export default function Audits() {
     }
   }
 
-  // latest record per entity
-  const uniqueLogsMap = new Map<string, typeof auditLogs[0]>()
+  // ── legacy client-side aggregation (only meaningful when flag OFF) ──
+  const uniqueLogsMap = new Map<string, any>()
   const sortedLogs = [...auditLogs].sort((a, b) => new Date(a.changedDate).getTime() - new Date(b.changedDate).getTime())
   sortedLogs.forEach((log) => { uniqueLogsMap.set(`${log.entityType}_${log.entityId}`, log) })
   const latestLogs = Array.from(uniqueLogsMap.values())
-
   const filteredLogs = latestLogs.filter((log) => {
     const jtrackId = getEntityJtrackId(log.entityType, log.entityId)
     const q = search.toLowerCase()
@@ -549,14 +581,32 @@ export default function Audits() {
     const matchesEntity = entityFilter === "all" || log.entityType === entityFilter
     return matchesSearch && matchesEntity
   })
-
   const reversedFilteredLogs = [...filteredLogs].reverse()
-  const pagedLogs = paginate(reversedFilteredLogs, auditPage, auditPageSize)
 
-  const totalEvents = auditLogs.length
-  const trackedEntities = uniqueLogsMap.size
-  const totalAuditors = new Set(auditLogs.map((l) => l.changedBy?.fullName).filter(Boolean)).size
-  const latestMs = auditLogs.reduce((mx, l) => Math.max(mx, new Date(l.changedDate).getTime() || 0), 0)
+  // ── unified view model (server when flag ON, client when OFF) ──
+  const displayLogs = AUDIT_PAGINATION
+    ? serverRows                                              // already latest-per-entity, sorted desc, paged by server
+    : paginate(reversedFilteredLogs, auditPage, auditPageSize) // legacy client path
+  const totalItems = AUDIT_PAGINATION ? serverTotal : filteredLogs.length
+
+  const clientTotalEvents = auditLogs.length
+  const clientTrackedEntities = uniqueLogsMap.size
+  const clientAuditors = new Set(auditLogs.map((l) => l.changedBy?.fullName).filter(Boolean)).size
+  const clientLatestMs = auditLogs.reduce((mx, l) => Math.max(mx, new Date(l.changedDate).getTime() || 0), 0)
+
+  const stats = (AUDIT_PAGINATION && serverSummary)
+    ? {
+      totalEvents: serverSummary.totalEvents,
+      trackedEntities: serverSummary.distinctEntities,
+      auditors: serverSummary.distinctAuditors,
+      lastActivityMs: serverSummary.lastActivity ? new Date(serverSummary.lastActivity).getTime() : 0,
+    }
+    : {
+      totalEvents: clientTotalEvents,
+      trackedEntities: clientTrackedEntities,
+      auditors: clientAuditors,
+      lastActivityMs: clientLatestMs,
+    }
 
   const containerVariants = { hidden: { opacity: 0 }, show: { opacity: 1, transition: { staggerChildren: 0.035 } } }
   const rowVariants = { hidden: { opacity: 0, y: 8 }, show: { opacity: 1, y: 0, transition: { type: "spring" as const, stiffness: 130, damping: 15 } } }
@@ -589,10 +639,10 @@ export default function Audits() {
           </div>
         </div>
         <div className="relative grid grid-cols-2 lg:grid-cols-4 gap-3 mt-6">
-          <StatCard icon={<Activity className="h-4 w-4 text-violet-300" />} label="Total Events" value={totalEvents} sub="all recorded changes" accent="bg-violet-500/20" />
-          <StatCard icon={<Layers className="h-4 w-4 text-indigo-300" />} label="Tracked Entities" value={trackedEntities} sub="CRs & bugs with history" accent="bg-indigo-500/20" />
-          <StatCard icon={<Users className="h-4 w-4 text-cyan-300" />} label="Auditors" value={totalAuditors} sub="unique actors" accent="bg-cyan-500/20" />
-          <StatCard icon={<CalendarClock className="h-4 w-4 text-emerald-300" />} label="Last Activity" value={fmtRelative(latestMs)} sub={latestMs ? new Date(latestMs).toLocaleString([], { dateStyle: "medium", timeStyle: "short" }) : "no activity"} accent="bg-emerald-500/20" />
+          <StatCard icon={<Activity className="h-4 w-4 text-violet-300" />} label="Total Events" value={stats.totalEvents} sub="all recorded changes" accent="bg-violet-500/20" />
+          <StatCard icon={<Layers className="h-4 w-4 text-indigo-300" />} label="Tracked Entities" value={stats.trackedEntities} sub="CRs & bugs with history" accent="bg-indigo-500/20" />
+          <StatCard icon={<Users className="h-4 w-4 text-cyan-300" />} label="Auditors" value={stats.auditors} sub="unique actors" accent="bg-cyan-500/20" />
+          <StatCard icon={<CalendarClock className="h-4 w-4 text-emerald-300" />} label="Last Activity" value={fmtRelative(stats.lastActivityMs)} sub={stats.lastActivityMs ? new Date(stats.lastActivityMs).toLocaleString([], { dateStyle: "medium", timeStyle: "short" }) : "no activity"} accent="bg-emerald-500/20" />
         </div>
       </div>
 
@@ -648,7 +698,7 @@ export default function Audits() {
                   <Fingerprint className="h-4 w-4 text-violet-400" />
                   Latest change per entity — click a row to open its full trail
                 </div>
-                <span className="text-[11px] text-muted-foreground">{filteredLogs.length} record{filteredLogs.length === 1 ? "" : "s"}</span>
+                <span className="text-[11px] text-muted-foreground">{totalItems} record{totalItems === 1 ? "" : "s"}</span>
               </div>
               <div className="overflow-x-auto scrollbar-thin">
                 <table className="w-full text-xs text-left border-collapse min-w-[960px]">
@@ -665,7 +715,7 @@ export default function Audits() {
                     </tr>
                   </thead>
                   <motion.tbody variants={containerVariants} initial="hidden" animate="show" className="divide-y divide-white/[0.04]">
-                    {filteredLogs.length === 0 ? (
+                    {displayLogs.length === 0 ? (
                       <tr className="hover:bg-transparent">
                         <td colSpan={8} className="p-16 text-center text-muted-foreground font-medium">
                           <div className="flex flex-col items-center justify-center space-y-3">
@@ -678,7 +728,7 @@ export default function Audits() {
                         </td>
                       </tr>
                     ) : (
-                      pagedLogs.map((log) => {
+                      displayLogs.map((log) => {
                         const cat = categorize(log)
                         const def = CATEGORIES[cat]
                         return (
@@ -743,7 +793,7 @@ export default function Audits() {
 
           <Pagination
             currentPage={auditPage}
-            totalItems={filteredLogs.length}
+            totalItems={totalItems}
             pageSize={auditPageSize}
             onPageChange={(p) => { setAuditPage(p); window.scrollTo({ top: 0, behavior: "smooth" }) }}
             onPageSizeChange={(s) => { setAuditPageSize(s); setAuditPage(0) }}
@@ -773,32 +823,26 @@ function AuditTrailDetail({
 }) {
   const { setDownloadTarget, addToast } = useTaskStore()
   const [activeCats, setActiveCats] = useState<Set<CatKey>>(new Set())
-
   const safeGroups = Array.isArray(groupedLogs) ? groupedLogs : []
   const allFlatLogs = useMemo(() => safeGroups.flatMap((g) => g.logs || []), [safeGroups])
-
   const actors = useMemo(() => {
     const m = new Map<number, string>()
     allFlatLogs.forEach((l: any) => { if (l.changedBy) m.set(l.changedBy.id, l.changedBy.fullName) })
     return Array.from(m.entries())
   }, [allFlatLogs])
-
   const presentCats = useMemo(() => {
     const s = new Set<CatKey>()
     allFlatLogs.forEach((l: any) => s.add(categorize(l)))
     const order = Object.keys(CATEGORIES) as CatKey[]
     return order.filter((c) => s.has(c))
   }, [allFlatLogs])
-
   const visibleLogs = useMemo(
     () => (activeCats.size === 0 ? allFlatLogs : allFlatLogs.filter((l: any) => activeCats.has(categorize(l)))),
     [allFlatLogs, activeCats]
   )
-
   const toggleCat = (c: CatKey) =>
     setActiveCats((prev) => { const n = new Set(prev); n.has(c) ? n.delete(c) : n.add(c); return n })
   const toggleGroup = (g: string) => setExpandedGroups((prev) => ({ ...prev, [g]: !prev[g] }))
-
   const handleExport = () => {
     const params = new URLSearchParams()
     if (timelineSearch) params.append("search", timelineSearch)
@@ -814,13 +858,11 @@ function AuditTrailDetail({
       })
       .catch((err) => addToast("Export failed: " + err.message, "error"))
   }
-
   const modes: { key: "timeline" | "grouped" | "table"; label: string; Icon: React.ComponentType<{ className?: string }> }[] = [
     { key: "timeline", label: "Timeline", Icon: AlignLeft },
     { key: "grouped", label: "Grouped", Icon: ListTree },
     { key: "table", label: "Table", Icon: Table2 },
   ]
-
   return (
     <div className="space-y-5">
       {/* Header */}
@@ -869,7 +911,6 @@ function AuditTrailDetail({
 
       {/* Body */}
       {viewMode === "timeline" && <AuditTimeline logs={visibleLogs} jtrackId={entity.jtrackId} />}
-
       {viewMode === "table" && (
         <Card variant="glass" className="border-white/[0.06] bg-white/[0.02] rounded-2xl overflow-hidden">
           <div className="overflow-x-auto scrollbar-thin">
@@ -907,7 +948,6 @@ function AuditTrailDetail({
           </div>
         </Card>
       )}
-
       {viewMode === "grouped" && (
         <div className="grid grid-cols-1 gap-3">
           {safeGroups.map((group) => {
