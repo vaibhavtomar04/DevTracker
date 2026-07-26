@@ -139,6 +139,26 @@ export const FEATURES = {
     import.meta.env.VITE_ENABLE_REFERENCE_CACHE,
     true,
   ),
+
+  // Phase 1.5 (perf) — server-side audit aggregation for the master Audit page.
+  // When enabled, audits.tsx STOPS reading the full /api/audit table (~4MB) from the
+  // Zustand store and instead renders two lean, backend-computed endpoints:
+  //   • GET /api/audit/summary       → KPI stat cards (counts + last activity)
+  //   • GET /api/audit/entity-index  → paginated latest-change-per-entity list
+  //                                    (backend does aggregation, sort, search, paging)
+  // The drill-down timeline still uses /api/audit/groups/{type}/{id}, and every OTHER
+  // auditLogs consumer (CR details, deployments, developer dashboard, reports) keeps
+  // reading the existing store unchanged (taskStore + auditLogs are untouched this phase).
+  // Reversible without a code change:
+  //   • runtime:    window.__FEATURES__.ENABLE_AUDIT_PAGINATION = false (before bootstrap)
+  //   • build-time: VITE_ENABLE_AUDIT_PAGINATION=false
+  // Disabling restores the client-side full-table load + JS grouping on the Audit page
+  // (rollback for perf-phase1.5).
+  ENABLE_AUDIT_PAGINATION: readFlag(
+    'ENABLE_AUDIT_PAGINATION',
+    import.meta.env.VITE_ENABLE_AUDIT_PAGINATION,
+    true,
+  ),
 };
 
 export default APP_CONFIG;
