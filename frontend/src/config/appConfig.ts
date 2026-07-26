@@ -122,6 +122,23 @@ export const FEATURES = {
     import.meta.env.VITE_ENABLE_LEAN_POLL,
     true,
   ),
+
+  // Phase 1.4 (perf) — event-driven reference cache. Near-static master data
+  // (configs, users) is loaded ONCE at the non-forced bootstrap and then dropped
+  // from Batch 1 on the 5s forced poll: a forced fetchData(true) re-fetches only the
+  // volatile business data (tasks, bugs) and reuses the already-loaded reference data
+  // held in the Zustand store (still the single source of truth). Reference data stays
+  // fresh through explicit invalidation ONLY — the mutating actions that change it
+  // (createUser, updateUserRoles, updateConfig) already re-fetch/refresh it in-store —
+  // with no TTL and no timer. Reversible without a code change:
+  //   • runtime:    window.__FEATURES__.ENABLE_REFERENCE_CACHE = false (before bootstrap)
+  //   • build-time: VITE_ENABLE_REFERENCE_CACHE=false
+  // Disabling restores reference data (configs, users) on every forced poll (rollback for perf-phase1.4).
+  ENABLE_REFERENCE_CACHE: readFlag(
+    'ENABLE_REFERENCE_CACHE',
+    import.meta.env.VITE_ENABLE_REFERENCE_CACHE,
+    true,
+  ),
 };
 
 export default APP_CONFIG;
