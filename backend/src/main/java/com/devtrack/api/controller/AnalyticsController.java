@@ -36,6 +36,19 @@ public class AnalyticsController {
         return ResponseEntity.ok(analyticsService.getDeadlineAnalytics(range, scope, sprintId, userId));
     }
 
+     @GetMapping("/overview")
+    public ResponseEntity<Map<String, Object>> getDashboardOverview(
+            @RequestParam(defaultValue = "30d") String range,
+            @RequestParam(defaultValue = "all") String scope,
+            @RequestParam(required = false) String sprintId,
+            @RequestParam(required = false) Long userId) {
+        Map<String, Object> overview = new java.util.HashMap<>(
+                analyticsService.getDashboardData(range, scope, sprintId, userId));
+        overview.put("deadlines",
+                analyticsService.getDeadlineAnalytics(range, scope, sprintId, userId));
+        return ResponseEntity.ok(overview);
+    }
+
     @GetMapping("/kpi")
     public ResponseEntity<Map<String, Object>> getKpiAnalytics(
             @RequestParam(defaultValue = "30d") String range,

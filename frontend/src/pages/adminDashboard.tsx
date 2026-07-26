@@ -116,8 +116,8 @@ function KpiDetailPopup({ title, subtitle, iconBg, iconColor, Icon, items, empty
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: i * 0.04 }}
                 className={`flex items-center justify-between gap-3 p-3 rounded-xl border border-slate-200 dark:border-white/[0.06] bg-slate-50 dark:bg-white/[0.02] ${item.onClick
-                    ? 'cursor-pointer hover:bg-slate-100 dark:hover:bg-white/[0.05] hover:border-violet-300 dark:hover:border-violet-500/20 transition-all'
-                    : ''
+                  ? 'cursor-pointer hover:bg-slate-100 dark:hover:bg-white/[0.05] hover:border-violet-300 dark:hover:border-violet-500/20 transition-all'
+                  : ''
                   }`}
                 onClick={item.onClick}
               >
@@ -184,18 +184,14 @@ export default function AdminDashboard() {
     // admin KPI cards populate within 1-2s before full task list arrives
     fetchSummary()
     if (!FEATURES.ENABLE_NEW_BOOTSTRAP) fetchData()
-    fetch(`${APP_CONFIG.apiUrl}/api/analytics/dashboard`, {
+    fetch(`${APP_CONFIG.apiUrl}/api/analytics/overview`, {
       headers: { Authorization: `Bearer ${localStorage.getItem("token")}` }
     })
       .then(r => r.json())
-      .then(setAnalytics)
-      .catch(() => { });
-
-    fetch(`${APP_CONFIG.apiUrl}/api/analytics/deadlines`, {
-      headers: { Authorization: `Bearer ${localStorage.getItem("token")}` }
-    })
-      .then(r => r.json())
-      .then(setDeadlineAnalytics)
+      .then(data => {
+        setAnalytics(data)
+        setDeadlineAnalytics(data?.deadlines ?? null)
+      })
       .catch(() => { });
   }, [])
 

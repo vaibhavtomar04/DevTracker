@@ -102,7 +102,6 @@ export default function TesterDashboard() {
 
   useEffect(() => {
     fetchSummary() // fires fast parallel backend KPI queries before full task load
-    fetchData()
     if (!FEATURES.ENABLE_NEW_BOOTSTRAP) fetchData()
   }, [])
 
@@ -347,8 +346,8 @@ export default function TesterDashboard() {
             <button
               onClick={() => { setActiveQueue("pool"); setSelectedTask(null); setSelectedReview(null); }}
               className={`px-3.5 py-1.5 rounded-lg font-bold transition-all cursor-pointer ${activeQueue === "pool"
-                  ? "bg-gradient-to-r from-violet-600 to-indigo-600 text-white shadow-md border border-violet-500/20"
-                  : "text-slate-400 hover:text-slate-200"
+                ? "bg-gradient-to-r from-violet-600 to-indigo-600 text-white shadow-md border border-violet-500/20"
+                : "text-slate-400 hover:text-slate-200"
                 }`}
             >
               Testing Pool ({testingPool.length})
@@ -356,8 +355,8 @@ export default function TesterDashboard() {
             <button
               onClick={() => { setActiveQueue("my-assigned"); setSelectedTask(null); setSelectedReview(null); }}
               className={`px-3.5 py-1.5 rounded-lg font-bold transition-all cursor-pointer ${activeQueue === "my-assigned"
-                  ? "bg-gradient-to-r from-violet-600 to-indigo-600 text-white shadow-md border border-violet-500/20"
-                  : "text-slate-400 hover:text-slate-200"
+                ? "bg-gradient-to-r from-violet-600 to-indigo-600 text-white shadow-md border border-violet-500/20"
+                : "text-slate-400 hover:text-slate-200"
                 }`}
             >
               {isAdmin ? "Assigned CRs" : "My Assigned Testing"} ({myAssignedTesting.length})
@@ -365,8 +364,8 @@ export default function TesterDashboard() {
             <button
               onClick={() => { setActiveQueue("bugs"); setSelectedTask(null); setSelectedReview(null); }}
               className={`px-3.5 py-1.5 rounded-lg font-bold transition-all cursor-pointer ${activeQueue === "bugs"
-                  ? "bg-gradient-to-r from-violet-600 to-indigo-600 text-white shadow-md border border-violet-500/20"
-                  : "text-slate-400 hover:text-slate-200"
+                ? "bg-gradient-to-r from-violet-600 to-indigo-600 text-white shadow-md border border-violet-500/20"
+                : "text-slate-400 hover:text-slate-200"
                 }`}
             >
               Bugs & Defective CRs ({bugQueue.length + defectiveCRs.length})
@@ -374,8 +373,8 @@ export default function TesterDashboard() {
             <button
               onClick={() => { setActiveQueue("rejections"); setSelectedTask(null); setSelectedReview(null); }}
               className={`px-3.5 py-1.5 rounded-lg font-bold transition-all cursor-pointer ${activeQueue === "rejections"
-                  ? "bg-gradient-to-r from-violet-600 to-indigo-600 text-white shadow-md border border-violet-500/20"
-                  : "text-slate-400 hover:text-slate-200"
+                ? "bg-gradient-to-r from-violet-600 to-indigo-600 text-white shadow-md border border-violet-500/20"
+                : "text-slate-400 hover:text-slate-200"
                 }`}
             >
               {isAdmin ? "Rejected Bugs" : "My Rejected Bugs"} ({myRejectedReviews.length})
@@ -383,8 +382,8 @@ export default function TesterDashboard() {
             <button
               onClick={() => { setActiveQueue("completed"); setSelectedTask(null); setSelectedReview(null); }}
               className={`px-3.5 py-1.5 rounded-lg font-bold transition-all cursor-pointer ${activeQueue === "completed"
-                  ? "bg-gradient-to-r from-violet-600 to-indigo-600 text-white shadow-md border border-violet-500/20"
-                  : "text-slate-400 hover:text-slate-200"
+                ? "bg-gradient-to-r from-violet-600 to-indigo-600 text-white shadow-md border border-violet-500/20"
+                : "text-slate-400 hover:text-slate-200"
                 }`}
             >
               Completed CRs ({completedCRs.length})
@@ -415,8 +414,8 @@ export default function TesterDashboard() {
                       variants={cardVariants}
                       onClick={() => setSelectedTask(task)}
                       className={`p-5 rounded-2xl border backdrop-blur-md transition-all duration-300 cursor-pointer shadow-[inset_0_0_0_1px_rgba(255,255,255,0.04)] hover:shadow-[0_0_20px_rgba(6,182,212,0.12)] hover:border-cyan-500/30 ${isSelected
-                          ? "bg-cyan-500/10 border-cyan-500/40 shadow-[0_0_25px_rgba(6,182,212,0.15)]"
-                          : "bg-[#161619] border-white/[0.06]"
+                        ? "bg-cyan-500/10 border-cyan-500/40 shadow-[0_0_25px_rgba(6,182,212,0.15)]"
+                        : "bg-[#161619] border-white/[0.06]"
                         }`}
                     >
                       <div className="flex justify-between items-start mb-3">
@@ -498,8 +497,8 @@ export default function TesterDashboard() {
                       variants={cardVariants}
                       onClick={() => setSelectedTask(task)}
                       className={`p-5 rounded-2xl border backdrop-blur-md transition-all duration-300 cursor-pointer shadow-[inset_0_0_0_1px_rgba(255,255,255,0.04)] hover:shadow-[0_0_20px_rgba(6,182,212,0.12)] hover:border-cyan-500/30 ${isSelected
-                          ? "bg-cyan-500/10 border-cyan-500/40 shadow-[0_0_25px_rgba(6,182,212,0.15)]"
-                          : "bg-[#161619] border-white/[0.06]"
+                        ? "bg-cyan-500/10 border-cyan-500/40 shadow-[0_0_25px_rgba(6,182,212,0.15)]"
+                        : "bg-[#161619] border-white/[0.06]"
                         }`}
                     >
                       <div className="flex justify-between items-start mb-3">
@@ -578,8 +577,8 @@ export default function TesterDashboard() {
                           variants={cardVariants}
                           onClick={() => setSelectedTask(task)}
                           className={`p-5 rounded-2xl border backdrop-blur-md transition-all duration-300 cursor-pointer shadow-[inset_0_0_0_1px_rgba(255,255,255,0.04)] hover:shadow-[0_0_20px_rgba(244,63,94,0.10)] hover:border-rose-500/30 ${isSelected
-                              ? "bg-rose-500/10 border-rose-500/40 shadow-[0_0_25px_rgba(244,63,94,0.12)]"
-                              : "bg-[#161619] border-white/[0.06]"
+                            ? "bg-rose-500/10 border-rose-500/40 shadow-[0_0_25px_rgba(244,63,94,0.12)]"
+                            : "bg-[#161619] border-white/[0.06]"
                             }`}
                         >
                           <div className="flex justify-between items-start mb-3">
@@ -618,8 +617,8 @@ export default function TesterDashboard() {
                           variants={cardVariants}
                           onClick={() => setSelectedBugDetailId(bug.id)}
                           className={`p-5 rounded-2xl border backdrop-blur-md transition-all duration-300 cursor-pointer shadow-[inset_0_0_0_1px_rgba(255,255,255,0.04)] hover:shadow-[0_0_20px_rgba(245,158,11,0.10)] hover:border-amber-500/30 ${isSelected
-                              ? "bg-amber-500/10 border-amber-500/40 shadow-[0_0_25px_rgba(245,158,11,0.12)]"
-                              : "bg-[#161619] border-white/[0.06]"
+                            ? "bg-amber-500/10 border-amber-500/40 shadow-[0_0_25px_rgba(245,158,11,0.12)]"
+                            : "bg-[#161619] border-white/[0.06]"
                             }`}
                         >
                           <div className="flex justify-between items-start mb-3">
@@ -660,8 +659,8 @@ export default function TesterDashboard() {
                       variants={cardVariants}
                       onClick={() => setSelectedReview(review)}
                       className={`p-5 rounded-2xl border backdrop-blur-md transition-all duration-300 cursor-pointer shadow-[inset_0_0_0_1px_rgba(255,255,255,0.04)] hover:shadow-[0_0_20px_rgba(244,63,94,0.10)] hover:border-rose-500/30 ${isSelected
-                          ? "bg-rose-500/10 border-rose-500/40 shadow-[0_0_25px_rgba(244,63,94,0.12)]"
-                          : "bg-[#161619] border-white/[0.06]"
+                        ? "bg-rose-500/10 border-rose-500/40 shadow-[0_0_25px_rgba(244,63,94,0.12)]"
+                        : "bg-[#161619] border-white/[0.06]"
                         }`}
                     >
                       <div className="flex justify-between items-start mb-3">
@@ -702,8 +701,8 @@ export default function TesterDashboard() {
                       variants={cardVariants}
                       onClick={() => setSelectedTask(task)}
                       className={`p-5 rounded-2xl border backdrop-blur-md transition-all duration-300 cursor-pointer shadow-[inset_0_0_0_1px_rgba(255,255,255,0.04)] hover:shadow-[0_0_20px_rgba(6,182,212,0.12)] hover:border-cyan-500/30 ${isSelected
-                          ? "bg-cyan-500/10 border-cyan-500/40 shadow-[0_0_25px_rgba(6,182,212,0.15)]"
-                          : "bg-[#161619] border-white/[0.06]"
+                        ? "bg-cyan-500/10 border-cyan-500/40 shadow-[0_0_25px_rgba(6,182,212,0.15)]"
+                        : "bg-[#161619] border-white/[0.06]"
                         }`}
                     >
                       <div className="flex justify-between items-start mb-3">
@@ -1112,9 +1111,9 @@ export default function TesterDashboard() {
                               </button>
                               <div className="flex items-center gap-1.5">
                                 <span className={`px-2 py-0.5 rounded-lg text-[9px] font-bold border ${bug.status === 'OPEN' ? 'text-sky-400 bg-sky-500/10 border-sky-500/20' :
-                                    bug.status === 'RESOLVED' ? 'text-emerald-400 bg-emerald-500/10 border-emerald-500/20' :
-                                      bug.status === 'CLOSED' ? 'text-slate-400 bg-slate-500/10 border-slate-500/20' :
-                                        'text-amber-400 bg-amber-500/10 border-amber-500/20'
+                                  bug.status === 'RESOLVED' ? 'text-emerald-400 bg-emerald-500/10 border-emerald-500/20' :
+                                    bug.status === 'CLOSED' ? 'text-slate-400 bg-slate-500/10 border-slate-500/20' :
+                                      'text-amber-400 bg-amber-500/10 border-amber-500/20'
                                   }`}>{bug.status}</span>
                               </div>
                             </div>
