@@ -246,3 +246,41 @@ The `!force` guard was applied to `taskStore.ts`, committed (`efead225` "fixed l
 ### Related Files
 - `frontend/src/store/taskStore.ts` (forced-poll short-circuit `if (force && FEATURES.ENABLE_LEAN_POLL) { set({ isFetching: false }); return }` before the secondary-batch / `ENABLE_LAZY_AUDIT` branch)
 - `frontend/src/config/appConfig.ts` (`ENABLE_LEAN_POLL` flag)
+
+---
+
+## ADR-007: Event-Driven Reference Cache — Split Volatile vs. Reference Data on the Forced Poll
+
+- **Status:** Accepted (Phase 1.4 build committed and tagged by author; immutable checkpoint tag `perf-phase1.4-reference-cache` = commit `7363e9dc` created 2026-07-26)
+- **Date:** 2026-07-26
+- **Branch:** `feature/performance-architecture-migration`
+- **Phase:** 1.4 (Stabilize — reference-data cache)
+
+### Problem
+After Phase 1.3.1, the 5 s forced poll (`developerDashboard.tsx:290` → `fetchData(true)`) no longer ran the secondary batch, but it **still re-ran the entire Batch 1** every cycle — `/api/tasks`, `/api/bugs`, `/api/configs`, and `/api/users`. DevTools initiator analysis (`window.fetch @ dashboard:50` → `apiClient.ts:84` → `taskStore.ts:220`/`:240` → `developerDashboard.tsx:290`) confirmed the repeating `/api/users` stream (and the "second" cold-load `/api/users` = the first interval tick at ~t+5s) originated from that poll. `configs` and `users` are **near-static master/reference data** (role assignments, config key/values) that change only through explicit admin actions, so re-fetching them every 5 s is pure idle waste against the P2 zero-idle-REST budget — whereas `tasks` / `bugs` are the only genuinely volatile business data that needs the poll cadence.
+
+### Decision
+Split Batch 1 into **volatile business data** (`tasks`, `bugs`) and **reference data** (`configs`, `users`), gated by `ENABLE_REFERENCE_CACHE`:
+1. **Reference data loads once** at the non-forced bootstrap (the `DashboardLayout` mount fetch), exactly as before.
+2. **Forced polls reuse the cache.** On a forced `fetchData(true)` with the flag on and reference data already present (`skipReference = force && FEATURES.ENABLE_REFERENCE_CACHE && get().configs.length > 0 && get().users.length > 0`), the store skips the `/api/configs` and `/api/users` fetches (`Promise.resolve(null)` in their `Promise.all` slots) and reuses the copies already held in the Zustand store — which remains the single source of truth. Only `/api/tasks` + `/api/bugs` ride the 5 s poll. The preserved copies (`nextConfigs` / `nextUsers`) are also what gets written back to the `sessionStorage` core cache, so the cache stays consistent.
+3. **Event-driven invalidation — no TTL, no timer.** Reference data stays fresh solely through the mutating actions that change it, which already refresh it in-store: `createUser` and `updateUserRoles` re-fetch `/api/users` and re-normalize roles; `updateConfig` updates `configs` from the PUT response. No time-based expiry and no background refresh timer are introduced.
+
+### Feature Flag
+`ENABLE_REFERENCE_CACHE` (frontend `FEATURES`, env `VITE_ENABLE_REFERENCE_CACHE`, runtime override `window.__FEATURES__`, default **enabled**). Registered in `appConfig.ts` (commit `c8642f1`). Disabling it restores reference data (`configs`, `users`) on every forced poll (rollback without redeploy).
+
+### Alternatives Considered
+1. **Long-TTL refresh (re-fetch reference data only when older than N minutes)** — rejected; adds a time heuristic and still produces periodic idle fetches. Pure event-driven invalidation is leaner and deterministic.
+2. **Migrate reference data to the unused React Query layer (`useApiQueries.ts`)** — rejected for this phase; it would introduce a second source of truth alongside the Zustand store and violates one-module-per-change. The dead React Query layer is left untouched (candidate for a later cleanup phase).
+3. **Refresh reference data on a WebSocket "data changed" signal** — deferred to the Phases 2–3 typed-event work; this phase deliberately keeps the change frontend-only and reversible.
+
+### Verification (2026-07-26)
+The Batch-1 split was applied to `taskStore.ts`, committed (`7363e9dc` "perf: reference-cache") and tagged `perf-phase1.4-reference-cache` by the author. Expected/observed behavior: cold load fetches `configs` + `users` once at bootstrap; during idle the 5 s poll re-fetches only `tasks` + `bugs`, and `/api/configs` + `/api/users` no longer repeat; creating a user / updating roles / editing a config still refreshes the respective list in every surface that reads it — no functional regression.
+
+### Consequences
+- **Positive:** The forced 5 s poll drops from 4 to 2 requests per tick; the repeating `/api/users` + `/api/configs` idle stream is eliminated. Combined with ADR-005 (audit) and ADR-006 (lean poll), the idle poll now carries only the two genuinely volatile datasets, moving decisively toward the 0-idle-REST / single-request-per-tick targets.
+- **Trade-offs:** Reference data now reflects cross-user changes (another admin adds a user / edits a config) only on the local user's next reference-mutating action, navigation, or full reload — not within 5 s. This is an accepted trade consistent with ADR-005/006, and the eventual WS typed-event sync (Phases 2–3) will close it. The `skipReference` guard depends on the store already holding reference data; if it is somehow empty on a forced call the guard falls through and re-fetches (safe default).
+- **Note:** The 5 s poll itself remains (now carrying only `tasks` + `bugs`); its removal is the later strangler-fig step gated by `ENABLE_POLLING_REMOVAL` once typed WS events make it redundant.
+
+### Related Files
+- `frontend/src/store/taskStore.ts` (Batch-1 split: `skipReference` guard; conditional `/api/configs` + `/api/users` fetch; `nextConfigs` / `nextUsers` reuse cached store copies when skipped and are written to the `sessionStorage` core cache)
+- `frontend/src/config/appConfig.ts` (`ENABLE_REFERENCE_CACHE` flag)
