@@ -50,7 +50,7 @@ interface NotificationState {
   wsStatus: WsStatus;
   popupQueue: PopupQueueItem[];
   isNotificationsBlocked: boolean;
-  
+
   // Actions
   fetchNotifications: (userId: number) => Promise<void>;
   markRead: (id: number) => Promise<void>;
@@ -61,11 +61,11 @@ interface NotificationState {
   toggleBlockNotifications: () => void;
   addNotification: (n: AppNotification) => void;
   dismissPopup: (id: string) => void;
-  
+
   // WebSocket lifecycle
   connect: (userId: number) => void;
   disconnect: () => void;
-  
+
   // Internal (legacy manager only; the v2 singleton manager is module-scoped)
   _ws: WebSocket | null;
   _pollInterval: ReturnType<typeof setInterval> | null;
@@ -218,7 +218,7 @@ export const useNotificationStore = create<NotificationState>((set, get) => ({
       // Deduplication check: by ID only (title+desc would block real-time popups for same-text notifications)
       const exists = state.notifications.some((n) => n.id === notification.id);
       if (exists) return state;
-      
+
       const notifications = [notification, ...state.notifications];
 
       // If notifications are blocked by user toggle, update list silently without popups
@@ -229,7 +229,7 @@ export const useNotificationStore = create<NotificationState>((set, get) => ({
           popupQueue: [],
         };
       }
-      
+
       // Determine popup type from title content
       let popupType: PopupQueueItem['type'] = 'default';
       const titleLower = notification.title.toLowerCase();
@@ -240,7 +240,7 @@ export const useNotificationStore = create<NotificationState>((set, get) => ({
       } else if (titleLower.includes('new') || titleLower.includes('assigned') || titleLower.includes('created')) {
         popupType = 'info';
       }
-      
+
       // Add to popup queue
       const popupItem: PopupQueueItem = {
         id: `popup-${notification.id}-${Date.now()}`,
@@ -248,7 +248,7 @@ export const useNotificationStore = create<NotificationState>((set, get) => ({
         desc: notification.desc,
         type: popupType,
       };
-      
+
       return {
         notifications,
         unreadCount: notifications.filter((n) => n.unread).length,
@@ -277,7 +277,7 @@ export const useNotificationStore = create<NotificationState>((set, get) => ({
 
     // ===== LEGACY connection manager (rollback: ENABLE_WS_LIFECYCLE_V2=false) =====
     const state = get();
-    
+
     // Close existing connection
     if (state._ws) {
       try { state._ws.close(); } catch { /* ignore */ }
@@ -293,7 +293,7 @@ export const useNotificationStore = create<NotificationState>((set, get) => ({
 
     const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
     const wsUrl = `${wsProtocol}//${window.location.host}${APP_CONFIG.contextPath}/ws/notifications?userId=${userId}`;
-    
+
     set({ wsStatus: 'connecting' });
 
     let ws: WebSocket;
@@ -517,7 +517,8 @@ function scheduleReconnect(userId: number, myGen: number): void {
   if (myGen !== connectionGeneration) return;      // superseded chain
   if (intentionalDisconnect) return;               // do not reconnect after disconnect()
   if (reconnectAttempts >= MAX_RECONNECT_ATTEMPTS) return; // bounded retry
-  const delay = Math.min(RECONNECT_BASE_MS * Math.pow(2, reconnectAttempts), RECONNECT_MAX_MS);
+  const capped = Math.min(RECONNECT_BASE_MS * Math.pow(2, reconnectAttempts), RECONNECT_MAX_MS);
+  const delay = Math.round(capped / 2 + Math.random() * (capped / 2));
   reconnectAttempts++;
   if (reconnectTimer) clearTimeout(reconnectTimer);
   reconnectTimer = setTimeout(() => {
