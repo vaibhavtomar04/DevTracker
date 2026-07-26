@@ -115,3 +115,15 @@ Set `ENABLE_WS_LIFECYCLE_V2=false` (runtime `window.__FEATURES__` or `VITE_ENABL
 ### Related Files
 - `frontend/src/store/notificationStore.ts`
 - `frontend/src/config/appConfig.ts`
+
+### Revision r2 — 2026-07-26 (pre-acceptance; Status still Proposed)
+
+**Additional root cause found during Phase 1.1 runtime verification.** The singleton manager above eliminated *reconnect-storm* churn, but a clean-log capture (DevTools WS, Preserve log **off**, hard reload) still showed **4–5 concurrent `notifications?userId=` sockets** with staggered ages, growing on navigation.
+
+**Code-level cause (confirmed, not inferred):** in `App.tsx` every route element is wrapped in its own `<ProtectedRoute>`, which returns `<DashboardLayout>{children}</DashboardLayout>`; `DashboardLayout` renders `<Navbar>`, and Navbar owns the WS lifecycle effect (`connect()` on mount, `disconnect()` on unmount). Therefore **every navigation unmounts and remounts Navbar**, firing `disconnect()` then `connect()`. `main.tsx` wraps the app in `<StrictMode>`, which additionally double-invokes this on the initial mount. The singleton's idempotency only dedupes repeated `connect()` calls with **no intervening `disconnect()`**; a `disconnect()` reset `activeUserId` and tore the socket down, so each navigation opened a fresh socket. Aborting a still-`CONNECTING` socket does not reliably cancel the server-side upgrade, and `NotificationWebSocketHandler` frees sessions only in `afterConnectionClosed` (no reaping) — so orphaned server sessions linger (101/Pending).
+
+**Fix (still one module — `notificationStore.ts` — still gated by `ENABLE_WS_LIFECYCLE_V2`; no routing/Navbar/UI/backend changes, honoring the non-goals):**
+1. **Grace-period teardown.** `disconnect()` defers teardown by `TEARDOWN_GRACE_MS` (2s) instead of closing immediately. A `connect()` for the same user within that window cancels the pending teardown and reuses the existing live socket, collapsing navigation remounts + StrictMode double-invoke into **one socket per session**. A real logout has no following remount, so the deferred teardown fires and the socket closes.
+2. **CONNECTING-safe teardown.** When a socket that is still `CONNECTING` must be closed, the `close()` is deferred to its `onopen` so no half-open orphan is left on the server.
+
+**Follow-up logged (out of Phase 1.1 scope — candidate for the Phase 2/4 backend pass):** add stale-session reaping in `NotificationWebSocketHandler.sendToUser` (its comment claims it removes closed sessions, but the code only skips them) and verify prompt close-handshake completion server-side.

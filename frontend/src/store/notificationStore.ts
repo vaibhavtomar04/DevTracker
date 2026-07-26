@@ -388,6 +388,19 @@ export const useNotificationStore = create<NotificationState>((set, get) => ({
 // callback (onopen/onmessage/onclose/reconnect) belonging to a superseded
 // connect() call, so an old orphan chain can never keep firing fetchData(true)
 // in the background — the P2 compounding root cause.
+//
+// Phase 1.1 (r2): every route in App.tsx renders its own ProtectedRoute →
+// DashboardLayout → Navbar, and Navbar owns the WS lifecycle effect. So every
+// navigation UNMOUNTS + REMOUNTS Navbar, firing disconnect() then connect()
+// (StrictMode double-invokes this too). The plain idempotency guard cannot
+// dedupe across a disconnect (it resets activeUserId and tears the socket
+// down), so each navigation opened a NEW socket → the socket leak. Two
+// mechanisms fix this without touching routing/Navbar/UI/backend:
+//   1) grace-period teardown: disconnect() defers the teardown; a connect()
+//      for the same user within TEARDOWN_GRACE_MS cancels it and reuses the
+//      SAME live socket, so remounts + StrictMode collapse to one socket.
+//   2) CONNECTING-safe teardown: closing a not-yet-open socket is deferred to
+//      its onopen, so we never leave a half-open orphan the server keeps alive.
 // ─────────────────────────────────────────────────────────────────────────
 
 const MAX_RECONNECT_ATTEMPTS = 5;
@@ -396,12 +409,14 @@ const RECONNECT_MAX_MS = 30000;
 const STABILITY_RESET_MS = 10000;
 const FETCH_DEBOUNCE_MS = 500;
 const POLL_INTERVAL_MS = 15000;
+const TEARDOWN_GRACE_MS = 2000;
 
 let activeSocket: WebSocket | null = null;
 let reconnectTimer: ReturnType<typeof setTimeout> | null = null;
 let stabilityTimer: ReturnType<typeof setTimeout> | null = null;
 let debounceTimer: ReturnType<typeof setTimeout> | null = null;
 let pollTimer: ReturnType<typeof setInterval> | null = null;
+let pendingTeardownTimer: ReturnType<typeof setTimeout> | null = null;
 let reconnectAttempts = 0;
 let intentionalDisconnect = false;
 let connectionGeneration = 0;
@@ -415,17 +430,33 @@ function clearManagerTimers(): void {
 }
 
 function teardownSocket(): void {
-  if (activeSocket) {
-    const old = activeSocket;
-    activeSocket = null;
-    try {
+  if (!activeSocket) return;
+  const old = activeSocket;
+  activeSocket = null;
+  old.onmessage = null;
+  old.onerror = null;
+  old.onclose = null;
+  try {
+    if (old.readyState === WebSocket.CONNECTING) {
+      // Closing a socket that has not finished its handshake does not reliably
+      // abort the server-side upgrade, which would leave an orphaned session
+      // (the backend frees sessions only in afterConnectionClosed). Defer the
+      // close until the socket actually opens.
+      old.onopen = () => { try { old.close(); } catch { /* ignore */ } };
+    } else {
       old.onopen = null;
-      old.onmessage = null;
-      old.onclose = null;
-      old.onerror = null;
       old.close();
-    } catch { /* ignore */ }
-  }
+    }
+  } catch { /* ignore */ }
+}
+
+function startPollTimer(userId: number): void {
+  if (pollTimer) return;
+  pollTimer = setInterval(() => {
+    if (useNotificationStore.getState().wsStatus !== 'connected') {
+      useNotificationStore.getState().fetchNotifications(userId);
+    }
+  }, POLL_INTERVAL_MS);
 }
 
 function scheduleReconnect(userId: number, myGen: number): void {
@@ -508,6 +539,18 @@ function openManagedSocket(userId: number, myGen: number): void {
 }
 
 function startManagedConnection(userId: number): void {
+  // A route remount (React StrictMode double-invoke on mount, or navigating
+  // between pages — every route wraps its own DashboardLayout/Navbar, which
+  // owns the WS lifecycle effect) fires disconnect() then connect() almost
+  // synchronously. Cancel any pending deferred teardown so the SAME socket is
+  // reused across that gap instead of churning a new socket per navigation
+  // (the P2 socket-leak root cause).
+  if (pendingTeardownTimer) {
+    clearTimeout(pendingTeardownTimer);
+    pendingTeardownTimer = null;
+  }
+  intentionalDisconnect = false;
+
   // Idempotent: reuse an existing live/connecting socket for the same user
   // instead of opening another → exactly one socket across remounts/StrictMode.
   if (
@@ -516,13 +559,13 @@ function startManagedConnection(userId: number): void {
     (activeSocket.readyState === WebSocket.OPEN ||
       activeSocket.readyState === WebSocket.CONNECTING)
   ) {
+    startPollTimer(userId); // ensure the fallback poll survived the cancelled teardown
     return;
   }
 
   // Supersede any prior generation and fully tear it down (socket + all timers).
   connectionGeneration++;
   const myGen = connectionGeneration;
-  intentionalDisconnect = false;
   reconnectAttempts = 0;
   activeUserId = userId;
   clearManagerTimers();
@@ -530,21 +573,26 @@ function startManagedConnection(userId: number): void {
 
   // Initial REST sync + single fallback poll timer.
   useNotificationStore.getState().fetchNotifications(userId);
-  pollTimer = setInterval(() => {
-    if (useNotificationStore.getState().wsStatus !== 'connected') {
-      useNotificationStore.getState().fetchNotifications(userId);
-    }
-  }, POLL_INTERVAL_MS);
+  startPollTimer(userId);
 
   openManagedSocket(userId, myGen);
 }
 
 function stopManagedConnection(): void {
+  // Defer teardown by a short grace period. Navigation unmounts Navbar (which
+  // calls disconnect()) and immediately remounts it on the next route (which
+  // calls connect()); deferring lets that connect() reuse the live socket
+  // instead of closing + reopening every navigation. A genuine logout has no
+  // following remount, so the deferred teardown below runs and closes cleanly.
   intentionalDisconnect = true;
-  connectionGeneration++; // invalidate every in-flight callback / reconnect chain
-  activeUserId = null;
-  reconnectAttempts = 0;
-  clearManagerTimers();
-  teardownSocket();
-  useNotificationStore.setState({ wsStatus: 'disconnected' });
+  if (pendingTeardownTimer) clearTimeout(pendingTeardownTimer);
+  pendingTeardownTimer = setTimeout(() => {
+    pendingTeardownTimer = null;
+    connectionGeneration++; // invalidate every in-flight callback / reconnect chain
+    activeUserId = null;
+    reconnectAttempts = 0;
+    clearManagerTimers();
+    teardownSocket();
+    useNotificationStore.setState({ wsStatus: 'disconnected' });
+  }, TEARDOWN_GRACE_MS);
 }
