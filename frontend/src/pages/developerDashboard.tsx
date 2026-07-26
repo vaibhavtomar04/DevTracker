@@ -286,10 +286,10 @@ export default function DeveloperDashboard() {
     }
     fetchBugReviews()
 
-    const interval = setInterval(() => {
-      fetchData(true)
-    }, 5000)
-    return () => clearInterval(interval)
+    // const interval = setInterval(() => {
+    //   fetchData(true)
+    // }, 5000)
+    // return () => clearInterval(interval)
   }, [])
 
   // Ctrl + K Global Search shortcut listener
@@ -1254,8 +1254,8 @@ export default function DeveloperDashboard() {
                               key={mode}
                               onClick={() => setViewMode(mode as any)}
                               className={`px-3 py-1.5 rounded-lg capitalize font-bold transition-all ${viewMode === mode
-                                  ? "bg-cyan-500/15 text-cyan-400 border border-cyan-500/20"
-                                  : "text-zinc-400 hover:text-zinc-200"
+                                ? "bg-cyan-500/15 text-cyan-400 border border-cyan-500/20"
+                                : "text-zinc-400 hover:text-zinc-200"
                                 }`}
                             >
                               {mode}
@@ -1863,7 +1863,7 @@ export default function DeveloperDashboard() {
                           <div className="flex justify-between">
                             <span className="text-zinc-400">Status:</span>
                             <span className={`font-bold uppercase ${details.status === "On Track" ? "text-[#10b981]" :
-                                details.status === "Bug Found" ? "text-red-400" : "text-cyan-400"
+                              details.status === "Bug Found" ? "text-red-400" : "text-cyan-400"
                               }`}>
                               {details.status}
                             </span>
@@ -2700,8 +2700,8 @@ export default function DeveloperDashboard() {
                         key={d}
                         onClick={() => setLayoutDensity(d as any)}
                         className={`flex-1 py-1.5 rounded-lg font-bold transition-all capitalize ${layoutDensity === d
-                            ? "bg-cyan-500/15 text-cyan-400"
-                            : "text-zinc-400 hover:text-zinc-200"
+                          ? "bg-cyan-500/15 text-cyan-400"
+                          : "text-zinc-400 hover:text-zinc-200"
                           }`}
                       >
                         {d}

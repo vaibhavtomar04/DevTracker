@@ -33,17 +33,17 @@ import { APP_CONFIG } from "@/config/appConfig";
 
 
 export default function CrManagement() {
-  const { 
-    tasks, 
-    deleteTask, 
-    auditLogs, 
-    bugs, 
-    searchQuery, 
-    addToast, 
-    setDownloadTarget, 
-    users, 
-    reassignTester, 
-    updateTask, 
+  const {
+    tasks,
+    deleteTask,
+    auditLogs,
+    bugs,
+    searchQuery,
+    addToast,
+    setDownloadTarget,
+    users,
+    reassignTester,
+    updateTask,
     fetchData,
     bugReviews,
     adminAcceptRejection,
@@ -53,8 +53,8 @@ export default function CrManagement() {
 
   React.useEffect(() => {
     fetchData(true)
-    const timer = setInterval(() => fetchData(true), 5000)
-    return () => clearInterval(timer)
+    // const timer = setInterval(() => fetchData(true), 5000)
+    // return () => clearInterval(timer)
   }, [])
 
   const [deleteModalTask, setDeleteModalTask] = useState<any>(null)
@@ -83,13 +83,13 @@ export default function CrManagement() {
   const [selectedTaskForBugs, setSelectedTaskForBugs] = useState<Task | null>(null)
 
   useEffect(() => {
-  const p = new URLSearchParams(window.location.search);
-  const bug = p.get("bug");
-  if (bug && !Number.isNaN(Number(bug))) setSelectedBugId(Number(bug));
-  const cr = p.get("cr");
-  if (cr) { const f = tasks.find((t: any) => String(t.id) === cr); if (f) setSelectedTask?.(f); }
-}, [tasks]);
-  
+    const p = new URLSearchParams(window.location.search);
+    const bug = p.get("bug");
+    if (bug && !Number.isNaN(Number(bug))) setSelectedBugId(Number(bug));
+    const cr = p.get("cr");
+    if (cr) { const f = tasks.find((t: any) => String(t.id) === cr); if (f) setSelectedTask?.(f); }
+  }, [tasks]);
+
   // Reassignment Form State
   const [newTesterUsername, setNewTesterUsername] = useState("")
   const [reassignReason, setReassignReason] = useState("")
@@ -136,71 +136,71 @@ export default function CrManagement() {
   }
 
   const handleExportData = async (e: React.FormEvent) => {
-  e.preventDefault()
+    e.preventDefault()
 
-  const filteredExport = tasks.filter(t => {
-    // Date filter
-    if (exportStartDate || exportEndDate) {
-      let dateVal: string | undefined | null
-      if (exportDateType === "created") dateVal = t.createdDate
-      else if (exportDateType === "production") dateVal = t.productionDate
-      else if (exportDateType === "sit_deploy") dateVal = getAuditDate(t.id, "SIT_DEPLOYED") !== "—" ? getAuditDate(t.id, "SIT_DEPLOYED") : null
-      else if (exportDateType === "sit_completed") dateVal = getAuditDate(t.id, "SIT_COMPLETED") !== "—" ? getAuditDate(t.id, "SIT_COMPLETED") : null
-      else if (exportDateType === "code_review") dateVal = getAuditDate(t.id, "CODE_REVIEW") !== "—" ? getAuditDate(t.id, "CODE_REVIEW") : null
-      else if (exportDateType === "uat_deploy") dateVal = getAuditDate(t.id, "MOVE_TO_UAT") !== "—" ? getAuditDate(t.id, "MOVE_TO_UAT") : null
-      else if (exportDateType === "prod_deployed") dateVal = getAuditDate(t.id, "PROD_DEPLOYED") !== "—" ? getAuditDate(t.id, "PROD_DEPLOYED") : null
-      if (!dateVal) return false
-      const taskDateStr = typeof dateVal === "string" && dateVal.length === 10 ? dateVal : new Date(dateVal as string).toISOString().split('T')[0]
-      if (exportStartDate && taskDateStr < exportStartDate) return false
-      if (exportEndDate && taskDateStr > exportEndDate) return false
-    }
-    // Priority filter
-    if (exportPriority !== "all" && t.priority !== exportPriority) return false
-    // Status filter
-    if (exportStatus !== "all" && t.status !== exportStatus) return false
-    // Category filter
-    if (exportCategory !== "all" && (t.type?.name || "CR") !== exportCategory) return false
-    // Developer filter
-    if (exportDev !== "all" && !getAssignedDevNames(t).includes(exportDev)) return false
-    // Bugs filter
-    if (exportHasBugs !== "all") {
-      const taskBugCount = bugs.filter(b => b.crTaskId === t.id).length
-      if (exportHasBugs === "yes" && taskBugCount === 0) return false
-      if (exportHasBugs === "no" && taskBugCount > 0) return false
-    }
-    return true
-  })
-
-  if (filteredExport.length === 0) {
-    addToast("No data found for the selected filters", "error")
-    return
-  }
-
-  try {
-    const baseUrl = `${window.location.origin}${APP_CONFIG.contextPath || ""}`
-    const { base64Data, defaultFileName } = await exportCrAuditReport({
-      tasks: filteredExport,
-      bugs,
-      auditLogs,
-      generatedBy: user?.fullName || "DevTrack User",
-      baseUrl,
+    const filteredExport = tasks.filter(t => {
+      // Date filter
+      if (exportStartDate || exportEndDate) {
+        let dateVal: string | undefined | null
+        if (exportDateType === "created") dateVal = t.createdDate
+        else if (exportDateType === "production") dateVal = t.productionDate
+        else if (exportDateType === "sit_deploy") dateVal = getAuditDate(t.id, "SIT_DEPLOYED") !== "—" ? getAuditDate(t.id, "SIT_DEPLOYED") : null
+        else if (exportDateType === "sit_completed") dateVal = getAuditDate(t.id, "SIT_COMPLETED") !== "—" ? getAuditDate(t.id, "SIT_COMPLETED") : null
+        else if (exportDateType === "code_review") dateVal = getAuditDate(t.id, "CODE_REVIEW") !== "—" ? getAuditDate(t.id, "CODE_REVIEW") : null
+        else if (exportDateType === "uat_deploy") dateVal = getAuditDate(t.id, "MOVE_TO_UAT") !== "—" ? getAuditDate(t.id, "MOVE_TO_UAT") : null
+        else if (exportDateType === "prod_deployed") dateVal = getAuditDate(t.id, "PROD_DEPLOYED") !== "—" ? getAuditDate(t.id, "PROD_DEPLOYED") : null
+        if (!dateVal) return false
+        const taskDateStr = typeof dateVal === "string" && dateVal.length === 10 ? dateVal : new Date(dateVal as string).toISOString().split('T')[0]
+        if (exportStartDate && taskDateStr < exportStartDate) return false
+        if (exportEndDate && taskDateStr > exportEndDate) return false
+      }
+      // Priority filter
+      if (exportPriority !== "all" && t.priority !== exportPriority) return false
+      // Status filter
+      if (exportStatus !== "all" && t.status !== exportStatus) return false
+      // Category filter
+      if (exportCategory !== "all" && (t.type?.name || "CR") !== exportCategory) return false
+      // Developer filter
+      if (exportDev !== "all" && !getAssignedDevNames(t).includes(exportDev)) return false
+      // Bugs filter
+      if (exportHasBugs !== "all") {
+        const taskBugCount = bugs.filter(b => b.crTaskId === t.id).length
+        if (exportHasBugs === "yes" && taskBugCount === 0) return false
+        if (exportHasBugs === "no" && taskBugCount > 0) return false
+      }
+      return true
     })
-    setDownloadTarget({ base64Data, defaultFileName })
-    setIsExportOpen(false)
-    addToast("CR Audit report generated successfully", "success")
-  } catch (err: any) {
-    addToast("Export failed: " + (err?.message || "Unknown error"), "error")
+
+    if (filteredExport.length === 0) {
+      addToast("No data found for the selected filters", "error")
+      return
+    }
+
+    try {
+      const baseUrl = `${window.location.origin}${APP_CONFIG.contextPath || ""}`
+      const { base64Data, defaultFileName } = await exportCrAuditReport({
+        tasks: filteredExport,
+        bugs,
+        auditLogs,
+        generatedBy: user?.fullName || "DevTrack User",
+        baseUrl,
+      })
+      setDownloadTarget({ base64Data, defaultFileName })
+      setIsExportOpen(false)
+      addToast("CR Audit report generated successfully", "success")
+    } catch (err: any) {
+      addToast("Export failed: " + (err?.message || "Unknown error"), "error")
+    }
   }
-}
 
 
 
 
   const filteredTasks = tasks.filter(t => {
     const s = (search || searchQuery).toLowerCase()
-    const matchesSearch = t.title.toLowerCase().includes(s) || 
-                          t.jtrackId.toLowerCase().includes(s) ||
-                          t.description.toLowerCase().includes(s)
+    const matchesSearch = t.title.toLowerCase().includes(s) ||
+      t.jtrackId.toLowerCase().includes(s) ||
+      t.description.toLowerCase().includes(s)
     const matchesCategory = filterCategory === "all" || (t.type?.name || "CR") === filterCategory
     const matchesPriority = colFilterPriority === "all" || t.priority === colFilterPriority
     const matchesStatus = colFilterStatus === "all" || t.status === colFilterStatus
@@ -220,7 +220,7 @@ export default function CrManagement() {
   const allStatuses = Array.from(new Set(tasks.map(t => t.status))).sort()
   const allDevNamesForExport = Array.from(new Set(tasks.map(t => getAssignedDevNames(t)))).sort()
 
-  const activeFilterCount = [colFilterPriority, colFilterStatus, colFilterDev, colFilterTester, colFilterHasBugs].filter(f => f !== "all").length + 
+  const activeFilterCount = [colFilterPriority, colFilterStatus, colFilterDev, colFilterTester, colFilterHasBugs].filter(f => f !== "all").length +
     (filterCategory !== "all" ? 1 : 0)
 
   const clearAllColFilters = () => {
@@ -650,13 +650,11 @@ export default function CrManagement() {
                         key={task.id}
                         variants={itemVariants}
                         onClick={() => setSelectedTask(task)}
-                        className={`hover:bg-white/[0.03] transition-all cursor-pointer relative group ${
-                          isSelected ? "bg-emerald-500/10 hover:bg-emerald-500/12" : ""
-                        }`}
+                        className={`hover:bg-white/[0.03] transition-all cursor-pointer relative group ${isSelected ? "bg-emerald-500/10 hover:bg-emerald-500/12" : ""
+                          }`}
                       >
-                        <td className={`p-4 font-mono font-bold text-emerald-400 group-hover:text-emerald-300 sticky left-0 z-10 border-r border-white/[0.06] ${
-                          isSelected ? "bg-[#0f1b15]" : "bg-[#060814] group-hover:bg-[#111e18]"
-                        }`}>
+                        <td className={`p-4 font-mono font-bold text-emerald-400 group-hover:text-emerald-300 sticky left-0 z-10 border-r border-white/[0.06] ${isSelected ? "bg-[#0f1b15]" : "bg-[#060814] group-hover:bg-[#111e18]"
+                          }`}>
                           <div className="flex items-center gap-2">
                             <span>{task.jtrackId}</span>
                             <QualityRiskBadge taskId={task.id} isQualityRisk={(task as any).isQualityRisk} />
@@ -671,11 +669,10 @@ export default function CrManagement() {
                           </span>
                         </td>
                         <td className="p-4">
-                          <span className={`px-2.5 py-0.5 rounded-lg text-[10px] font-bold tracking-wider ${
-                            task.priority === "High" ? "bg-rose-500/10 text-rose-400 border border-rose-500/20" :
-                            task.priority === "Medium" ? "bg-amber-500/10 text-amber-400 border border-amber-500/20" :
-                            "bg-slate-500/10 text-slate-400 border border-slate-500/20"
-                          }`}>
+                          <span className={`px-2.5 py-0.5 rounded-lg text-[10px] font-bold tracking-wider ${task.priority === "High" ? "bg-rose-500/10 text-rose-400 border border-rose-500/20" :
+                              task.priority === "Medium" ? "bg-amber-500/10 text-amber-400 border border-amber-500/20" :
+                                "bg-slate-500/10 text-slate-400 border border-slate-500/20"
+                            }`}>
                             {task.priority}
                           </span>
                         </td>
@@ -686,11 +683,11 @@ export default function CrManagement() {
                               .sort((a: any, b: any) => new Date(b.changedDate || 0).getTime() - new Date(a.changedDate || 0).getTime())[0]
                             return (
                               <div className="flex flex-wrap gap-1.5 items-center">
-                                 {!(task.status === "CHANGES_REQUESTED" && latestReject) && (
-                                   <span className={`text-[10px] font-bold px-2 py-0.5 rounded-lg uppercase tracking-wider border ${getCRStatusBadgeClass(task.status)}`}>
-                                     {task.status === "BUG_FOUND" ? "OPEN" : task.status.replace(/_/g, " ")}
-                                   </span>
-                                 )}
+                                {!(task.status === "CHANGES_REQUESTED" && latestReject) && (
+                                  <span className={`text-[10px] font-bold px-2 py-0.5 rounded-lg uppercase tracking-wider border ${getCRStatusBadgeClass(task.status)}`}>
+                                    {task.status === "BUG_FOUND" ? "OPEN" : task.status.replace(/_/g, " ")}
+                                  </span>
+                                )}
                                 {latestReject && (task.status === "IN_PROGRESS" || task.status === "CHANGES_REQUESTED") && (
                                   <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-amber-500/15 border border-amber-500/30 text-amber-400 text-[9px] font-bold tracking-wider animate-pulse">
                                     <AlertTriangle className="h-2.5 w-2.5" />
@@ -783,9 +780,9 @@ export default function CrManagement() {
                         <td className="p-4 font-semibold">
                           {task.tester
                             ? <span className="flex items-center gap-1.5">
-                                <span className="inline-block w-1.5 h-1.5 rounded-full bg-cyan-400 shrink-0" />
-                                <span className="text-cyan-300">{task.tester.fullName}</span>
-                              </span>
+                              <span className="inline-block w-1.5 h-1.5 rounded-full bg-cyan-400 shrink-0" />
+                              <span className="text-cyan-300">{task.tester.fullName}</span>
+                            </span>
                             : <span className="text-slate-500 text-[10px] italic">Unassigned</span>
                           }
                         </td>
@@ -942,8 +939,8 @@ export default function CrManagement() {
                   .filter(l => l.entityType === "TASK" && l.entityId === selectedTask.id && l.fieldName === "workflow_reject")
                   .sort((a: any, b: any) => new Date(b.changedDate || 0).getTime() - new Date(a.changedDate || 0).getTime())[0]
 
-                const reviewerName = typeof rejectLog?.changedBy === 'object' && rejectLog?.changedBy?.fullName 
-                  ? rejectLog.changedBy.fullName 
+                const reviewerName = typeof rejectLog?.changedBy === 'object' && rejectLog?.changedBy?.fullName
+                  ? rejectLog.changedBy.fullName
                   : (typeof rejectLog?.changedBy === 'string' ? rejectLog.changedBy : (selectedTask.codeReviewer?.fullName || 'Code Reviewer'));
 
                 const displayRemarks = rejectLog?.remarks || selectedTask.remarks;
@@ -1333,12 +1330,11 @@ export default function CrManagement() {
                             <ExternalLink className="h-3 w-3" />
                             {bug.jtrackId}
                           </button>
-                          <span className={`px-2 py-0.5 rounded-lg text-[9px] font-bold border ${
-                            bug.status === 'OPEN' ? 'text-sky-600 dark:text-sky-400 bg-sky-500/10 border-sky-500/20' :
-                            bug.status === 'RESOLVED' ? 'text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 border-emerald-500/20' :
-                            bug.status === 'CLOSED' ? 'text-slate-500 dark:text-slate-400 bg-slate-500/10 border-slate-500/20' :
-                            'text-amber-600 dark:text-amber-400 bg-amber-500/10 border-amber-500/20'
-                          }`}>{bug.status}</span>
+                          <span className={`px-2 py-0.5 rounded-lg text-[9px] font-bold border ${bug.status === 'OPEN' ? 'text-sky-600 dark:text-sky-400 bg-sky-500/10 border-sky-500/20' :
+                              bug.status === 'RESOLVED' ? 'text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 border-emerald-500/20' :
+                                bug.status === 'CLOSED' ? 'text-slate-500 dark:text-slate-400 bg-slate-500/10 border-slate-500/20' :
+                                  'text-amber-600 dark:text-amber-400 bg-amber-500/10 border-amber-500/20'
+                            }`}>{bug.status}</span>
                         </div>
                         <p className="text-[10px] text-foreground font-semibold truncate">{bug.title}</p>
                         <div className="flex justify-between text-[9px] text-muted-foreground">
@@ -1424,7 +1420,7 @@ export default function CrManagement() {
                         lang="en-GB"
                         value={exportStartDate}
                         onChange={(e) => setExportStartDate(e.target.value)}
-                        onClick={(e) => { try { e.currentTarget.showPicker(); } catch (err) {} }}
+                        onClick={(e) => { try { e.currentTarget.showPicker(); } catch (err) { } }}
                         className="h-10 w-full bg-white/[0.04] border border-white/[0.10] focus:ring-2 focus:ring-violet-500/30 focus:border-violet-500/50 rounded-xl px-3 py-2 text-xs text-slate-200 focus:outline-none transition-all cursor-pointer [color-scheme:dark]"
                       />
                     </div>
@@ -1435,7 +1431,7 @@ export default function CrManagement() {
                         lang="en-GB"
                         value={exportEndDate}
                         onChange={(e) => setExportEndDate(e.target.value)}
-                        onClick={(e) => { try { e.currentTarget.showPicker(); } catch (err) {} }}
+                        onClick={(e) => { try { e.currentTarget.showPicker(); } catch (err) { } }}
                         className="h-10 w-full bg-white/[0.04] border border-white/[0.10] focus:ring-2 focus:ring-violet-500/30 focus:border-violet-500/50 rounded-xl px-3 py-2 text-xs text-slate-200 focus:outline-none transition-all cursor-pointer [color-scheme:dark]"
                       />
                     </div>
@@ -1656,11 +1652,10 @@ export default function CrManagement() {
                             </div>
                             <p className="font-semibold text-slate-200 text-xs truncate">{bug.title}</p>
                           </div>
-                          <span className={`text-[10px] font-bold px-2 py-0.5 rounded-lg uppercase tracking-wider ${
-                            bug.status === "RESOLVED" || bug.status === "VERIFIED" || bug.status === "CLOSED"
+                          <span className={`text-[10px] font-bold px-2 py-0.5 rounded-lg uppercase tracking-wider ${bug.status === "RESOLVED" || bug.status === "VERIFIED" || bug.status === "CLOSED"
                               ? "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20"
                               : "bg-rose-500/10 text-rose-400 border border-rose-500/20"
-                          }`}>
+                            }`}>
                             {bug.status}
                           </span>
                         </div>
