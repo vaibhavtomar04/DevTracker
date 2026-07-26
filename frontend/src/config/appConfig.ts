@@ -78,6 +78,20 @@ export const FEATURES = {
     import.meta.env.VITE_ENABLE_WS_LIFECYCLE_V2,
     true,
   ),
+
+  // Phase 1.2 (perf) — DashboardLayout is the single owner of the core task +
+  // sprint bootstrap. When enabled, dashboard pages (developerDashboard, etc.)
+  // trust that bootstrap and do NOT re-issue fetchData(true)/fetchSprints() on
+  // mount, removing the duplicate concurrent cold-load fetch. Reversible without
+  // a code change:
+  //   • runtime:    window.__FEATURES__.ENABLE_NEW_BOOTSTRAP = false (before bootstrap)
+  //   • build-time: VITE_ENABLE_NEW_BOOTSTRAP=false
+  // Disabling restores each page's own mount-time bootstrap (rollback for perf-phase1.2).
+  ENABLE_NEW_BOOTSTRAP: readFlag(
+    'ENABLE_NEW_BOOTSTRAP',
+    import.meta.env.VITE_ENABLE_NEW_BOOTSTRAP,
+    true,
+  ),
 };
 
 export default APP_CONFIG;
