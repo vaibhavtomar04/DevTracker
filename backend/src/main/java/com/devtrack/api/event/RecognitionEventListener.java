@@ -24,7 +24,9 @@ import java.util.Map;
  *
  * <p><b>Transaction coupling:</b> {@code @TransactionalEventListener} with
  * {@code AFTER_COMMIT} ensures the engine only sees committed data — it can
- * never observe a partial transaction that later rolls back.</p>
+ * never observe a partial transaction that later rolls back. {@code
+ * fallbackExecution = true} preserves behaviour for publishers that are not (yet)
+ * transactional, so those events still run instead of being silently dropped.</p>
  *
  * <p><b>Order of operations for each trigger:</b>
  * <ol>
@@ -64,9 +66,9 @@ public class RecognitionEventListener {
         Map.entry("ADMIN_SCORE_ADJUSTMENT",   0)   // delta carried in metadata.points
     );
 
-    // ─────────────────────────────────────────────────────────────────────
+    // ──────────────────────────────────────────────
     // Main trigger handler
-    // ─────────────────────────────────────────────────────────────────────
+    // ──────────────────────────────────────────────
 
     /**
      * Primary handler — runs AFTER the originating transaction commits.
@@ -75,7 +77,7 @@ public class RecognitionEventListener {
      * notification handler below).
      */
     @Async("taskExecutor")
-    @EventListener
+    @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT, fallbackExecution = true)
     public void onRecognitionTrigger(RecognitionTriggerEvent trigger) {
         String eventType = trigger.getEventType();
 
@@ -91,7 +93,7 @@ public class RecognitionEventListener {
         log.debug("RecognitionTrigger received: type={} user={}", eventType, userId);
 
         try {
-            // ── Step 1: Resolve point delta ───────────────────────────────
+            // ── Step 1: Resolve point delta ──────────────────────────
             int pointsDelta = resolvePoints(trigger);
 
             // ── Step 2: Write to immutable ledger (idempotent) ────────────
@@ -114,7 +116,7 @@ public class RecognitionEventListener {
             // ── Step 3: Recalculate score + quality rates ─────────────────
             scoreService.applyDeltaAndRecalculate(userId, triggeredBy);
 
-            // ── Step 4: Evaluate achievement rules ────────────────────────
+            // ── Step 4: Evaluate achievement rules ─────────────────────
             evaluationService.evaluateForUser(userId, triggeredBy);
 
         } catch (Exception ex) {
@@ -125,9 +127,9 @@ public class RecognitionEventListener {
         }
     }
 
-    // ─────────────────────────────────────────────────────────────────────
+    // ──────────────────────────────────────────────
     // Notification handler (LEVEL_UP + ACHIEVEMENT_UNLOCKED)
-    // ─────────────────────────────────────────────────────────────────────
+    // ──────────────────────────────────────────────
 
     /**
      * Handles LEVEL_UP and ACHIEVEMENT_UNLOCKED events published by the engine
@@ -157,9 +159,9 @@ public class RecognitionEventListener {
         }
     }
 
-    // ─────────────────────────────────────────────────────────────────────
+    // ──────────────────────────────────────────────
     // Helpers
-    // ─────────────────────────────────────────────────────────────────────
+    // ──────────────────────────────────────────────
 
     /**
      * Resolves the point delta for a trigger.

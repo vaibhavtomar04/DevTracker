@@ -1,5 +1,6 @@
 package com.devtrack.api.repository;
 
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 
@@ -147,6 +148,16 @@ public interface BugRepository extends JpaRepository<Bug, Long> {
     long countActiveBugs();
 
     List<Bug> findByBugTaskId(Long bugTaskId);
+
+    /**
+     * Count sibling bugs of a parent CR (excluding the supplied bug) whose status is
+     * in the given set. Replaces the previous findAll().stream().filter(...) full-table
+     * scan in BugController.updateBug's auto-transition. Uses exact IN matching.
+     */
+    @Query("SELECT COUNT(b) FROM Bug b WHERE b.bugTask.id = :taskId AND b.id <> :excludeBugId AND b.status IN :statuses")
+    long countByBugTaskIdAndStatusInExcluding(@Param("taskId") Long taskId,
+                                              @Param("excludeBugId") Long excludeBugId,
+                                              @Param("statuses") Collection<String> statuses);
 
     /**
      * Count active bugs assigned to a specific developer (MINE scope).
