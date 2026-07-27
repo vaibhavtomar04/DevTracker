@@ -3,14 +3,16 @@
        style="margin:24px 0;">
   <tr>
     <td>
-      <!--[if mso]><v:roundrect xmlns:v="urn:schemas-microsoft-com:vml"
-        th:attr="href=${actionUrl}" arcsize="18%" fillcolor="#1FAE7A"
-        style="height:46px;v-text-anchor:middle;width:220px;" stroke="f">
-        <center style="color:#0B0F0D;font-weight:700;"
+      <!--[if mso]><v:roundrect xmlns:v="urn:schemas-microsoft-com:vml" xmlns:w="urn:schemas-microsoft-com:office:word"
+        th:attr="href=${actionUrl}" arcsize="16%" fillcolor="#0F766E" strokecolor="#0F766E"
+        style="height:46px;v-text-anchor:middle;width:240px;">
+        <w:anchorlock/>
+        <center style="color:#FFFFFF;font-family:'Segoe UI',Arial,sans-serif;font-size:15px;font-weight:700;"
           th:text="${actionButtonText}">Action</center>
       </v:roundrect><![endif]-->
       <!--[if !mso]><!-->
-      <a class="btn" th:href="${actionUrl}" th:text="${actionButtonText}">Action</a>
+      <a class="btn" th:href="${actionUrl}" th:text="${actionButtonText}"
+         style="display:inline-block;background-color:#0F766E;color:#FFFFFF;text-decoration:none;font-weight:700;font-size:15px;padding:13px 28px;border-radius:8px;font-family:'Segoe UI',Arial,Helvetica,sans-serif;">Action</a>
       <!--<![endif]-->
     </td>
   </tr>
