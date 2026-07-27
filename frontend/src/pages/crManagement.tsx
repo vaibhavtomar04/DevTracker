@@ -682,17 +682,19 @@ export default function CrManagement() {
                         </td>
                         <td className="p-4">
                           <div className="flex flex-wrap gap-1.5 items-center">
-                            {!(task.status === "CHANGES_REQUESTED" && task.changesRequested) && (
-                              <span className={`text-[10px] font-bold px-2 py-0.5 rounded-lg uppercase tracking-wider border ${getCRStatusBadgeClass(task.status)}`}>
-                                {task.status === "BUG_FOUND" ? "OPEN" : task.status.replace(/_/g, " ")}
-                              </span>
-                            )}
-                            {task.changesRequested && (task.status === "IN_PROGRESS" || task.status === "CHANGES_REQUESTED") && (
-                              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-amber-500/15 border border-amber-500/30 text-amber-400 text-[9px] font-bold tracking-wider animate-pulse">
-                                <AlertTriangle className="h-2.5 w-2.5" />
-                                Change Requested
-                              </span>
-                            )}
+                            {(() => {
+                              const isSentBack = task.changesRequested || task.status === "CHANGES_REQUESTED"
+                              return isSentBack ? (
+                                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-amber-500/15 border border-amber-500/30 text-amber-400 text-[9px] font-bold tracking-wider animate-pulse">
+                                  <AlertTriangle className="h-2.5 w-2.5" />
+                                  Change Requested
+                                </span>
+                              ) : (
+                                <span className={`text-[10px] font-bold px-2 py-0.5 rounded-lg uppercase tracking-wider border ${getCRStatusBadgeClass(task.status)}`}>
+                                  {task.status === "BUG_FOUND" ? "OPEN" : task.status.replace(/_/g, " ")}
+                                </span>
+                              )
+                            })()}
                           </div>
                         </td>
                         <td className="p-4 font-mono text-slate-400">
@@ -920,23 +922,23 @@ export default function CrManagement() {
                 const displayRemarks = rejectLog?.remarks || selectedTask.remarks;
 
                 return (rejectLog || selectedTask.status === "CHANGES_REQUESTED") && (selectedTask.status === "IN_PROGRESS" || selectedTask.status === "CHANGES_REQUESTED") ? (
-                  <div className="rounded-2xl border border-rose-500/40 bg-gradient-to-r from-rose-950/90 via-rose-900/60 to-amber-950/40 backdrop-blur-md p-4.5 shadow-lg shadow-rose-950/50 space-y-3.5 text-left">
+                  <div className="rounded-2xl border border-rose-500/30 dark:border-rose-500/40 bg-rose-500/10 dark:bg-gradient-to-r dark:from-rose-950/90 dark:via-rose-900/60 dark:to-amber-950/40 backdrop-blur-md p-4.5 shadow-lg space-y-3.5 text-left">
                     {/* Header */}
                     <div className="flex items-center gap-3">
-                      <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-rose-500/30 border border-rose-400/50 text-rose-200 shadow-md">
-                        <AlertTriangle className="h-5 w-5 text-rose-300" />
+                      <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-rose-500/20 dark:bg-rose-500/30 border border-rose-500/30 dark:border-rose-400/50 text-rose-600 dark:text-rose-200 shadow-md">
+                        <AlertTriangle className="h-5 w-5 text-rose-600 dark:text-rose-300" />
                       </div>
                       <div>
-                        <p className="text-sm font-extrabold text-white uppercase tracking-wider leading-tight">Change Requested</p>
-                        <p className="text-xs text-rose-200/90 mt-0.5 font-medium">Sent back by <strong className="text-white font-bold">{reviewerName}</strong></p>
+                        <p className="text-sm font-extrabold text-rose-950 dark:text-white uppercase tracking-wider leading-tight">Change Requested</p>
+                        <p className="text-xs text-rose-800 dark:text-rose-200/90 mt-0.5 font-medium">Sent back by <strong className="text-rose-950 dark:text-white font-bold">{reviewerName}</strong></p>
                       </div>
-                      <span className="ml-auto text-[10px] font-black bg-rose-500 text-white border border-rose-400/60 px-3 py-1 rounded-full uppercase tracking-widest shadow-md animate-pulse">Action Required</span>
+                      <span className="ml-auto text-[10px] font-black bg-rose-600 dark:bg-rose-500 text-white border border-rose-500/60 px-3 py-1 rounded-full uppercase tracking-widest shadow-md animate-pulse">Action Required</span>
                     </div>
                     {/* Remarks */}
                     <div className="space-y-1.5">
-                      <span className="text-[10px] font-extrabold text-rose-200 uppercase tracking-widest block">Admin Remarks:</span>
-                      <div className="bg-slate-950/90 border border-rose-500/35 p-4 rounded-xl shadow-inner">
-                        <p className="text-xs font-semibold text-rose-50 leading-relaxed whitespace-pre-wrap">
+                      <span className="text-[10px] font-extrabold text-rose-800 dark:text-rose-200 uppercase tracking-widest block">Admin Remarks:</span>
+                      <div className="bg-white dark:bg-slate-950/90 border border-rose-200 dark:border-rose-500/35 p-4 rounded-xl shadow-inner">
+                        <p className="text-xs font-semibold text-slate-900 dark:text-rose-50 leading-relaxed whitespace-pre-wrap">
                           {displayRemarks || "Changes requested. Please review and resubmit."}
                         </p>
                       </div>

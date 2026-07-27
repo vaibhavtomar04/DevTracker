@@ -241,7 +241,7 @@ export const useTaskStore = create<TaskState>((set, get) => ({
         get().configs.length > 0 &&
         get().users.length > 0
       const [tasksRes, bugsRes, configsRes, usersRes] = await Promise.all([
-        safeFetch("/api/tasks?page=0&size=100"),
+        safeFetch("/api/tasks?page=0&size=100&includeClosed=true"),
         safeFetch("/api/bugs"),
         skipReference ? Promise.resolve(null) : safeFetch("/api/configs"),
         skipReference ? Promise.resolve(null) : safeFetch("/api/users"),

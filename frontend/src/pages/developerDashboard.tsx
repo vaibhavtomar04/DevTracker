@@ -380,12 +380,29 @@ export default function DeveloperDashboard() {
     const blockedDelayFactor = parseInt(getConfigValue("deadline.blocked_delay_days", "4"), 10) || 4
 
     let bugDelayDays = totalBugsRaisedCount * bugDelayFactor
-    let approvalDelayDays = task.status === "CODE_REVIEW" ? approvalDelayFactor : 0
+    const isCodeReviewCompleted = !!(task.codeReviewDate || task.sitCompletedDate || task.sitDate)
+    let approvalDelayDays = (task.status === "CODE_REVIEW" && !isCodeReviewCompleted) ? approvalDelayFactor : 0
     let blockedDelayDays = task.status === "BUG_FOUND" ? blockedDelayFactor : 0
 
-    if (bugDelayDays > 0) predictedDate.setDate(predictedDate.getDate() + bugDelayDays)
-    if (approvalDelayDays > 0) predictedDate.setDate(predictedDate.getDate() + approvalDelayDays)
-    if (blockedDelayDays > 0) predictedDate.setDate(predictedDate.getDate() + blockedDelayDays)
+    const addWorkingDays = (startDate: Date, daysToAdd: number): Date => {
+      let res = new Date(startDate)
+      let added = 0
+      while (added < daysToAdd) {
+        res.setDate(res.getDate() + 1)
+        const dayOfWeek = res.getDay()
+        const formatted = res.toISOString().split("T")[0]
+        const isWeekend = dayOfWeek === 0 || dayOfWeek === 6
+        const isHoliday = holidaysList.includes(formatted)
+        if (!isWeekend && !isHoliday) {
+          added++
+        }
+      }
+      return res
+    }
+
+    if (bugDelayDays > 0) predictedDate = addWorkingDays(predictedDate, bugDelayDays)
+    if (approvalDelayDays > 0) predictedDate = addWorkingDays(predictedDate, approvalDelayDays)
+    if (blockedDelayDays > 0) predictedDate = addWorkingDays(predictedDate, blockedDelayDays)
 
     // Sprint deadline matching active sprint
     const activeSprint = sprints?.find(s => s.status === "ACTIVE")
@@ -396,6 +413,17 @@ export default function DeveloperDashboard() {
     // Determine status
     let deadlineStatus: "On Track" | "At Risk" | "Delayed" | "Bug Found" = "On Track"
     let statusExplanation = "Work is progressing on schedule."
+
+    if (task.status === "CLOSED" || task.status === "PROD_COMPLETED" || task.status === "PROD_DEPLOYED") {
+      return {
+        devStartDate: devStart.toISOString().split("T")[0],
+        targetCompletionDate: targetCompletionDate.toISOString().split("T")[0],
+        sprintDeadline: sprintDeadlineStr,
+        predictedCompletionDate: (task.productionDate || targetCompletionDate.toISOString()).split("T")[0],
+        status: "On Track",
+        explanation: "Completed: Change Request has been successfully deployed / closed."
+      }
+    }
 
     if (task.status === "BUG_FOUND") {
       deadlineStatus = "Bug Found"
@@ -459,13 +487,13 @@ export default function DeveloperDashboard() {
 
       // Summary Card click filtering
       if (filterCard === "active_crs") {
-        return t.status !== "CLOSED" && t.status !== "PROD_COMPLETED"
+        return t.status !== "CLOSED" && t.status !== "PROD_COMPLETED" && t.status !== "PROD_DEPLOYED"
       }
       if (filterCard === "pending_deployments") {
         return t.status === "MOVE_TO_UAT" || t.status === "SIT_DEPLOYED"
       }
       if (filterCard === "closed_crs") {
-        return t.status === "CLOSED" || t.status === "PROD_COMPLETED"
+        return t.status === "CLOSED" || t.status === "PROD_COMPLETED" || t.status === "PROD_DEPLOYED"
       }
       if (filterCard === "pending_approvals") {
         return t.status === "CODE_REVIEW"
@@ -479,7 +507,7 @@ export default function DeveloperDashboard() {
       }
 
       // Default (no filter card clicked): return active tasks only
-      return t.status !== "CLOSED" && t.status !== "PROD_COMPLETED"
+      return t.status !== "CLOSED" && t.status !== "PROD_COMPLETED" && t.status !== "PROD_DEPLOYED"
     })
     return [...filtered].sort((a, b) => b.id - a.id)
   }, [tasks, user, searchQuery, filterCard, pendingReviews, isAssignedToMe])
@@ -1243,7 +1271,14 @@ export default function DeveloperDashboard() {
                   <div key="activeWork" className="space-y-4">
                     <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                       <div className="text-left">
-                        <h3 className="text-xs font-black uppercase text-zinc-500 tracking-widest">My Active Change Requests</h3>
+                        <h3 className="text-xs font-black uppercase text-zinc-500 tracking-widest">
+                          {filterCard === "closed_crs" ? "My Closed Change Requests" :
+                           filterCard === "pending_deployments" ? "Deployments" :
+                           filterCard === "pending_approvals" ? "Pending Approvals" :
+                           filterCard === "proposed_bug_reviews" ? "Proposed Bug Reviews" :
+                           filterCard === "assigned_bugs" ? "Assigned Bugs" :
+                           "My Active Change Requests"}
+                        </h3>
                         <p className="text-[10px] text-zinc-500 mt-0.5">Assigned CR workflow pipelines and estimates.</p>
                       </div>
 
@@ -1416,22 +1451,16 @@ export default function DeveloperDashboard() {
                                     <td className="p-3">
                                       <div className="flex flex-wrap gap-1.5 items-center">
                                         {(() => {
-                                          const showRejectBadge = task.changesRequested && (task.status === "IN_PROGRESS" || task.status === "CHANGES_REQUESTED")
-                                          const hideStatusBadge = task.status === "CHANGES_REQUESTED" && task.changesRequested
-                                          return (
-                                            <>
-                                              {!hideStatusBadge && (
-                                                <span className={`text-[10px] font-bold px-2 py-0.5 rounded uppercase tracking-wider border ${getCRStatusBadgeClass(task.status)}`}>
-                                                  {task.status === "BUG_FOUND" ? "OPEN" : task.status.replace(/_/g, " ")}
-                                                </span>
-                                              )}
-                                              {showRejectBadge && (
-                                                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-amber-500/15 border border-amber-500/30 text-amber-400 text-[9px] font-bold tracking-wider animate-pulse">
-                                                  <AlertTriangle className="h-2.5 w-2.5" />
-                                                  Change Requested
-                                                </span>
-                                              )}
-                                            </>
+                                          const isSentBack = task.changesRequested || task.status === "CHANGES_REQUESTED"
+                                          return isSentBack ? (
+                                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-amber-500/15 border border-amber-500/30 text-amber-400 text-[9px] font-bold tracking-wider animate-pulse">
+                                              <AlertTriangle className="h-2.5 w-2.5" />
+                                              Change Requested
+                                            </span>
+                                          ) : (
+                                            <span className={`text-[10px] font-bold px-2 py-0.5 rounded uppercase tracking-wider border ${getCRStatusBadgeClass(task.status)}`}>
+                                              {task.status === "BUG_FOUND" ? "OPEN" : task.status.replace(/_/g, " ")}
+                                            </span>
                                           )
                                         })()}
                                       </div>
@@ -1827,24 +1856,24 @@ export default function DeveloperDashboard() {
                       const reviewerName = selectedTask.codeReviewer?.fullName || 'Code Reviewer';
                       const displayRemarks = selectedTask.remarks;
 
-                      return (selectedTask.changesRequested || selectedTask.status === "CHANGES_REQUESTED") && (selectedTask.status === "IN_PROGRESS" || selectedTask.status === "CHANGES_REQUESTED") ? (
-                        <div className="rounded-2xl border border-rose-500/40 bg-gradient-to-r from-rose-950/90 via-rose-900/60 to-amber-950/40 backdrop-blur-md p-4.5 shadow-lg shadow-rose-950/50 space-y-3.5 text-left">
+                      return (selectedTask.changesRequested || selectedTask.status === "CHANGES_REQUESTED") ? (
+                        <div className="rounded-2xl border border-rose-500/30 dark:border-rose-500/40 bg-rose-500/10 dark:bg-gradient-to-r dark:from-rose-950/90 dark:via-rose-900/60 dark:to-amber-950/40 backdrop-blur-md p-4.5 shadow-lg space-y-3.5 text-left">
                           {/* Header */}
                           <div className="flex items-center gap-3">
-                            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-rose-500/30 border border-rose-400/50 text-rose-200 shadow-md">
-                              <AlertTriangle className="h-5 w-5 text-rose-300" />
+                            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-rose-500/20 dark:bg-rose-500/30 border border-rose-500/30 dark:border-rose-400/50 text-rose-600 dark:text-rose-200 shadow-md">
+                              <AlertTriangle className="h-5 w-5 text-rose-600 dark:text-rose-300" />
                             </div>
                             <div>
-                              <p className="text-sm font-extrabold text-white uppercase tracking-wider leading-tight">Change Requested</p>
-                              <p className="text-xs text-rose-200/90 mt-0.5 font-medium">Sent back by <strong className="text-white font-bold">{reviewerName}</strong></p>
+                              <p className="text-sm font-extrabold text-rose-950 dark:text-white uppercase tracking-wider leading-tight">Change Requested</p>
+                              <p className="text-xs text-rose-800 dark:text-rose-200/90 mt-0.5 font-medium">Sent back by <strong className="text-rose-950 dark:text-white font-bold">{reviewerName}</strong></p>
                             </div>
-                            <span className="ml-auto text-[10px] font-black bg-rose-500 text-white border border-rose-400/60 px-3 py-1 rounded-full uppercase tracking-widest shadow-md animate-pulse">Action Required</span>
+                            <span className="ml-auto text-[10px] font-black bg-rose-600 dark:bg-rose-500 text-white border border-rose-500/60 px-3 py-1 rounded-full uppercase tracking-widest shadow-md animate-pulse">Action Required</span>
                           </div>
                           {/* Remarks */}
                           <div className="space-y-1.5">
-                            <span className="text-[10px] font-extrabold text-rose-200 uppercase tracking-widest block">Admin Remarks:</span>
-                            <div className="bg-slate-950/90 border border-rose-500/35 p-4 rounded-xl shadow-inner">
-                              <p className="text-xs font-semibold text-rose-50 leading-relaxed whitespace-pre-wrap">
+                            <span className="text-[10px] font-extrabold text-rose-800 dark:text-rose-200 uppercase tracking-widest block">Admin Remarks:</span>
+                            <div className="bg-white dark:bg-slate-950/90 border border-rose-200 dark:border-rose-500/35 p-4 rounded-xl shadow-inner">
+                              <p className="text-xs font-semibold text-slate-900 dark:text-rose-50 leading-relaxed whitespace-pre-wrap">
                                 {displayRemarks || "Changes requested. Please review and resubmit."}
                               </p>
                             </div>

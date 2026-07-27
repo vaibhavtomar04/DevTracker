@@ -124,31 +124,35 @@ public class TaskController {
             @RequestParam(required = false) Integer size,
             @RequestParam(required = false) String status,
             @RequestParam(required = false) String priority,
-            @RequestParam(required = false) String search) {
+            @RequestParam(required = false) String search,
+            @RequestParam(required = false) Boolean includeClosed) {
 
         // ── Command Palette full-text search ─────────────────────────────────
         if (search != null && !search.isBlank()) {
-    Pageable pageable = PageRequest.of(page != null ? page : 0, size != null ? size : 10, Sort.by("id").descending());
-    return ResponseEntity.ok(taskRepository.searchAll(search.trim(), pageable).map(TaskMapper::toListDto));
-}
+            Pageable pageable = PageRequest.of(page != null ? page : 0, size != null ? size : 10, Sort.by("id").descending());
+            return ResponseEntity.ok(taskRepository.searchAll(search.trim(), pageable).map(TaskMapper::toListDto));
+        }
 
-if (page == null && size == null) {
-    Pageable defaultPage = PageRequest.of(0, 50, Sort.by("id").descending());
-    return ResponseEntity.ok(taskRepository.findAllOptimizedByStatusNotIn(
-            List.of("CLOSED", "PROD_COMPLETED"), defaultPage).map(TaskMapper::toListDto));
-}
+        Pageable pageable = PageRequest.of(page != null ? page : 0, size != null ? size : 100, Sort.by("id").descending());
 
-Pageable pageable = PageRequest.of(page != null ? page : 0, size != null ? size : 10, Sort.by("id").descending());
-if (status != null && !status.isBlank() && priority != null && !priority.isBlank()) {
-    return ResponseEntity.ok(taskRepository.findAllOptimizedByStatusAndPriority(List.of(status), priority, pageable).map(TaskMapper::toListDto));
-} else if (status != null && !status.isBlank()) {
-    return ResponseEntity.ok(taskRepository.findAllOptimizedByStatusIn(List.of(status), pageable).map(TaskMapper::toListDto));
-} else if (priority != null && !priority.isBlank()) {
-    return ResponseEntity.ok(taskRepository.findAllOptimizedByPriority(priority, pageable).map(TaskMapper::toListDto));
-} else {
-    return ResponseEntity.ok(taskRepository.findAllOptimizedByStatusNotIn(List.of("CLOSED", "PROD_COMPLETED"), pageable).map(TaskMapper::toListDto));
-}
+        if (Boolean.TRUE.equals(includeClosed)) {
+            return ResponseEntity.ok(taskRepository.findAllOptimized(pageable).map(TaskMapper::toListDto));
+        }
 
+        if (status != null && !status.isBlank()) {
+            List<String> statusList = java.util.Arrays.stream(status.split(","))
+                    .map(String::trim)
+                    .filter(s -> !s.isEmpty())
+                    .collect(java.util.stream.Collectors.toList());
+            if (priority != null && !priority.isBlank()) {
+                return ResponseEntity.ok(taskRepository.findAllOptimizedByStatusAndPriority(statusList, priority, pageable).map(TaskMapper::toListDto));
+            }
+            return ResponseEntity.ok(taskRepository.findAllOptimizedByStatusIn(statusList, pageable).map(TaskMapper::toListDto));
+        } else if (priority != null && !priority.isBlank()) {
+            return ResponseEntity.ok(taskRepository.findAllOptimizedByPriority(priority, pageable).map(TaskMapper::toListDto));
+        } else {
+            return ResponseEntity.ok(taskRepository.findAllOptimizedByStatusNotIn(List.of("CLOSED", "PROD_COMPLETED", "PROD_DEPLOYED"), pageable).map(TaskMapper::toListDto));
+        }
     }
     
     @GetMapping("/download-tasks")
