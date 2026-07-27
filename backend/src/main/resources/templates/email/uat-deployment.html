@@ -4,66 +4,73 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+  <meta name="color-scheme" content="light dark" />
+  <meta name="supported-color-schemes" content="light dark" />
   <title>UAT Deployment</title>
+  <!--[if mso]><xml><o:OfficeDocumentSettings><o:PixelsPerInch>96</o:PixelsPerInch></o:OfficeDocumentSettings></xml><![endif]-->
+  <style>
+    body{margin:0;padding:0;}
+    @media only screen and (max-width:620px){
+      .container{width:100%!important;border-radius:0!important;}
+      .px{padding-left:20px!important;padding-right:20px!important;}
+    }
+  </style>
 </head>
-<body style="margin:0; padding:0; background-color:#0f1419; font-family:'Segoe UI', Arial, Helvetica, sans-serif; -webkit-font-smoothing:antialiased;">
+<body style="margin:0; padding:0; width:100%!important; background-color:#F8FAFC; font-family:'Segoe UI', Arial, Helvetica, sans-serif;">
 
   <!-- Preheader -->
-  <div style="display:none; max-height:0; overflow:hidden; opacity:0; color:transparent;"
-       th:text="'UAT Deployment Request — ' + ${deploy.jtrackId} + ' — ' + ${deploy.crName}">
+  <div style="display:none; max-height:0; overflow:hidden; opacity:0; font-size:1px; line-height:1px; color:#F8FAFC;"
+       th:text="'UAT Deployment Request \u2014 ' + ${deploy.jtrackId} + ' \u2014 ' + ${deploy.crName}">
     UAT Deployment Request.
   </div>
 
-  <!-- Outer background -->
-  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:linear-gradient(135deg,#0f1419 0%,#1a2620 100%); background-color:#0f1419; padding:32px 12px;">
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color:#F8FAFC; width:100%; margin:0; padding:28px 0;">
     <tr>
-      <td align="center">
+      <td align="center" valign="top">
+        <table role="presentation" class="container" width="600" cellpadding="0" cellspacing="0" style="width:600px; max-width:600px; background-color:#FFFFFF; border:1px solid #E2E8F0; border-radius:12px; overflow:hidden;">
 
-        <!-- Email card -->
-        <table role="presentation" width="640" cellpadding="0" cellspacing="0" style="width:640px; max-width:640px; background-color:#ffffff; border-radius:16px; overflow:hidden; box-shadow:0 12px 40px rgba(0,0,0,0.45);">
-
-          <!-- Header band -->
+          <!-- Header -->
           <tr>
-            <td style="background:linear-gradient(200deg,#220046 0%,#6B00DD 50%,#F27ECE 100%); background-color:#6B00DD; padding:0; text-align:center;">
-              <!--[if gte mso 9]><v:rect xmlns:v="urn:schemas-microsoft-com:vml" fill="true" stroke="false" style="width:640px;"><v:fill type="gradient" color="#220046" color2="#9B30E8" angle="135"/><v:textbox style="mso-fit-shape-to-text:true" inset="36px,36px,40px,40px"><![endif]-->
-              <div style="padding:36px 40px; text-align:center;">
-                <!-- DevTrack logo -->
-                <div style="display:inline-block; font-family:'Outfit','Inter','Segoe UI',sans-serif; font-size:30px; font-weight:800; color:#ffffff; margin-bottom:12px; text-shadow:0 2px 4px rgba(0,0,0,0.15);">
-                  <span style="background-color:#ffffff; color:#5b00c8; padding:5px 13px; border-radius:8px; margin-right:6px; letter-spacing:0.5px; font-weight:800;">Dev</span><span style="color:#ffffff;">Track</span>
-                </div>
-                <div style="display:inline-block; margin-top:12px; padding:6px 16px; background-color:rgba(217,119,6,0.18); border:1px solid #d97706; border-radius:999px; font-size:12px; font-weight:600; letter-spacing:1.2px; text-transform:uppercase; color:#fbbf24;">
-                  🚀 UAT Deployment
-                </div>
-              </div>
-              <!--[if gte mso 9]></v:textbox></v:rect><![endif]-->
+            <td class="px" style="background-color:#0F172A; padding:22px 32px;">
+              <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
+                <tr>
+                  <td valign="middle">
+                    <div style="font-family:'Segoe UI', Arial, Helvetica, sans-serif; font-size:22px; font-weight:800; color:#FFFFFF; line-height:1;">Dev<span style="color:#5EEAD4;">Track</span></div>
+                    <div style="font-family:'Segoe UI', Arial, Helvetica, sans-serif; font-size:12px; color:#94A3B8; padding-top:5px;">Enterprise Engineering Workflow Platform</div>
+                  </td>
+                  <td valign="middle" align="right">
+                    <span style="display:inline-block; background-color:#1E293B; color:#CBD5E1; font-family:'Segoe UI', Arial, Helvetica, sans-serif; font-size:11px; font-weight:700; letter-spacing:0.5px; padding:5px 10px; border-radius:6px;">DevTrack 2.0</span>
+                  </td>
+                </tr>
+              </table>
             </td>
           </tr>
-          <!-- Purple accent divider -->
+          <tr><td style="height:3px; background-color:#0F766E; font-size:0; line-height:0;">&nbsp;</td></tr>
+
+          <!-- Hero -->
           <tr>
-            <td style="height:4px; background:linear-gradient(150deg,#1a0038 0%,#5b00c8 50%,#1a0038 100%); background-color:#5b00c8; font-size:0; line-height:0;">&nbsp;</td>
+            <td class="px" style="background-color:#0F766E; padding:26px 32px;">
+              <div style="font-family:'Segoe UI', Arial, Helvetica, sans-serif; font-size:23px; font-weight:700; color:#FFFFFF; line-height:1.3;">UAT Deployment Request</div>
+              <div style="font-family:'Segoe UI', Arial, Helvetica, sans-serif; font-size:14px; color:#CCFBF1; line-height:1.5; padding-top:6px;">A deployment to the UAT environment has been requested.</div>
+            </td>
           </tr>
 
-          <!-- Greeting -->
+          <!-- Body intro -->
           <tr>
-            <td style="padding:36px 40px 8px 40px;">
-              <h2 style="margin:0 0 18px 0; font-size:20px; color:#111827; font-weight:700;">UAT Deployment Request</h2>
-              <p style="margin:0 0 6px 0; font-size:15px; line-height:1.6; color:#374151;">
-                Dear <strong style="color:#6B00DD;">@DL-DEVOPS-Team</strong>,
+            <td class="px" valign="top" style="padding:32px 32px 4px 32px; background-color:#FFFFFF;">
+              <p style="margin:0 0 12px 0; font-size:16px; font-weight:700; color:#1E293B; line-height:1.4;">
+                Dear @DL-DEVOPS-Team,
               </p>
-              <p style="margin:0 0 4px 0; font-size:14px; line-height:1.6; color:#374151;">
+              <p style="margin:0 0 20px 0; font-size:15px; color:#334155; line-height:1.6;">
                 Please deploy as per the details below.
               </p>
-            </td>
-          </tr>
 
-          <!-- Summary callout (matches codereview-approval style) -->
-          <tr>
-            <td style="padding:8px 40px 4px 40px;">
-              <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border-left:4px solid #047857; background-color:#f9f8f7; border-radius:8px;">
+              <!-- Summary callout (Neutral/Teal alert) -->
+              <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color:#F0FDFA; border:1px solid #99F6E4; border-left:4px solid #0F766E; border-radius:8px; margin-bottom:8px;">
                 <tr>
                   <td style="padding:14px 18px;">
-                    <p style="margin:0 0 4px 0; font-size:13px; font-weight:700; letter-spacing:0.4px; text-transform:uppercase; color:#6B00DD;">Deployment Details</p>
-                    <p style="margin:0; font-size:14px; line-height:1.6; color:#374151;">Please find the deployment information and checklist below.</p>
+                    <p style="margin:0 0 4px 0; font-size:12px; font-weight:700; letter-spacing:0.5px; text-transform:uppercase; color:#0F766E;">Deployment Details</p>
+                    <p style="margin:0; font-size:14px; line-height:1.6; color:#334155;">Please find the deployment information and checklist below.</p>
                   </td>
                 </tr>
               </table>
@@ -72,75 +79,54 @@
 
           <!-- Main details table -->
           <tr>
-            <td style="padding:16px 40px 8px 40px;">
-              <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border-collapse:separate; border-spacing:0; border:1px solid #e5e7eb; border-radius:12px; overflow:hidden;">
-                <!-- Table header -->
+            <td class="px" valign="top" style="padding:16px 32px 8px 32px; background-color:#FFFFFF;">
+              <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="width:100%; border:1px solid #E2E8F0; border-radius:10px; border-collapse:separate; overflow:hidden;">
                 <tr>
-                  <td colspan="2" style="background:linear-gradient(135deg,#220046 0%,#6B00DD 100%); background-color:#6B00DD; padding:12px 16px; text-align:center; font-size:13px; letter-spacing:1.2px; text-transform:uppercase; font-weight:700; color:#ffffff;">
-                    UAT Deployment
-                  </td>
+                  <td colspan="2" style="background-color:#F1F5F9; border-bottom:1px solid #E2E8F0; padding:12px 16px; font-size:12px; font-weight:700; color:#334155; text-transform:uppercase; letter-spacing:0.6px;">UAT Deployment</td>
                 </tr>
-
-                <!-- JTrack ID -->
                 <tr>
-                  <td style="padding:11px 16px; font-size:13px; font-weight:600; color:#374151; width:38%; background-color:#f9fafb; border-bottom:1px solid #f0f0f0; vertical-align:top;">JTrack Id / Fix Id</td>
-                  <td style="padding:11px 16px; font-size:13px; color:#111827; border-bottom:1px solid #f0f0f0;">
-                    <span style="display:inline-block; padding:2px 8px; background-color:#f3e8ff; color:#6B00DD; border:1px solid #d8b4fe; border-radius:6px; font-weight:700; font-size:13px;" th:text="${deploy.jtrackId}">CR-001</span>
+                  <td width="38%" valign="top" style="background-color:#F8FAFC; border-right:1px solid #E2E8F0; border-bottom:1px solid #E2E8F0; padding:11px 16px; font-size:13px; font-weight:600; color:#64748B;">JTrack Id / Fix Id</td>
+                  <td valign="top" style="border-bottom:1px solid #E2E8F0; padding:11px 16px; font-size:13px; color:#1E293B;">
+                    <span style="display:inline-block; padding:2px 8px; background-color:#F0FDFA; color:#0F766E; border:1px solid #99F6E4; border-radius:6px; font-weight:700; font-size:13px;" th:text="${deploy.jtrackId}">CR-001</span>
                     &nbsp;
-                    <span style="font-size:12px; color:#6b7280;" th:text="'Enhancement — ' + ${deploy.crType}">Enhancement — CR</span>
+                    <span style="font-size:12px; color:#64748B;" th:text="'Enhancement \u2014 ' + ${deploy.crType}">Enhancement \u2014 CR</span>
                   </td>
                 </tr>
-
-                <!-- CR/Fix Details -->
                 <tr>
-                  <td style="padding:11px 16px; font-size:13px; font-weight:600; color:#374151; background-color:#f9fafb; border-bottom:1px solid #f0f0f0;">CR/Fix Details</td>
-                  <td style="padding:11px 16px; font-size:13px; color:#111827; border-bottom:1px solid #f0f0f0; font-weight:600;" th:text="${deploy.crName}">CR Name</td>
+                  <td valign="top" style="background-color:#F8FAFC; border-right:1px solid #E2E8F0; border-bottom:1px solid #E2E8F0; padding:11px 16px; font-size:13px; font-weight:600; color:#64748B;">CR/Fix Details</td>
+                  <td valign="top" style="border-bottom:1px solid #E2E8F0; padding:11px 16px; font-size:13px; color:#1E293B; font-weight:600;" th:text="${deploy.crName}">CR Name</td>
                 </tr>
-
-                <!-- Environment -->
                 <tr>
-                  <td style="padding:11px 16px; font-size:13px; font-weight:600; color:#374151; background-color:#f9fafb; border-bottom:1px solid #f0f0f0;">Environment</td>
-                  <td style="padding:11px 16px; font-size:13px; color:#111827; border-bottom:1px solid #f0f0f0;">
-                    <span style="display:inline-block; padding:3px 12px; background-color:#f3e8ff; color:#6B00DD; border:1px solid #d8b4fe; border-radius:6px; font-size:12px; font-weight:700;">UAT</span>
+                  <td valign="top" style="background-color:#F8FAFC; border-right:1px solid #E2E8F0; border-bottom:1px solid #E2E8F0; padding:11px 16px; font-size:13px; font-weight:600; color:#64748B;">Environment</td>
+                  <td valign="top" style="border-bottom:1px solid #E2E8F0; padding:11px 16px; font-size:13px; color:#1E293B;">
+                    <span style="display:inline-block; padding:3px 12px; background-color:#F0FDFA; color:#0F766E; border:1px solid #99F6E4; border-radius:6px; font-size:12px; font-weight:700;">UAT</span>
                   </td>
                 </tr>
-
-                <!-- Developer -->
                 <tr>
-                  <td style="padding:11px 16px; font-size:13px; font-weight:600; color:#374151; background-color:#f9fafb; border-bottom:1px solid #f0f0f0;">Developer</td>
-                  <td style="padding:11px 16px; font-size:13px; color:#111827; border-bottom:1px solid #f0f0f0;" th:text="${deploy.developerName}">Developer Name</td>
+                  <td valign="top" style="background-color:#F8FAFC; border-right:1px solid #E2E8F0; border-bottom:1px solid #E2E8F0; padding:11px 16px; font-size:13px; font-weight:600; color:#64748B;">Developer</td>
+                  <td valign="top" style="border-bottom:1px solid #E2E8F0; padding:11px 16px; font-size:13px; color:#1E293B;" th:text="${deploy.developerName}">Developer Name</td>
                 </tr>
-
-                <!-- Deployment Note -->
                 <tr>
-                  <td style="padding:11px 16px; font-size:13px; font-weight:600; color:#374151; background-color:#f9fafb; border-bottom:1px solid #f0f0f0; vertical-align:top;">Deployment Note</td>
-                  <td style="padding:11px 16px; font-size:13px; color:#111827; border-bottom:1px solid #f0f0f0; line-height:1.6; white-space:pre-line;" th:text="${deploy.deploymentNote}">Deployment notes here.</td>
+                  <td valign="top" style="background-color:#F8FAFC; border-right:1px solid #E2E8F0; border-bottom:1px solid #E2E8F0; padding:11px 16px; font-size:13px; font-weight:600; color:#64748B;">Deployment Note</td>
+                  <td valign="top" style="border-bottom:1px solid #E2E8F0; padding:11px 16px; font-size:13px; color:#334155; line-height:1.6; white-space:pre-line;" th:text="${deploy.deploymentNote}">Deployment notes here.</td>
                 </tr>
-
-                <!-- Path -->
                 <tr>
-                  <td style="padding:11px 16px; font-size:13px; font-weight:600; color:#374151; background-color:#f9fafb; border-bottom:1px solid #f0f0f0; vertical-align:top;">Path</td>
-                  <td style="padding:11px 16px; font-size:13px; color:#111827; border-bottom:1px solid #f0f0f0;">
-                    <span style="display:inline-block; padding:4px 10px; background-color:#faf5ff; border:1px solid #e9d5ff; border-radius:6px; font-family:Menlo,Consolas,monospace; font-size:12px; color:#5b00c8; line-height:1.6; white-space:pre-wrap;" th:text="${deploy.serverPath}">Server-1.42: /path/to/app</span>
+                  <td valign="top" style="background-color:#F8FAFC; border-right:1px solid #E2E8F0; border-bottom:1px solid #E2E8F0; padding:11px 16px; font-size:13px; font-weight:600; color:#64748B;">Path</td>
+                  <td valign="top" style="border-bottom:1px solid #E2E8F0; padding:11px 16px; font-size:13px; color:#1E293B;">
+                    <span style="display:inline-block; padding:4px 10px; background-color:#F1F5F9; border:1px solid #E2E8F0; border-radius:6px; font-family:Menlo,Consolas,monospace; font-size:12px; color:#0F172A; line-height:1.6; white-space:pre-wrap;" th:text="${deploy.serverPath}">Server-1.42: /path/to/app</span>
                   </td>
                 </tr>
-
-                <!-- Note or Remarks / Items to deploy -->
                 <tr>
-                  <td style="padding:11px 16px; font-size:13px; font-weight:600; color:#374151; background-color:#f9fafb; border-bottom:1px solid #f0f0f0; vertical-align:top;">Note or Remarks</td>
-                  <td style="padding:11px 16px; font-size:13px; color:#111827; border-bottom:1px solid #f0f0f0; line-height:1.7; white-space:pre-line;" th:utext="'Items to deploy:&lt;br/&gt;' + ${deploy.itemsToDeploy}">Items to deploy: ...</td>
+                  <td valign="top" style="background-color:#F8FAFC; border-right:1px solid #E2E8F0; border-bottom:1px solid #E2E8F0; padding:11px 16px; font-size:13px; font-weight:600; color:#64748B;">Note or Remarks</td>
+                  <td valign="top" style="border-bottom:1px solid #E2E8F0; padding:11px 16px; font-size:13px; color:#1E293B; line-height:1.7; white-space:pre-line;" th:utext="'Items to deploy:&lt;br/&gt;' + ${deploy.itemsToDeploy}">Items to deploy: ...</td>
                 </tr>
-
-                <!-- Date of Publish -->
                 <tr>
-                  <td style="padding:11px 16px; font-size:13px; font-weight:600; color:#374151; background-color:#f9fafb; border-bottom:1px solid #f0f0f0;">Date of Publish</td>
-                  <td style="padding:11px 16px; font-size:13px; color:#6b7280; border-bottom:1px solid #f0f0f0; font-style:italic;">--NA--</td>
+                  <td valign="top" style="background-color:#F8FAFC; border-right:1px solid #E2E8F0; border-bottom:1px solid #E2E8F0; padding:11px 16px; font-size:13px; font-weight:600; color:#64748B;">Date of Publish</td>
+                  <td valign="top" style="border-bottom:1px solid #E2E8F0; padding:11px 16px; font-size:13px; color:#64748B; font-style:italic;">--NA--</td>
                 </tr>
-
-                <!-- Description -->
                 <tr>
-                  <td style="padding:11px 16px; font-size:13px; font-weight:600; color:#374151; background-color:#f9fafb; border-bottom:1px solid #f0f0f0; vertical-align:top;">Description</td>
-                  <td style="padding:11px 16px; font-size:13px; color:#374151; border-bottom:1px solid #f0f0f0; line-height:1.6; white-space:pre-line;" th:text="${deploy.description}">CR description here.</td>
+                  <td valign="top" style="background-color:#F8FAFC; border-right:1px solid #E2E8F0; padding:11px 16px; font-size:13px; font-weight:600; color:#64748B;">Description</td>
+                  <td valign="top" style="padding:11px 16px; font-size:13px; color:#334155; line-height:1.6; white-space:pre-line;" th:text="${deploy.description}">CR description here.</td>
                 </tr>
               </table>
             </td>
@@ -148,50 +134,49 @@
 
           <!-- Checklist section -->
           <tr>
-            <td style="padding:16px 40px 8px 40px;">
-              <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border-collapse:separate; border-spacing:0; border:1px solid #e5e7eb; border-radius:12px; overflow:hidden;">
+            <td class="px" valign="top" style="padding:16px 32px 8px 32px; background-color:#FFFFFF;">
+              <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="width:100%; border:1px solid #E2E8F0; border-radius:10px; border-collapse:separate; overflow:hidden;">
                 <tr>
-                  <td colspan="2" style="background:linear-gradient(135deg,#220046 0%,#6B00DD 100%); background-color:#6B00DD; padding:10px 16px; text-align:center; font-size:12px; letter-spacing:1px; text-transform:uppercase; font-weight:700; color:#ffffff;">
-                    Checklist
+                  <td colspan="2" style="background-color:#F1F5F9; border-bottom:1px solid #E2E8F0; padding:12px 16px; font-size:12px; font-weight:700; color:#334155; text-transform:uppercase; letter-spacing:0.6px;">Checklist</td>
+                </tr>
+                <tr>
+                  <td width="60%" style="padding:10px 16px; font-size:13px; font-weight:600; color:#64748B; background-color:#F8FAFC; border-right:1px solid #E2E8F0; border-bottom:1px solid #E2E8F0;">Branch Merging</td>
+                  <td style="padding:10px 16px; font-size:13px; border-bottom:1px solid #E2E8F0;">
+                    <span style="display:inline-block; padding:3px 12px; border-radius:999px; font-size:11px; font-weight:700; background-color:#F0FDF4; color:#166534; border:1px solid #BBF7D0;">Done</span>
                   </td>
                 </tr>
                 <tr>
-                  <td style="padding:10px 16px; font-size:13px; font-weight:600; color:#374151; width:60%; background-color:#f9fafb; border-bottom:1px solid #f0f0f0;">Branch Merging</td>
-                  <td style="padding:10px 16px; font-size:13px; border-bottom:1px solid #f0f0f0;">
-                    <span style="display:inline-block; padding:3px 12px; border-radius:999px; font-size:12px; font-weight:700; background-color:#ecfdf5; color:#047857; border:1px solid #a7f3d0;">✔ Done</span>
+                  <td style="padding:10px 16px; font-size:13px; font-weight:600; color:#64748B; background-color:#F8FAFC; border-right:1px solid #E2E8F0; border-bottom:1px solid #E2E8F0;">Self-Code Review (Sonar) by Developer</td>
+                  <td style="padding:10px 16px; font-size:13px; border-bottom:1px solid #E2E8F0;">
+                    <span style="display:inline-block; padding:3px 12px; border-radius:999px; font-size:11px; font-weight:700; background-color:#F0FDF4; color:#166534; border:1px solid #BBF7D0;">Done</span>
                   </td>
                 </tr>
                 <tr>
-                  <td style="padding:10px 16px; font-size:13px; font-weight:600; color:#374151; background-color:#f9fafb; border-bottom:1px solid #f0f0f0;">Self-Code Review (Sonar) by Developer</td>
-                  <td style="padding:10px 16px; font-size:13px; border-bottom:1px solid #f0f0f0;">
-                    <span style="display:inline-block; padding:3px 12px; border-radius:999px; font-size:12px; font-weight:700; background-color:#ecfdf5; color:#047857; border:1px solid #a7f3d0;">✔ Done</span>
+                  <td style="padding:10px 16px; font-size:13px; font-weight:600; color:#64748B; background-color:#F8FAFC; border-right:1px solid #E2E8F0; border-bottom:1px solid #E2E8F0;">Code Review</td>
+                  <td style="padding:10px 16px; font-size:13px; border-bottom:1px solid #E2E8F0;">
+                    <span style="display:inline-block; padding:3px 12px; border-radius:999px; font-size:11px; font-weight:700; background-color:#FFFBEB; color:#B45309; border:1px solid #FDE68A;">Sent</span>
                   </td>
                 </tr>
                 <tr>
-                  <td style="padding:10px 16px; font-size:13px; font-weight:600; color:#374151; background-color:#f9fafb; border-bottom:1px solid #f0f0f0;">Code Review</td>
-                  <td style="padding:10px 16px; font-size:13px; border-bottom:1px solid #f0f0f0;">
-                    <span style="display:inline-block; padding:3px 12px; border-radius:999px; font-size:12px; font-weight:700; background-color:#fef3c7; color:#d97706; border:1px solid #fcd34d;">⏳ Sent</span>
-                  </td>
-                </tr>
-                <tr>
-                  <td style="padding:10px 16px; font-size:13px; font-weight:600; color:#374151; background-color:#f9fafb;">DBA Review</td>
+                  <td style="padding:10px 16px; font-size:13px; font-weight:600; color:#64748B; background-color:#F8FAFC; border-right:1px solid #E2E8F0;">DBA Review</td>
                   <td style="padding:10px 16px; font-size:13px;">
-                    <span style="font-style:italic; color:#6b7280;">--NA--</span>
+                    <span style="font-style:italic; color:#64748B;">--NA--</span>
                   </td>
                 </tr>
               </table>
             </td>
           </tr>
 
-          <!-- CTA button -->
+          <!-- CTA button (bulletproof / VML) -->
           <tr>
-            <td style="padding:24px 40px 8px 40px;" align="left">
+            <td class="px" valign="top" style="padding:24px 32px 8px 32px; background-color:#FFFFFF;" align="center">
               <table role="presentation" cellpadding="0" cellspacing="0">
                 <tr>
-                  <td style="border-radius:10px; background:linear-gradient(210deg,#220046 0%,#6B00DD 50%,#F27ECE 100%); background-color:#6B00DD;">
-                    <a th:href="${deploy.url}" href="#" style="display:inline-block; padding:12px 28px; font-size:14px; font-weight:600; color:#ffffff; text-decoration:none; border-radius:10px;">
-                      Open in DevTrack &rarr;
-                    </a>
+                  <td align="center">
+                    <!--[if mso]><v:roundrect xmlns:v="urn:schemas-microsoft-com:vml" xmlns:w="urn:schemas-microsoft-com:office:word" th:attr="href=${deploy.url}" href="https://devtrack.example.com" arcsize="16%" fillcolor="#0F766E" strokecolor="#0F766E" style="height:46px;v-text-anchor:middle;width:210px;"><w:anchorlock/><center style="color:#FFFFFF;font-family:'Segoe UI',Arial,sans-serif;font-size:15px;font-weight:700;">Open in DevTrack</center></v:roundrect><![endif]-->
+                    <!--[if !mso]><!-->
+                    <a th:href="${deploy.url}" href="https://devtrack.example.com" target="_blank" style="display:inline-block; background-color:#0F766E; border-radius:8px; color:#FFFFFF; font-size:15px; font-weight:700; padding:14px 28px; text-decoration:none; line-height:1.2; font-family:'Segoe UI', Arial, Helvetica, sans-serif;">Open in DevTrack &rarr;</a>
+                    <!--<![endif]-->
                   </td>
                 </tr>
               </table>
@@ -200,27 +185,24 @@
 
           <!-- Sign-off -->
           <tr>
-            <td style="padding:16px 40px 32px 40px;">
-              <p style="margin:0; font-size:14px; line-height:1.6; color:#374151;">
-                Thanks &amp; Regards,<br />
-                <strong style="color:#6B00DD;" th:text="${deploy.developerName}">Developer</strong>
+            <td class="px" valign="top" style="padding:16px 32px 32px 32px; background-color:#FFFFFF;">
+              <p style="margin:0; font-size:15px; line-height:1.6; color:#334155;">
+                Thanks &amp; Regards,<br/>
+                <strong style="color:#1E293B;" th:text="${deploy.developerName}">Developer</strong>
               </p>
             </td>
           </tr>
 
           <!-- Footer -->
           <tr>
-            <td style="background-color:#111827; padding:20px 40px; text-align:center;">
-              <p style="margin:0; font-size:12px; color:#9ca3af; line-height:1.6;">
-                This is an automated notification from <strong style="color:#d97706;">DevTrack</strong>.<br />
-                Please do not reply directly to this email.
-              </p>
+            <td class="px" valign="top" style="background-color:#F1F5F9; padding:22px 32px; text-align:center; border-top:1px solid #E2E8F0;">
+              <p style="margin:0 0 6px 0; font-size:12px; color:#64748B; line-height:1.6;">This is an automated notification from <strong style="color:#334155;">DevTrack</strong>. Please do not reply directly to this email.</p>
+              <p style="margin:0 0 4px 0; font-size:11px; color:#94A3B8; line-height:1.6;">Confidential &mdash; intended only for the named recipient.</p>
+              <p style="margin:0; font-size:11px; color:#94A3B8;">&copy; DevTrack 2.0 &mdash; Enterprise Engineering Workflow Platform. All rights reserved.</p>
             </td>
           </tr>
 
         </table>
-        <!-- /Email card -->
-
       </td>
     </tr>
   </table>

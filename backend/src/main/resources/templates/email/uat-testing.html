@@ -4,68 +4,73 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+  <meta name="color-scheme" content="light dark" />
+  <meta name="supported-color-schemes" content="light dark" />
   <title>Ready for Testing</title>
+  <!--[if mso]><xml><o:OfficeDocumentSettings><o:PixelsPerInch>96</o:PixelsPerInch></o:OfficeDocumentSettings></xml><![endif]-->
+  <style>
+    body{margin:0;padding:0;}
+    @media only screen and (max-width:620px){
+      .container{width:100%!important;border-radius:0!important;}
+      .px{padding-left:20px!important;padding-right:20px!important;}
+    }
+  </style>
 </head>
-<body style="margin:0; padding:0; background-color:#0f1419; font-family:'Segoe UI', Arial, Helvetica, sans-serif; -webkit-font-smoothing:antialiased;">
+<body style="margin:0; padding:0; width:100%!important; background-color:#F8FAFC; font-family:'Segoe UI', Arial, Helvetica, sans-serif;">
 
   <!-- Preheader (hidden preview text) -->
-  <div style="display:none; max-height:0; overflow:hidden; opacity:0; color:transparent;"
-       th:text="'A build is ready for testing on ' + ${test.environment} + ' — ' + ${test.jtrackId} + '.'">
+  <div style="display:none; max-height:0; overflow:hidden; opacity:0; font-size:1px; line-height:1px; color:#F8FAFC;"
+       th:text="'A build is ready for testing on ' + ${test.environment} + ' \u2014 ' + ${test.jtrackId} + '.'">
     A build is ready for testing.
   </div>
 
-  <!-- Outer background -->
-  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:linear-gradient(135deg,#0f1419 0%,#1a2620 100%); background-color:#0f1419; padding:32px 12px;">
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color:#F8FAFC; width:100%; margin:0; padding:28px 0;">
     <tr>
-      <td align="center">
+      <td align="center" valign="top">
+        <table role="presentation" class="container" width="600" cellpadding="0" cellspacing="0" style="width:600px; max-width:600px; background-color:#FFFFFF; border:1px solid #E2E8F0; border-radius:12px; overflow:hidden;">
 
-        <!-- Email card -->
-        <table role="presentation" width="600" cellpadding="0" cellspacing="0" style="width:600px; max-width:600px; background-color:#ffffff; border-radius:16px; overflow:hidden; box-shadow:0 12px 40px rgba(0,0,0,0.45);">
-
-          <!-- Header band with logo -->
+          <!-- Header -->
           <tr>
-            <td style="background:linear-gradient(200deg,#220046 0%,#6B00DD 50%,#F27ECE 100%); background-color:#6B00DD; padding:0; text-align:center;">
-              <!--[if gte mso 9]><v:rect xmlns:v="urn:schemas-microsoft-com:vml" fill="true" stroke="false" style="width:600px;"><v:fill type="gradient" color="#220046" color2="#9B30E8" angle="135"/><v:textbox style="mso-fit-shape-to-text:true" inset="36px,36px,40px,40px"><![endif]-->
-              <div style="padding:36px 40px; text-align:center;">
-              <!-- CSS-based text logo that will not break in Outlook -->
-              <div style="display:inline-block; font-family:'Outfit', 'Inter', 'Segoe UI', sans-serif; font-size:30px; font-weight:800; color:#ffffff; margin-bottom:12px; text-shadow:0 2px 4px rgba(0,0,0,0.15);">
-                <span style="background-color:#ffffff; color:#5b00c8; padding:5px 13px; border-radius:8px; margin-right:6px; letter-spacing:0.5px; font-weight:800;">Dev</span><span style="color:#ffffff;">Track</span>
-              </div>
-              <div style="display:inline-block; margin-top:12px; padding:6px 16px; background-color:rgba(217,119,6,0.18); border:1px solid #d97706; border-radius:999px; font-size:12px; font-weight:600; letter-spacing:1.2px; text-transform:uppercase; color:#fbbf24;">
-                🧪 Ready for Testing
-              </div>
-              </div>
-              <!--[if gte mso 9]></v:textbox></v:rect><![endif]-->
+            <td class="px" style="background-color:#0F172A; padding:22px 32px;">
+              <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
+                <tr>
+                  <td valign="middle">
+                    <div style="font-family:'Segoe UI', Arial, Helvetica, sans-serif; font-size:22px; font-weight:800; color:#FFFFFF; line-height:1;">Dev<span style="color:#5EEAD4;">Track</span></div>
+                    <div style="font-family:'Segoe UI', Arial, Helvetica, sans-serif; font-size:12px; color:#94A3B8; padding-top:5px;">Enterprise Engineering Workflow Platform</div>
+                  </td>
+                  <td valign="middle" align="right">
+                    <span style="display:inline-block; background-color:#1E293B; color:#CBD5E1; font-family:'Segoe UI', Arial, Helvetica, sans-serif; font-size:11px; font-weight:700; letter-spacing:0.5px; padding:5px 10px; border-radius:6px;">DevTrack 2.0</span>
+                  </td>
+                </tr>
+              </table>
             </td>
           </tr>
-          <!-- Copper accent divider -->
+          <tr><td style="height:3px; background-color:#2563EB; font-size:0; line-height:0;">&nbsp;</td></tr>
+
+          <!-- Hero -->
           <tr>
-            <td style="height:4px; background:linear-gradient(150deg,#1a0038 0%,#5b00c8 50%,#1a0038 100%); background-color:#5b00c8; font-size:0; line-height:0;">&nbsp;</td>
+            <td class="px" style="background-color:#2563EB; padding:26px 32px;">
+              <div style="font-family:'Segoe UI', Arial, Helvetica, sans-serif; font-size:23px; font-weight:700; color:#FFFFFF; line-height:1.3;">Ready for Testing</div>
+              <div style="font-family:'Segoe UI', Arial, Helvetica, sans-serif; font-size:14px; color:#DBEAFE; line-height:1.5; padding-top:6px;">A build has been deployed and is ready for your validation.</div>
+            </td>
           </tr>
 
-          <!-- Body -->
+          <!-- Body intro -->
           <tr>
-            <td style="padding:36px 40px 8px 40px;">
-              <h2 style="margin:0 0 18px 0; font-size:20px; color:#111827; font-weight:700;">
-                Ready for Testing
-              </h2>
-              <p style="margin:0 0 14px 0; font-size:15px; line-height:1.6; color:#374151;">
-                Dear <strong style="color:#6B00DD;">Testing Team</strong>,
+            <td class="px" valign="top" style="padding:32px 32px 4px 32px; background-color:#FFFFFF;">
+              <p style="margin:0 0 12px 0; font-size:16px; font-weight:700; color:#1E293B; line-height:1.4;">
+                Dear Testing Team,
               </p>
-              <p style="margin:0 0 4px 0; font-size:15px; line-height:1.6; color:#374151;">
+              <p style="margin:0 0 20px 0; font-size:15px; color:#334155; line-height:1.6;">
                 The changes below have been deployed and are ready for your testing. Please find the details and remarks below.
               </p>
-            </td>
-          </tr>
 
-          <!-- Remarks callout -->
-          <tr>
-            <td style="padding:8px 40px 4px 40px;">
-              <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color:#fff7ed; border-left:4px solid #d97706; border-radius:8px;">
+              <!-- Remarks callout (Info alert) -->
+              <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color:#EFF6FF; border:1px solid #BFDBFE; border-left:4px solid #2563EB; border-radius:8px; margin-bottom:8px;">
                 <tr>
                   <td style="padding:14px 18px;">
-                    <p style="margin:0 0 4px 0; font-size:13px; font-weight:700; letter-spacing:0.4px; text-transform:uppercase; color:#c2410c;">Remarks</p>
-                    <p style="margin:0; font-size:14px; line-height:1.6; color:#374151;" th:text="${test.remarks}">REMARKS</p>
+                    <p style="margin:0 0 4px 0; font-size:12px; font-weight:700; letter-spacing:0.5px; text-transform:uppercase; color:#1D4ED8;">Remarks</p>
+                    <p style="margin:0; font-size:14px; line-height:1.6; color:#334155;" th:text="${test.remarks}">REMARKS</p>
                   </td>
                 </tr>
               </table>
@@ -74,59 +79,60 @@
 
           <!-- Details table -->
           <tr>
-            <td style="padding:16px 40px 8px 40px;">
-              <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border-collapse:separate; border-spacing:0; border:1px solid #e5e7eb; border-radius:12px; overflow:hidden;">
+            <td class="px" valign="top" style="padding:16px 32px 8px 32px; background-color:#FFFFFF;">
+              <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="width:100%; border:1px solid #E2E8F0; border-radius:10px; border-collapse:separate; overflow:hidden;">
                 <tr>
-                  <th colspan="2" style="background:linear-gradient(135deg,#220046 0%,#6B00DD 100%); background-color:#6B00DD; padding:12px 16px; text-align:center; font-size:14px; letter-spacing:1.2px; text-transform:uppercase; font-weight:700; color:#ffffff;">
-                    Testing Details
-                  </th>
+                  <td colspan="2" style="background-color:#F1F5F9; border-bottom:1px solid #E2E8F0; padding:12px 16px; font-size:12px; font-weight:700; color:#334155; text-transform:uppercase; letter-spacing:0.6px;">Testing Details</td>
                 </tr>
                 <tr>
-                  <td style="padding:12px 16px; font-size:14px; font-weight:600; color:#374151; width:36%; background-color:#fafafa; border-bottom:1px solid #eef0f2;">Jtrack ID</td>
-                  <td style="padding:12px 16px; font-size:14px; color:#111827; border-bottom:1px solid #eef0f2;" th:text="${test.jtrackId}">JTRACK_ID</td>
+                  <td width="36%" valign="top" style="background-color:#F8FAFC; border-right:1px solid #E2E8F0; border-bottom:1px solid #E2E8F0; padding:12px 16px; font-size:13px; font-weight:600; color:#64748B;">Jtrack ID</td>
+                  <td valign="top" style="border-bottom:1px solid #E2E8F0; padding:12px 16px; font-size:13px; color:#1E293B; font-weight:700;" th:text="${test.jtrackId}">JTRACK_ID</td>
                 </tr>
                 <tr>
-                  <td style="padding:12px 16px; font-size:14px; font-weight:600; color:#374151; background-color:#fafafa; border-bottom:1px solid #eef0f2;">Title / Feature</td>
-                  <td style="padding:12px 16px; font-size:14px; color:#111827; border-bottom:1px solid #eef0f2;" th:text="${test.title}">TITLE</td>
+                  <td valign="top" style="background-color:#F8FAFC; border-right:1px solid #E2E8F0; border-bottom:1px solid #E2E8F0; padding:12px 16px; font-size:13px; font-weight:600; color:#64748B;">Title / Feature</td>
+                  <td valign="top" style="border-bottom:1px solid #E2E8F0; padding:12px 16px; font-size:13px; color:#1E293B; line-height:1.5;" th:text="${test.title}">TITLE</td>
                 </tr>
                 <tr>
-                  <td style="padding:12px 16px; font-size:14px; font-weight:600; color:#374151; background-color:#fafafa; border-bottom:1px solid #eef0f2;">Environment</td>
-                  <td style="padding:12px 16px; font-size:14px; color:#111827; border-bottom:1px solid #eef0f2;">
-                    <span style="display:inline-block; padding:3px 10px; background-color:#ecfdf5; color:#047857; border:1px solid #a7f3d0; border-radius:6px; font-size:12px; font-weight:600;" th:text="${test.environment}">UAT</span>
+                  <td valign="top" style="background-color:#F8FAFC; border-right:1px solid #E2E8F0; border-bottom:1px solid #E2E8F0; padding:12px 16px; font-size:13px; font-weight:600; color:#64748B;">Environment</td>
+                  <td valign="top" style="border-bottom:1px solid #E2E8F0; padding:12px 16px; font-size:13px; color:#1E293B;">
+                    <span style="display:inline-block; padding:3px 10px; background-color:#EFF6FF; color:#1D4ED8; border:1px solid #BFDBFE; border-radius:6px; font-size:11px; font-weight:700;" th:text="${test.environment}">UAT</span>
                   </td>
                 </tr>
                 <tr>
-                  <td style="padding:12px 16px; font-size:14px; font-weight:600; color:#374151; background-color:#fafafa; border-bottom:1px solid #eef0f2;">Branch Name</td>
-                  <td style="padding:12px 16px; font-size:14px; color:#111827; border-bottom:1px solid #eef0f2;">
-                    <span style="display:inline-block; padding:2px 8px; background-color:#f0efed; border:1px solid #e5e7eb; border-radius:6px; font-family:Menlo, Consolas, monospace; font-size:13px; color:#111827;" th:text="${test.branchName}">BRANCH_NAME</span>
+                  <td valign="top" style="background-color:#F8FAFC; border-right:1px solid #E2E8F0; border-bottom:1px solid #E2E8F0; padding:12px 16px; font-size:13px; font-weight:600; color:#64748B;">Branch Name</td>
+                  <td valign="top" style="border-bottom:1px solid #E2E8F0; padding:12px 16px; font-size:13px; color:#1E293B;">
+                    <span style="display:inline-block; padding:2px 8px; background-color:#F1F5F9; border:1px solid #E2E8F0; border-radius:6px; font-family:Menlo, Consolas, monospace; font-size:13px; color:#0F172A;" th:text="${test.branchName}">BRANCH_NAME</span>
                   </td>
                 </tr>
                 <tr>
-                  <td style="padding:12px 16px; font-size:14px; font-weight:600; color:#374151; background-color:#fafafa; border-bottom:1px solid #eef0f2;">Build / Version</td>
-                  <td style="padding:12px 16px; font-size:14px; color:#111827; border-bottom:1px solid #eef0f2;" th:text="${test.buildVersion}">BUILD_VERSION</td>
+                  <td valign="top" style="background-color:#F8FAFC; border-right:1px solid #E2E8F0; border-bottom:1px solid #E2E8F0; padding:12px 16px; font-size:13px; font-weight:600; color:#64748B;">Build / Version</td>
+                  <td valign="top" style="border-bottom:1px solid #E2E8F0; padding:12px 16px; font-size:13px; color:#1E293B;" th:text="${test.buildVersion}">BUILD_VERSION</td>
                 </tr>
                 <tr>
-                  <td style="padding:12px 16px; font-size:14px; font-weight:600; color:#374151; background-color:#fafafa; border-bottom:1px solid #eef0f2; vertical-align:top;">Modules Affected</td>
-                  <td style="padding:12px 16px; font-size:14px; color:#111827; border-bottom:1px solid #eef0f2; line-height:1.6;" th:text="${test.modulesAffected}">MODULES_AFFECTED</td>
+                  <td valign="top" style="background-color:#F8FAFC; border-right:1px solid #E2E8F0; border-bottom:1px solid #E2E8F0; padding:12px 16px; font-size:13px; font-weight:600; color:#64748B;">Modules Affected</td>
+                  <td valign="top" style="border-bottom:1px solid #E2E8F0; padding:12px 16px; font-size:13px; color:#334155; line-height:1.6;" th:text="${test.modulesAffected}">MODULES_AFFECTED</td>
                 </tr>
                 <tr>
-                  <td style="padding:12px 16px; font-size:14px; font-weight:600; color:#374151; background-color:#fafafa; border-bottom:1px solid #eef0f2;">Deployed On</td>
-                  <td style="padding:12px 16px; font-size:14px; color:#111827; border-bottom:1px solid #eef0f2;" th:text="${test.deployedOn}">DEPLOYED_ON</td>
+                  <td valign="top" style="background-color:#F8FAFC; border-right:1px solid #E2E8F0; border-bottom:1px solid #E2E8F0; padding:12px 16px; font-size:13px; font-weight:600; color:#64748B;">Deployed On</td>
+                  <td valign="top" style="border-bottom:1px solid #E2E8F0; padding:12px 16px; font-size:13px; color:#1E293B;" th:text="${test.deployedOn}">DEPLOYED_ON</td>
                 </tr>
                 <tr>
-                  <td style="padding:12px 16px; font-size:14px; font-weight:600; color:#374151; background-color:#fafafa;">Developer</td>
-                  <td style="padding:12px 16px; font-size:14px; color:#111827;" th:text="${test.developer}">DEVELOPER</td>
+                  <td valign="top" style="background-color:#F8FAFC; border-right:1px solid #E2E8F0; padding:12px 16px; font-size:13px; font-weight:600; color:#64748B;">Developer</td>
+                  <td valign="top" style="padding:12px 16px; font-size:13px; color:#1E293B;" th:text="${test.developer}">DEVELOPER</td>
                 </tr>
               </table>
+            </td>
+          </tr>
+
           <!-- Unit Test Document (when present) -->
           <tr th:if="${test.unitTestDocUrl != null}">
-            <td style="padding: 10px 40px 0 40px;">
-              <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color:#f8f9fa; border-left:4px solid #6B00DD; border-radius:8px; border:1px solid #e5e7eb; border-left-width:4px;">
+            <td class="px" valign="top" style="padding:12px 32px 0 32px; background-color:#FFFFFF;">
+              <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color:#F8FAFC; border:1px solid #E2E8F0; border-left:4px solid #2563EB; border-radius:8px;">
                 <tr>
                   <td style="padding:14px 18px;">
-                    <p style="margin:0 0 4px 0; font-size:12px; font-weight:700; letter-spacing:0.4px; text-transform:uppercase; color:#6B00DD;">Attached Unit Testing Document</p>
-                    <p style="margin:0; font-size:14px; line-height:1.6; color:#374151;">
-                      <a th:href="${test.unitTestDocUrl}" th:text="${test.unitTestDocName}" download style="color:#220046; font-weight:600; text-decoration:underline;">unit-test-document.pdf</a>
+                    <p style="margin:0 0 4px 0; font-size:12px; font-weight:700; letter-spacing:0.5px; text-transform:uppercase; color:#1D4ED8;">Attached Unit Testing Document</p>
+                    <p style="margin:0; font-size:14px; line-height:1.6; color:#334155;">
+                      <a th:href="${test.unitTestDocUrl}" th:text="${test.unitTestDocName}" download style="color:#2563EB; font-weight:600; text-decoration:underline;">unit-test-document.pdf</a>
                     </p>
                   </td>
                 </tr>
@@ -134,15 +140,16 @@
             </td>
           </tr>
 
-          <!-- CTA button (optional) -->
+          <!-- CTA button (bulletproof / VML) -->
           <tr>
-            <td style="padding:24px 40px 8px 40px;" align="left">
+            <td class="px" valign="top" style="padding:24px 32px 8px 32px; background-color:#FFFFFF;" align="center">
               <table role="presentation" cellpadding="0" cellspacing="0">
                 <tr>
-                  <td style="border-radius:10px; background:linear-gradient(210deg,#220046 0%,#6B00DD 50%,#F27ECE 100%); background-color:#6B00DD;">
-                    <a th:href="${test.url}" href="TEST_URL" style="display:inline-block; padding:12px 28px; font-size:14px; font-weight:600; color:#ffffff; text-decoration:none; border-radius:10px;">
-                      Open in DevTrack &rarr;
-                    </a>
+                  <td align="center">
+                    <!--[if mso]><v:roundrect xmlns:v="urn:schemas-microsoft-com:vml" xmlns:w="urn:schemas-microsoft-com:office:word" th:attr="href=${test.url}" href="https://devtrack.example.com" arcsize="16%" fillcolor="#2563EB" strokecolor="#2563EB" style="height:46px;v-text-anchor:middle;width:210px;"><w:anchorlock/><center style="color:#FFFFFF;font-family:'Segoe UI',Arial,sans-serif;font-size:15px;font-weight:700;">Open in DevTrack</center></v:roundrect><![endif]-->
+                    <!--[if !mso]><!-->
+                    <a th:href="${test.url}" href="https://devtrack.example.com" target="_blank" style="display:inline-block; background-color:#2563EB; border-radius:8px; color:#FFFFFF; font-size:15px; font-weight:700; padding:14px 28px; text-decoration:none; line-height:1.2; font-family:'Segoe UI', Arial, Helvetica, sans-serif;">Open in DevTrack &rarr;</a>
+                    <!--<![endif]-->
                   </td>
                 </tr>
               </table>
@@ -151,27 +158,24 @@
 
           <!-- Sign-off -->
           <tr>
-            <td style="padding:16px 40px 32px 40px;">
-              <p style="margin:0; font-size:14px; line-height:1.6; color:#374151;">
-                Thanks &amp; Regards,<br />
-                <strong style="color:#6B00DD;" th:text="${test.developer}">DEVELOPER</strong>
+            <td class="px" valign="top" style="padding:16px 32px 32px 32px; background-color:#FFFFFF;">
+              <p style="margin:0; font-size:15px; line-height:1.6; color:#334155;">
+                Thanks &amp; Regards,<br/>
+                <strong style="color:#1E293B;" th:text="${test.developer}">DEVELOPER</strong>
               </p>
             </td>
           </tr>
 
           <!-- Footer -->
           <tr>
-            <td style="background-color:#111827; padding:20px 40px; text-align:center;">
-              <p style="margin:0; font-size:12px; color:#9ca3af; line-height:1.6;">
-                This is an automated notification from <strong style="color:#d97706;">DevTrack</strong>.<br />
-                Please do not reply directly to this email.
-              </p>
+            <td class="px" valign="top" style="background-color:#F1F5F9; padding:22px 32px; text-align:center; border-top:1px solid #E2E8F0;">
+              <p style="margin:0 0 6px 0; font-size:12px; color:#64748B; line-height:1.6;">This is an automated notification from <strong style="color:#334155;">DevTrack</strong>. Please do not reply directly to this email.</p>
+              <p style="margin:0 0 4px 0; font-size:11px; color:#94A3B8; line-height:1.6;">Confidential &mdash; intended only for the named recipient.</p>
+              <p style="margin:0; font-size:11px; color:#94A3B8;">&copy; DevTrack 2.0 &mdash; Enterprise Engineering Workflow Platform. All rights reserved.</p>
             </td>
           </tr>
 
         </table>
-        <!-- /Email card -->
-
       </td>
     </tr>
   </table>
