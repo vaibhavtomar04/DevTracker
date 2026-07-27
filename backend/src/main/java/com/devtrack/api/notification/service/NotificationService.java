@@ -133,6 +133,12 @@ public class NotificationService {
     }
 
     private void dispatchWithRetry(NotificationType type, List<String> to, List<String> cc, String subject, String htmlContent) {
+        if (sendNotificationUrl == null || sendNotificationUrl.isBlank() || 
+            (!sendNotificationUrl.startsWith("http://") && !sendNotificationUrl.startsWith("https://"))) {
+            log.warn("Skipping email notification dispatch to {}: send.notification.url is not configured or invalid ({})", to, sendNotificationUrl);
+            return;
+        }
+
         int maxRetries = 3;
         int attempts = 0;
         boolean sent = false;

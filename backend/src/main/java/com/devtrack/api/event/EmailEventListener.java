@@ -36,6 +36,12 @@ public class EmailEventListener {
     @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT, fallbackExecution = true)
     public void handleEmailEvent(EmailEvent event) {
         try {
+            if (sendNotificationUrl == null || sendNotificationUrl.isBlank() || 
+                (!sendNotificationUrl.startsWith("http://") && !sendNotificationUrl.startsWith("https://"))) {
+                log.warn("Skipping email event dispatch to {}: send.notification.url is not configured or invalid ({})", event.getRecipient(), sendNotificationUrl);
+                return;
+            }
+
             log.info("Async dispatching email to {} | Subject: {}", event.getRecipient(), event.getSubject());
 
             EmailRequestVo emailRequestVo = new EmailRequestVo();
