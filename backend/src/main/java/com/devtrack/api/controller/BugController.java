@@ -9,6 +9,7 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.http.ResponseEntity;
+import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.CrossOrigin;
@@ -189,6 +190,7 @@ public class BugController {
     }
 
     @PostMapping
+    @CacheEvict(value = "dashboardSummary", allEntries = true)
     @PreAuthorize("hasAnyRole('TESTER', 'TESTADMIN')")
     public Bug createBug(@RequestBody Bug bug) {
         String username = SecurityContextHolder.getContext().getAuthentication().getName();
@@ -387,6 +389,7 @@ public class BugController {
     }
 
     @PutMapping("/{id}")
+    @CacheEvict(value = "dashboardSummary", allEntries = true)
     public ResponseEntity<?> updateBug(@PathVariable Long id, @RequestBody Bug bugDetails) {
         return bugRepository.findById(id)
                 .map(bug -> {
