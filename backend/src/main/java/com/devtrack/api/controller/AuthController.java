@@ -96,6 +96,19 @@ public class AuthController {
     @Value("${devtrack.mail.base-url:http://localhost:5173}")
     private String baseUrl;
 
+    private String getEffectiveBaseUrl() {
+        if (configRepository != null) {
+            Optional<AppConfig> cfg = configRepository.findByConfigKey("FRONTEND_BASE_URL");
+            if (cfg.isEmpty()) {
+                cfg = configRepository.findByConfigKey("DEVTRACK_MAIL_BASE_URL");
+            }
+            if (cfg.isPresent() && cfg.get().getConfigValue() != null && !cfg.get().getConfigValue().isBlank()) {
+                return cfg.get().getConfigValue().trim().replaceAll("/+$", "");
+            }
+        }
+        return (baseUrl != null ? baseUrl : "http://localhost:5173").trim().replaceAll("/+$", "");
+    }
+
     private String decryptHex(String hex) {
         if (hex == null || hex.isEmpty()) return null;
         try {
@@ -383,7 +396,7 @@ public class AuthController {
             
             context.setVariable("user", userMap);
             context.setVariable("appLogoUrl", appLogoUrl);
-            context.setVariable("loginUrl", baseUrl + "/login");
+            context.setVariable("loginUrl", getEffectiveBaseUrl() + "/login");
             
             String htmlBody = templateEngine.process("email/welcome", context);
             eventPublisher.publishEvent(new EmailEvent(this, email, "DevTrack 2.0 Account Created", htmlBody));
@@ -678,7 +691,7 @@ public class AuthController {
 
                 context.setVariable("user", userMap);
                 context.setVariable("appLogoUrl", appLogoUrl);
-                context.setVariable("resetUrl", baseUrl + "/reset-password?token=" + token.getToken());
+                context.setVariable("resetUrl", getEffectiveBaseUrl() + "/reset-password?token=" + token.getToken());
 
                 String htmlBody = templateEngine.process("email/password-reset", context);
                 eventPublisher.publishEvent(new EmailEvent(this, email, "DevTrack 2.0 - Password Reset Request", htmlBody));

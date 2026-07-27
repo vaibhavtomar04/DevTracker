@@ -1,6 +1,7 @@
 import { create } from "zustand"
 import type { Task, Bug, Comment, AuditLog, AppConfig, TestCase, User, Notification } from "@/services/mockData"
 import { apiClient } from "@/utils/apiClient"
+import { FEATURES } from "@/config/appConfig"
 
 const unwrapTasks = (tasksRes: any): any[] =>
   tasksRes && Array.isArray(tasksRes.content)
@@ -41,7 +42,6 @@ const mapBugReviews = (reviews: any[]) => {
   })
 }
 
-
 export interface ToastMessage {
   id: string
   message: string
@@ -73,7 +73,6 @@ export interface SprintTask {
 interface TaskState {
   tasks: Task[]
   bugs: Bug[]
-  auditLogs: AuditLog[]
   comments: Comment[]
   configs: AppConfig[]
   testCases: TestCase[]
@@ -93,6 +92,11 @@ interface TaskState {
   // Fetching
   fetchData: (force?: boolean) => Promise<void>
   fetchUsers: () => Promise<void>
+  // Phase A — event-driven single-entity sync (no collection refetch)
+  syncTaskById: (id: number) => Promise<void>
+  removeTaskById: (id: number) => void
+  syncBugById: (id: number) => Promise<void>
+  removeBugById: (id: number) => void
   fetchSprintTasks: (sprintId?: number) => Promise<void>
   createSprintTask: (sprintTaskData: any) => Promise<SprintTask>
   updateSprintTask: (id: number, sprintTaskData: any) => Promise<SprintTask>
@@ -128,9 +132,7 @@ interface TaskState {
 
   // Comments
   addComment: (entityType: "TASK" | "BUG", entityId: number, text: string, user: User) => Promise<Comment>
-
-
-  fetchComments: (entityType: "TASK" | "BUG", entityId: number ) => Promise<Comment[]>
+  fetchComments: (entityType: "TASK" | "BUG", entityId: number) => Promise<Comment[]>
 
   // Configurations
   updateConfig: (key: string, value: string) => Promise<void>
@@ -170,7 +172,6 @@ interface TaskState {
 export const useTaskStore = create<TaskState>((set, get) => ({
   tasks: [],
   bugs: [],
-  auditLogs: [],
   comments: [],
   configs: [],
   testCases: [],
@@ -234,27 +235,35 @@ export const useTaskStore = create<TaskState>((set, get) => ({
     try {
       // 1. Core Batch: Fetch critical data first so UI renders immediately
       // /api/tasks now returns paginated (page=0, size=100) by default — ~5x smaller payload
+      const skipReference =
+        force &&
+        FEATURES.ENABLE_REFERENCE_CACHE &&
+        get().configs.length > 0 &&
+        get().users.length > 0
       const [tasksRes, bugsRes, configsRes, usersRes] = await Promise.all([
-        safeFetch("/api/tasks?page=0&size=100"),
+        safeFetch("/api/tasks?page=0&size=100&includeClosed=true"),
         safeFetch("/api/bugs"),
-        safeFetch("/api/configs"),
-        safeFetch("/api/users"),
+        skipReference ? Promise.resolve(null) : safeFetch("/api/configs"),
+        skipReference ? Promise.resolve(null) : safeFetch("/api/users"),
       ]);
 
       // Unwrap paginated tasks response (Page<Task> has a 'content' field)
       const rawTasks = tasksRes && tasksRes.content ? tasksRes.content : (Array.isArray(tasksRes) ? tasksRes : []);
 
-      const normalizedUsers = (usersRes || []).map((u: any) => ({
-        ...u,
-        roles: Array.isArray(u.roles) ? u.roles.map((r: string) => r.replace(/^ROLE_/, "")) : []
-      }));
+      const nextConfigs = skipReference ? get().configs : (configsRes || []);
+      const nextUsers = skipReference
+        ? get().users
+        : (usersRes || []).map((u: any) => ({
+          ...u,
+          roles: Array.isArray(u.roles) ? u.roles.map((r: string) => r.replace(/^ROLE_/, "")) : []
+        }));
 
       // Immediately display core UI
       set({
         tasks: rawTasks,
         bugs: bugsRes || [],
-        configs: configsRes || [],
-        users: normalizedUsers,
+        configs: nextConfigs,
+        users: nextUsers,
         loading: false,
       });
 
@@ -264,22 +273,23 @@ export const useTaskStore = create<TaskState>((set, get) => ({
           tasks: rawTasks,
           bugs: bugsRes || [],
           configs: configsRes || [],
-          users: normalizedUsers,
+          users: nextUsers,
           timestamp: Date.now()
         }))
       } catch { /* ignore quota errors */ }
 
       // 2. Secondary Batch: Supplementary metadata — notifications excluded
       //    (notifications handled exclusively by notificationStore via WebSocket + REST)
-      const [auditRes, testCasesRes, bugReviewsRes, sprintTasksRes] = await Promise.all([
-        safeFetch("/api/audit"),
+      if (force && FEATURES.ENABLE_LEAN_POLL) {
+        set({ isFetching: false })
+        return
+      }
+      const [testCasesRes, bugReviewsRes, sprintTasksRes] = await Promise.all([
         safeFetch("/api/test-cases"),
         safeFetch("/api/bug-reviews"),
         safeFetch("/api/sprint-tasks")
       ]);
-
       set({
-        auditLogs: auditRes || [],
         testCases: testCasesRes || [],
         bugReviews: mapBugReviews(bugReviewsRes),
         sprintTasks: sprintTasksRes || [],
@@ -305,6 +315,65 @@ export const useTaskStore = create<TaskState>((set, get) => ({
       console.error("Failed to fetch users:", err)
     }
   },
+
+  // ── Phase A: surgical per-entity sync driven by ENTITY_EVENT frames ──────
+  // Fetches ONLY the affected row and upserts it. Never refetches a collection.
+  syncTaskById: async (id: number) => {
+    const TERMINAL = ["CLOSED", "PROD_COMPLETED"]
+    try {
+      const fresh: Task = await apiClient(`/api/tasks/${id}`)
+      if (fresh && fresh.id) {
+        set(state => {
+          // Match the default list query, which excludes terminal statuses.
+          if (fresh.status && TERMINAL.includes(fresh.status)) {
+            return { tasks: state.tasks.filter(t => t.id !== fresh.id) }
+          }
+          const exists = state.tasks.some(t => t.id === fresh.id)
+          return {
+            tasks: exists
+              ? state.tasks.map(t => (t.id === fresh.id ? fresh : t))
+              : [fresh, ...state.tasks],
+          }
+        })
+      }
+    } catch (err: any) {
+      const status = err?.status || err?.response?.status || 0
+      if (status === 404) {
+        set(state => ({ tasks: state.tasks.filter(t => t.id !== id) }))
+      } else {
+        console.error(`Failed to sync task ${id}:`, err)
+      }
+    }
+  },
+
+  removeTaskById: (id: number) =>
+    set(state => ({ tasks: state.tasks.filter(t => t.id !== id) })),
+
+  syncBugById: async (id: number) => {
+    try {
+      const fresh: Bug = await apiClient(`/api/bugs/${id}`)
+      if (fresh && fresh.id) {
+        set(state => {
+          const exists = state.bugs.some(b => b.id === fresh.id)
+          return {
+            bugs: exists
+              ? state.bugs.map(b => (b.id === fresh.id ? fresh : b))
+              : [fresh, ...state.bugs],
+          }
+        })
+      }
+    } catch (err: any) {
+      const status = err?.status || err?.response?.status || 0
+      if (status === 404) {
+        set(state => ({ bugs: state.bugs.filter(b => b.id !== id) }))
+      } else {
+        console.error(`Failed to sync bug ${id}:`, err)
+      }
+    }
+  },
+
+  removeBugById: (id: number) =>
+    set(state => ({ bugs: state.bugs.filter(b => b.id !== id) })),
 
   createTask: async (taskData) => {
     const newTask: Task = await apiClient("/api/tasks", {
@@ -412,12 +481,7 @@ export const useTaskStore = create<TaskState>((set, get) => ({
 
     try {
       sessionStorage.removeItem("devtrack_core_cache")
-    } catch {}
-
-    // ── Fire-and-forget audit log refresh (non-blocking) ─────────────────────
-    apiClient("/api/audit")
-      .then(auditRes => set({ auditLogs: auditRes }))
-      .catch(err => console.warn("Audit log refresh failed (non-critical):", err))
+    } catch { }
 
     if (statusChanged && updatedTask.status === "CODE_REVIEW") {
       const admins = get().users.filter(u => u.roles?.includes("DEVADMIN") || u.roles?.includes("CODEREVIEWER"))
@@ -467,9 +531,6 @@ export const useTaskStore = create<TaskState>((set, get) => ({
     set(state => ({
       tasks: state.tasks.map(t => t.id === taskId ? updatedTask : t)
     }))
-    apiClient("/api/audit")
-      .then(auditRes => set({ auditLogs: auditRes }))
-      .catch(err => console.warn("Audit refresh after assignTester failed:", err))
     return updatedTask
   },
 
@@ -481,9 +542,6 @@ export const useTaskStore = create<TaskState>((set, get) => ({
     set(state => ({
       tasks: state.tasks.map(t => t.id === taskId ? updatedTask : t)
     }))
-    apiClient("/api/audit")
-      .then(auditRes => set({ auditLogs: auditRes }))
-      .catch(err => console.warn("Audit refresh after reassignTester failed:", err))
     return updatedTask
   },
 
@@ -495,12 +553,6 @@ export const useTaskStore = create<TaskState>((set, get) => ({
     set(state => ({
       tasks: state.tasks.map(t => t.id === taskId ? updatedTask : t)
     }))
-    try {
-      const auditRes = await apiClient("/api/audit")
-      set({ auditLogs: auditRes })
-    } catch (err) {
-      console.error("Failed to update audit logs:", err)
-    }
     return updatedTask
   },
 
@@ -511,13 +563,10 @@ export const useTaskStore = create<TaskState>((set, get) => ({
       body: JSON.stringify({ remarks })
     })
 
-    // Refresh tasks and audit logs after approval in the background
-    Promise.all([
-      apiClient("/api/tasks?page=0&size=100"),
-      apiClient("/api/audit")
-    ]).then(([tasksRes, auditRes]) => {
+    // Refresh tasks after approval in the background
+    apiClient("/api/tasks?page=0&size=100").then(tasksRes => {
       const rawTasks = tasksRes && tasksRes.content ? tasksRes.content : (Array.isArray(tasksRes) ? tasksRes : []);
-      set({ tasks: rawTasks, auditLogs: auditRes })
+      set({ tasks: rawTasks })
     }).catch(err => {
       console.error("Failed to refresh data after approve:", err)
     })
@@ -532,13 +581,10 @@ export const useTaskStore = create<TaskState>((set, get) => ({
       body: JSON.stringify({ remarks })
     })
 
-    // Refresh tasks and audit logs after rejection so "Sent Back By Admin" tag appears
-    Promise.all([
-      apiClient("/api/tasks?page=0&size=100"),
-      apiClient("/api/audit")
-    ]).then(([tasksRes, auditRes]) => {
+    // Refresh tasks after rejection so "Sent Back By Admin" tag appears
+    apiClient("/api/tasks?page=0&size=100").then(tasksRes => {
       const rawTasks = tasksRes && tasksRes.content ? tasksRes.content : (Array.isArray(tasksRes) ? tasksRes : []);
-      set({ tasks: rawTasks, auditLogs: auditRes })
+      set({ tasks: rawTasks })
     }).catch(err => {
       console.error("Failed to refresh data after reject:", err)
     })
@@ -574,11 +620,6 @@ export const useTaskStore = create<TaskState>((set, get) => ({
     set(state => ({
       bugs: state.bugs.map(b => b.id === bugId ? updatedBug : b)
     }))
-
-    // Fire-and-forget audit refresh (non-blocking)
-    apiClient("/api/audit")
-      .then(auditRes => set({ auditLogs: auditRes }))
-      .catch(err => console.warn("Audit refresh after bug update failed:", err))
 
     return updatedBug
   },
@@ -623,13 +664,11 @@ export const useTaskStore = create<TaskState>((set, get) => ({
     return newComment
   },
 
-
   fetchComments: async (entityType, entityId) => {
-    const comments = await apiClient( `/api/comments/${entityType}/${entityId}`)
+    const comments = await apiClient(`/api/comments/${entityType}/${entityId}`)
     set({ comments })
-     return comments
+    return comments
   },
-
 
   updateConfig: async (key, value) => {
     const updatedConfig = await apiClient(`/api/configs/${key}`, {
@@ -724,7 +763,7 @@ export const useTaskStore = create<TaskState>((set, get) => ({
       method: "POST",
       body: JSON.stringify(reviewData)
     })
-    
+
     // Background refresh
     apiClient("/api/tasks?page=0&size=100")
       .then(tasksRes => {
@@ -747,7 +786,7 @@ export const useTaskStore = create<TaskState>((set, get) => ({
     const res = await apiClient(`/api/bug-reviews/${reviewId}/accept`, {
       method: "POST"
     })
-    
+
     // Background refresh
     Promise.all([
       apiClient("/api/tasks?page=0&size=100"),
@@ -771,7 +810,7 @@ export const useTaskStore = create<TaskState>((set, get) => ({
       method: "POST",
       body: JSON.stringify(dto)
     })
-    
+
     // Background refresh
     apiClient("/api/tasks")
       .then(tasksRes => {
@@ -794,7 +833,7 @@ export const useTaskStore = create<TaskState>((set, get) => ({
     const res = await apiClient(`/api/bug-reviews/${reviewId}/tester-accept`, {
       method: "POST"
     })
-    
+
     // Background refresh
     apiClient("/api/tasks")
       .then(tasksRes => {
@@ -817,7 +856,7 @@ export const useTaskStore = create<TaskState>((set, get) => ({
     const res = await apiClient(`/api/bug-reviews/${reviewId}/raise-again`, {
       method: "POST"
     })
-    
+
     // Background refresh
     apiClient("/api/tasks")
       .then(tasksRes => {
@@ -840,7 +879,7 @@ export const useTaskStore = create<TaskState>((set, get) => ({
     const res = await apiClient(`/api/bug-reviews/${reviewId}/challenge`, {
       method: "POST"
     })
-    
+
     // Background refresh
     apiClient("/api/tasks")
       .then(tasksRes => {
@@ -863,7 +902,7 @@ export const useTaskStore = create<TaskState>((set, get) => ({
     const res = await apiClient(`/api/bug-reviews/${reviewId}/admin-accept`, {
       method: "POST"
     })
-    
+
     // Background refresh
     apiClient("/api/tasks")
       .then(tasksRes => {
@@ -886,7 +925,7 @@ export const useTaskStore = create<TaskState>((set, get) => ({
     const res = await apiClient(`/api/bug-reviews/${reviewId}/admin-force`, {
       method: "POST"
     })
-    
+
     // Background refresh
     Promise.all([
       apiClient("/api/tasks"),

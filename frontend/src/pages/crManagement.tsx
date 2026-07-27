@@ -28,22 +28,22 @@ import RaiseBugModal from "@/components/shared/RaiseBugModal"
 import BugDetailModal from "@/components/shared/BugDetailModal"
 import { CreateCRModal } from "@/components/shared/CreateCRModal"
 import { Pagination, paginate } from "@/components/shared/Pagination"
+import { downloadDocument, documentPreviewUrl } from "@/services/document.service"
 import { exportCrAuditReport } from "@/services/crAuditReport.service";
 import { APP_CONFIG } from "@/config/appConfig";
 
 
 export default function CrManagement() {
-  const { 
-    tasks, 
-    deleteTask, 
-    auditLogs, 
-    bugs, 
-    searchQuery, 
-    addToast, 
-    setDownloadTarget, 
-    users, 
-    reassignTester, 
-    updateTask, 
+  const {
+    tasks,
+    deleteTask,
+    bugs,
+    searchQuery,
+    addToast,
+    setDownloadTarget,
+    users,
+    reassignTester,
+    updateTask,
     fetchData,
     bugReviews,
     adminAcceptRejection,
@@ -51,45 +51,49 @@ export default function CrManagement() {
   } = useTaskStore()
   const { user } = useAuthStore()
 
+  const [taskAuditLogs, setTaskAuditLogs] = useState<any[]>([])
+
   React.useEffect(() => {
     fetchData(true)
-    const timer = setInterval(() => fetchData(true), 5000)
-    return () => clearInterval(timer)
+    // const timer = setInterval(() => fetchData(true), 5000)
+    // return () => clearInterval(timer)
   }, [])
+
+  const [selectedTask, setSelectedTask] = useState<Task | null>(null)
+
+  useEffect(() => {
+    if (selectedTask?.id) {
+      fetch(`${APP_CONFIG.apiUrl}/api/audit/TASK/${selectedTask.id}`, {
+        headers: { Authorization: `Bearer ${localStorage.getItem('token')}` },
+      })
+        .then(r => r.json())
+        .then(data => setTaskAuditLogs(Array.isArray(data) ? data : []))
+        .catch(() => setTaskAuditLogs([]))
+    } else {
+      setTaskAuditLogs([])
+    }
+  }, [selectedTask?.id])
 
   const [deleteModalTask, setDeleteModalTask] = useState<any>(null)
   const [deleteRemarks, setDeleteRemarks] = useState("")
   const [isDeleting, setIsDeleting] = useState(false)
 
-  const getAuditDate = (taskId: number, status: string) => {
-    const log = auditLogs
-      .filter(l => l.entityType === "TASK" && l.entityId === taskId && l.fieldName === "status" && l.newValue === status)
-      .sort((a, b) => new Date(a.changedDate || 0).getTime() - new Date(b.changedDate || 0).getTime())[0]
-    return log?.changedDate ? new Date(log.changedDate).toISOString().split('T')[0] : "—";
-  }
 
-  const getBugResolveDate = (bugId: number) => {
-    const log = auditLogs
-      .filter(l => l.entityType === "BUG" && l.entityId === bugId && l.fieldName === "status" && l.newValue === "RESOLVED")
-      .sort((a, b) => new Date(a.changedDate || 0).getTime() - new Date(b.changedDate || 0).getTime())[0]
-    return log?.changedDate ? new Date(log.changedDate).toISOString().split('T')[0] : "—";
-  }
 
   const [search, setSearch] = useState("")
   const [filterCategory, setFilterCategory] = useState("all")
-  const [selectedTask, setSelectedTask] = useState<Task | null>(null)
   const [isRaiseBugOpen, setIsRaiseBugOpen] = useState(false)
   const [selectedBugId, setSelectedBugId] = useState<number | null>(null)
   const [selectedTaskForBugs, setSelectedTaskForBugs] = useState<Task | null>(null)
 
   useEffect(() => {
-  const p = new URLSearchParams(window.location.search);
-  const bug = p.get("bug");
-  if (bug && !Number.isNaN(Number(bug))) setSelectedBugId(Number(bug));
-  const cr = p.get("cr");
-  if (cr) { const f = tasks.find((t: any) => String(t.id) === cr); if (f) setSelectedTask?.(f); }
-}, [tasks]);
-  
+    const p = new URLSearchParams(window.location.search);
+    const bug = p.get("bug");
+    if (bug && !Number.isNaN(Number(bug))) setSelectedBugId(Number(bug));
+    const cr = p.get("cr");
+    if (cr) { const f = tasks.find((t: any) => String(t.id) === cr); if (f) setSelectedTask?.(f); }
+  }, [tasks]);
+
   // Reassignment Form State
   const [newTesterUsername, setNewTesterUsername] = useState("")
   const [reassignReason, setReassignReason] = useState("")
@@ -136,71 +140,71 @@ export default function CrManagement() {
   }
 
   const handleExportData = async (e: React.FormEvent) => {
-  e.preventDefault()
+    e.preventDefault()
 
-  const filteredExport = tasks.filter(t => {
-    // Date filter
-    if (exportStartDate || exportEndDate) {
-      let dateVal: string | undefined | null
-      if (exportDateType === "created") dateVal = t.createdDate
-      else if (exportDateType === "production") dateVal = t.productionDate
-      else if (exportDateType === "sit_deploy") dateVal = getAuditDate(t.id, "SIT_DEPLOYED") !== "—" ? getAuditDate(t.id, "SIT_DEPLOYED") : null
-      else if (exportDateType === "sit_completed") dateVal = getAuditDate(t.id, "SIT_COMPLETED") !== "—" ? getAuditDate(t.id, "SIT_COMPLETED") : null
-      else if (exportDateType === "code_review") dateVal = getAuditDate(t.id, "CODE_REVIEW") !== "—" ? getAuditDate(t.id, "CODE_REVIEW") : null
-      else if (exportDateType === "uat_deploy") dateVal = getAuditDate(t.id, "MOVE_TO_UAT") !== "—" ? getAuditDate(t.id, "MOVE_TO_UAT") : null
-      else if (exportDateType === "prod_deployed") dateVal = getAuditDate(t.id, "PROD_DEPLOYED") !== "—" ? getAuditDate(t.id, "PROD_DEPLOYED") : null
-      if (!dateVal) return false
-      const taskDateStr = typeof dateVal === "string" && dateVal.length === 10 ? dateVal : new Date(dateVal as string).toISOString().split('T')[0]
-      if (exportStartDate && taskDateStr < exportStartDate) return false
-      if (exportEndDate && taskDateStr > exportEndDate) return false
-    }
-    // Priority filter
-    if (exportPriority !== "all" && t.priority !== exportPriority) return false
-    // Status filter
-    if (exportStatus !== "all" && t.status !== exportStatus) return false
-    // Category filter
-    if (exportCategory !== "all" && (t.type?.name || "CR") !== exportCategory) return false
-    // Developer filter
-    if (exportDev !== "all" && !getAssignedDevNames(t).includes(exportDev)) return false
-    // Bugs filter
-    if (exportHasBugs !== "all") {
-      const taskBugCount = bugs.filter(b => b.crTaskId === t.id).length
-      if (exportHasBugs === "yes" && taskBugCount === 0) return false
-      if (exportHasBugs === "no" && taskBugCount > 0) return false
-    }
-    return true
-  })
-
-  if (filteredExport.length === 0) {
-    addToast("No data found for the selected filters", "error")
-    return
-  }
-
-  try {
-    const baseUrl = `${window.location.origin}${APP_CONFIG.contextPath || ""}`
-    const { base64Data, defaultFileName } = await exportCrAuditReport({
-      tasks: filteredExport,
-      bugs,
-      auditLogs,
-      generatedBy: user?.fullName || "DevTrack User",
-      baseUrl,
+    const filteredExport = tasks.filter(t => {
+      // Date filter
+      if (exportStartDate || exportEndDate) {
+        let dateVal: string | undefined | null
+        if (exportDateType === "created") dateVal = t.createdDate
+        else if (exportDateType === "production") dateVal = t.productionDate
+        else if (exportDateType === "sit_deploy") dateVal = t.sitDate
+        else if (exportDateType === "sit_completed") dateVal = t.sitCompletedDate
+        else if (exportDateType === "code_review") dateVal = t.codeReviewDate
+        else if (exportDateType === "uat_deploy") dateVal = t.uatDate
+        else if (exportDateType === "prod_deployed") dateVal = t.productionDate
+        if (!dateVal) return false
+        const taskDateStr = typeof dateVal === "string" && dateVal.length === 10 ? dateVal : new Date(dateVal as string).toISOString().split('T')[0]
+        if (exportStartDate && taskDateStr < exportStartDate) return false
+        if (exportEndDate && taskDateStr > exportEndDate) return false
+      }
+      // Priority filter
+      if (exportPriority !== "all" && t.priority !== exportPriority) return false
+      // Status filter
+      if (exportStatus !== "all" && t.status !== exportStatus) return false
+      // Category filter
+      if (exportCategory !== "all" && (t.type?.name || "CR") !== exportCategory) return false
+      // Developer filter
+      if (exportDev !== "all" && !getAssignedDevNames(t).includes(exportDev)) return false
+      // Bugs filter
+      if (exportHasBugs !== "all") {
+        const taskBugCount = bugs.filter(b => b.crTaskId === t.id).length
+        if (exportHasBugs === "yes" && taskBugCount === 0) return false
+        if (exportHasBugs === "no" && taskBugCount > 0) return false
+      }
+      return true
     })
-    setDownloadTarget({ base64Data, defaultFileName })
-    setIsExportOpen(false)
-    addToast("CR Audit report generated successfully", "success")
-  } catch (err: any) {
-    addToast("Export failed: " + (err?.message || "Unknown error"), "error")
+
+    if (filteredExport.length === 0) {
+      addToast("No data found for the selected filters", "error")
+      return
+    }
+
+    try {
+      const baseUrl = `${window.location.origin}${APP_CONFIG.contextPath || ""}`
+      const { base64Data, defaultFileName } = await exportCrAuditReport({
+        tasks: filteredExport,
+        bugs,
+        auditLogs: [],
+        generatedBy: user?.fullName || "DevTrack User",
+        baseUrl,
+      })
+      setDownloadTarget({ base64Data, defaultFileName })
+      setIsExportOpen(false)
+      addToast("CR Audit report generated successfully", "success")
+    } catch (err: any) {
+      addToast("Export failed: " + (err?.message || "Unknown error"), "error")
+    }
   }
-}
 
 
 
 
   const filteredTasks = tasks.filter(t => {
     const s = (search || searchQuery).toLowerCase()
-    const matchesSearch = t.title.toLowerCase().includes(s) || 
-                          t.jtrackId.toLowerCase().includes(s) ||
-                          t.description.toLowerCase().includes(s)
+    const matchesSearch = t.title.toLowerCase().includes(s) ||
+      t.jtrackId.toLowerCase().includes(s) ||
+      t.description.toLowerCase().includes(s)
     const matchesCategory = filterCategory === "all" || (t.type?.name || "CR") === filterCategory
     const matchesPriority = colFilterPriority === "all" || t.priority === colFilterPriority
     const matchesStatus = colFilterStatus === "all" || t.status === colFilterStatus
@@ -220,7 +224,7 @@ export default function CrManagement() {
   const allStatuses = Array.from(new Set(tasks.map(t => t.status))).sort()
   const allDevNamesForExport = Array.from(new Set(tasks.map(t => getAssignedDevNames(t)))).sort()
 
-  const activeFilterCount = [colFilterPriority, colFilterStatus, colFilterDev, colFilterTester, colFilterHasBugs].filter(f => f !== "all").length + 
+  const activeFilterCount = [colFilterPriority, colFilterStatus, colFilterDev, colFilterTester, colFilterHasBugs].filter(f => f !== "all").length +
     (filterCategory !== "all" ? 1 : 0)
 
   const clearAllColFilters = () => {
@@ -279,7 +283,7 @@ export default function CrManagement() {
   // Paginate sorted tasks
   const pagedTasks = paginate(sortedTasks, crPage, crPageSize)
 
-  const activeLogs = selectedTask ? auditLogs.filter(l => l.entityType === "TASK" && l.entityId === selectedTask.id) : []
+  const activeLogs = taskAuditLogs
   const relatedBugs = selectedTask ? bugs.filter(b => b.crTaskId === selectedTask.id) : []
   const isTester = user?.roles?.some(r => r === "TESTER" || r === "TESTADMIN")
   const isAdmin = user?.roles?.some(r => r === "DEVADMIN" || r === "TESTADMIN")
@@ -650,13 +654,11 @@ export default function CrManagement() {
                         key={task.id}
                         variants={itemVariants}
                         onClick={() => setSelectedTask(task)}
-                        className={`hover:bg-white/[0.03] transition-all cursor-pointer relative group ${
-                          isSelected ? "bg-emerald-500/10 hover:bg-emerald-500/12" : ""
-                        }`}
+                        className={`hover:bg-white/[0.03] transition-all cursor-pointer relative group ${isSelected ? "bg-emerald-500/10 hover:bg-emerald-500/12" : ""
+                          }`}
                       >
-                        <td className={`p-4 font-mono font-bold text-emerald-400 group-hover:text-emerald-300 sticky left-0 z-10 border-r border-white/[0.06] ${
-                          isSelected ? "bg-[#0f1b15]" : "bg-[#060814] group-hover:bg-[#111e18]"
-                        }`}>
+                        <td className={`p-4 font-mono font-bold text-emerald-400 group-hover:text-emerald-300 sticky left-0 z-10 border-r border-white/[0.06] ${isSelected ? "bg-[#0f1b15]" : "bg-[#060814] group-hover:bg-[#111e18]"
+                          }`}>
                           <div className="flex items-center gap-2">
                             <span>{task.jtrackId}</span>
                             <QualityRiskBadge taskId={task.id} isQualityRisk={(task as any).isQualityRisk} />
@@ -671,68 +673,47 @@ export default function CrManagement() {
                           </span>
                         </td>
                         <td className="p-4">
-                          <span className={`px-2.5 py-0.5 rounded-lg text-[10px] font-bold tracking-wider ${
-                            task.priority === "High" ? "bg-rose-500/10 text-rose-400 border border-rose-500/20" :
-                            task.priority === "Medium" ? "bg-amber-500/10 text-amber-400 border border-amber-500/20" :
-                            "bg-slate-500/10 text-slate-400 border border-slate-500/20"
-                          }`}>
+                          <span className={`px-2.5 py-0.5 rounded-lg text-[10px] font-bold tracking-wider ${task.priority === "High" ? "bg-rose-500/10 text-rose-400 border border-rose-500/20" :
+                              task.priority === "Medium" ? "bg-amber-500/10 text-amber-400 border border-amber-500/20" :
+                                "bg-slate-500/10 text-slate-400 border border-slate-500/20"
+                            }`}>
                             {task.priority}
                           </span>
                         </td>
                         <td className="p-4">
-                          {(() => {
-                            const latestReject = auditLogs
-                              .filter(l => l.entityType === "TASK" && l.entityId === task.id && l.fieldName === "workflow_reject")
-                              .sort((a: any, b: any) => new Date(b.changedDate || 0).getTime() - new Date(a.changedDate || 0).getTime())[0]
-                            return (
-                              <div className="flex flex-wrap gap-1.5 items-center">
-                                 {!(task.status === "CHANGES_REQUESTED" && latestReject) && (
-                                   <span className={`text-[10px] font-bold px-2 py-0.5 rounded-lg uppercase tracking-wider border ${getCRStatusBadgeClass(task.status)}`}>
-                                     {task.status === "BUG_FOUND" ? "OPEN" : task.status.replace(/_/g, " ")}
-                                   </span>
-                                 )}
-                                {latestReject && (task.status === "IN_PROGRESS" || task.status === "CHANGES_REQUESTED") && (
-                                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-amber-500/15 border border-amber-500/30 text-amber-400 text-[9px] font-bold tracking-wider animate-pulse">
-                                    <AlertTriangle className="h-2.5 w-2.5" />
-                                    Change Requested
-                                  </span>
-                                )}
-                              </div>
-                            )
-                          })()}
+                          <div className="flex flex-wrap gap-1.5 items-center">
+                            {(() => {
+                              const isSentBack = task.changesRequested || task.status === "CHANGES_REQUESTED"
+                              return isSentBack ? (
+                                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-amber-500/15 border border-amber-500/30 text-amber-400 text-[9px] font-bold tracking-wider animate-pulse">
+                                  <AlertTriangle className="h-2.5 w-2.5" />
+                                  Change Requested
+                                </span>
+                              ) : (
+                                <span className={`text-[10px] font-bold px-2 py-0.5 rounded-lg uppercase tracking-wider border ${getCRStatusBadgeClass(task.status)}`}>
+                                  {task.status === "BUG_FOUND" ? "OPEN" : task.status.replace(/_/g, " ")}
+                                </span>
+                              )
+                            })()}
+                          </div>
                         </td>
                         <td className="p-4 font-mono text-slate-400">
                           {task.createdDate ? new Date(task.createdDate).toISOString().split('T')[0] : "NA"}
                         </td>
                         <td className="p-4 font-semibold text-slate-300 whitespace-nowrap">
-                          {(() => {
-                            const d = getAuditDate(task.id, "SIT_DEPLOYED")
-                            return d !== "—" ? d : ""
-                          })()}
+                          {task.sitDate ? fmtDate(task.sitDate) : "—"}
                         </td>
                         <td className="p-4 font-semibold text-slate-300 whitespace-nowrap">
-                          {(() => {
-                            const d = getAuditDate(task.id, "SIT_COMPLETED")
-                            return d !== "—" ? d : ""
-                          })()}
+                          {task.sitCompletedDate ? fmtDate(task.sitCompletedDate) : "—"}
                         </td>
                         <td className="p-4 font-semibold text-slate-300 whitespace-nowrap">
-                          {(() => {
-                            const d = getAuditDate(task.id, "CODE_REVIEW")
-                            return d !== "—" ? d : ""
-                          })()}
+                          {task.codeReviewDate ? fmtDate(task.codeReviewDate) : "—"}
                         </td>
                         <td className="p-4 font-semibold text-slate-300 whitespace-nowrap">
-                          {(() => {
-                            const d = getAuditDate(task.id, "MOVE_TO_UAT")
-                            return d !== "—" ? d : ""
-                          })()}
+                          {task.uatDate ? fmtDate(task.uatDate) : "—"}
                         </td>
                         <td className="p-4 font-semibold text-slate-300 whitespace-nowrap">
-                          {(() => {
-                            const rawD = task.testingCompletedDate ? new Date(task.testingCompletedDate).toISOString().split('T')[0] : getAuditDate(task.id, "TESTING_COMPLETED")
-                            return rawD !== "—" ? rawD : ""
-                          })()}
+                          {task.testingCompletedDate ? fmtDate(task.testingCompletedDate) : "—"}
                         </td>
                         <td className="p-4 whitespace-nowrap">
                           {(() => {
@@ -756,26 +737,20 @@ export default function CrManagement() {
                         <td className="p-4 font-semibold text-slate-300 whitespace-nowrap">
                           {(() => {
                             const taskBugs = bugs.filter(b => b.crTaskId === task.id)
-                            return taskBugs.map(b => b.createdDate ? new Date(b.createdDate).toISOString().split('T')[0] : "").filter(Boolean).join(", ")
+                            return taskBugs.map(b => b.createdDate ? fmtDate(b.createdDate) : "").filter(Boolean).join(", ")
                           })()}
                         </td>
                         <td className="p-4 font-semibold text-slate-300 whitespace-nowrap">
                           {(() => {
                             const taskBugs = bugs.filter(b => b.crTaskId === task.id)
-                            return taskBugs.map(b => getBugResolveDate(b.id)).filter(d => d !== "—").join(", ")
+                            return taskBugs.map(b => b.resolvedDate ? fmtDate(b.resolvedDate) : "").filter(Boolean).join(", ")
                           })()}
                         </td>
                         <td className="p-4 font-semibold text-slate-300 whitespace-nowrap">
-                          {(() => {
-                            const rawD = task.testingCompletedDate ? new Date(task.testingCompletedDate).toISOString().split('T')[0] : getAuditDate(task.id, "TESTING_COMPLETED")
-                            return rawD !== "—" ? rawD : ""
-                          })()}
+                          {task.uatCompletedDate ? fmtDate(task.uatCompletedDate) : (task.testingCompletedDate ? fmtDate(task.testingCompletedDate) : "—")}
                         </td>
                         <td className="p-4 font-semibold text-slate-300 whitespace-nowrap">
-                          {(() => {
-                            const d = getAuditDate(task.id, "PROD_DEPLOYED")
-                            return d !== "—" ? d : ""
-                          })()}
+                          {task.productionDate ? fmtDate(task.productionDate) : "—"}
                         </td>
                         <td className="p-4 font-semibold text-slate-300">
                           {getAssignedDevNames(task)}
@@ -783,9 +758,9 @@ export default function CrManagement() {
                         <td className="p-4 font-semibold">
                           {task.tester
                             ? <span className="flex items-center gap-1.5">
-                                <span className="inline-block w-1.5 h-1.5 rounded-full bg-cyan-400 shrink-0" />
-                                <span className="text-cyan-300">{task.tester.fullName}</span>
-                              </span>
+                              <span className="inline-block w-1.5 h-1.5 rounded-full bg-cyan-400 shrink-0" />
+                              <span className="text-cyan-300">{task.tester.fullName}</span>
+                            </span>
                             : <span className="text-slate-500 text-[10px] italic">Unassigned</span>
                           }
                         </td>
@@ -938,34 +913,32 @@ export default function CrManagement() {
 
               {/* Admin Feedback / Change Requested Banner */}
               {(() => {
-                const rejectLog = auditLogs
-                  .filter(l => l.entityType === "TASK" && l.entityId === selectedTask.id && l.fieldName === "workflow_reject")
-                  .sort((a: any, b: any) => new Date(b.changedDate || 0).getTime() - new Date(a.changedDate || 0).getTime())[0]
+                const rejectLog = taskAuditLogs.find(l => l.fieldName === "workflow_reject")
 
-                const reviewerName = typeof rejectLog?.changedBy === 'object' && rejectLog?.changedBy?.fullName 
-                  ? rejectLog.changedBy.fullName 
+                const reviewerName = typeof rejectLog?.changedBy === 'object' && rejectLog?.changedBy?.fullName
+                  ? rejectLog.changedBy.fullName
                   : (typeof rejectLog?.changedBy === 'string' ? rejectLog.changedBy : (selectedTask.codeReviewer?.fullName || 'Code Reviewer'));
 
                 const displayRemarks = rejectLog?.remarks || selectedTask.remarks;
 
                 return (rejectLog || selectedTask.status === "CHANGES_REQUESTED") && (selectedTask.status === "IN_PROGRESS" || selectedTask.status === "CHANGES_REQUESTED") ? (
-                  <div className="rounded-2xl border border-rose-500/40 bg-gradient-to-r from-rose-950/90 via-rose-900/60 to-amber-950/40 backdrop-blur-md p-4.5 shadow-lg shadow-rose-950/50 space-y-3.5 text-left">
+                  <div className="rounded-2xl border border-rose-500/30 dark:border-rose-500/40 bg-rose-500/10 dark:bg-gradient-to-r dark:from-rose-950/90 dark:via-rose-900/60 dark:to-amber-950/40 backdrop-blur-md p-4.5 shadow-lg space-y-3.5 text-left">
                     {/* Header */}
                     <div className="flex items-center gap-3">
-                      <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-rose-500/30 border border-rose-400/50 text-rose-200 shadow-md">
-                        <AlertTriangle className="h-5 w-5 text-rose-300" />
+                      <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-rose-500/20 dark:bg-rose-500/30 border border-rose-500/30 dark:border-rose-400/50 text-rose-600 dark:text-rose-200 shadow-md">
+                        <AlertTriangle className="h-5 w-5 text-rose-600 dark:text-rose-300" />
                       </div>
                       <div>
-                        <p className="text-sm font-extrabold text-white uppercase tracking-wider leading-tight">Change Requested</p>
-                        <p className="text-xs text-rose-200/90 mt-0.5 font-medium">Sent back by <strong className="text-white font-bold">{reviewerName}</strong></p>
+                        <p className="text-sm font-extrabold text-rose-950 dark:text-white uppercase tracking-wider leading-tight">Change Requested</p>
+                        <p className="text-xs text-rose-800 dark:text-rose-200/90 mt-0.5 font-medium">Sent back by <strong className="text-rose-950 dark:text-white font-bold">{reviewerName}</strong></p>
                       </div>
-                      <span className="ml-auto text-[10px] font-black bg-rose-500 text-white border border-rose-400/60 px-3 py-1 rounded-full uppercase tracking-widest shadow-md animate-pulse">Action Required</span>
+                      <span className="ml-auto text-[10px] font-black bg-rose-600 dark:bg-rose-500 text-white border border-rose-500/60 px-3 py-1 rounded-full uppercase tracking-widest shadow-md animate-pulse">Action Required</span>
                     </div>
                     {/* Remarks */}
                     <div className="space-y-1.5">
-                      <span className="text-[10px] font-extrabold text-rose-200 uppercase tracking-widest block">Admin Remarks:</span>
-                      <div className="bg-slate-950/90 border border-rose-500/35 p-4 rounded-xl shadow-inner">
-                        <p className="text-xs font-semibold text-rose-50 leading-relaxed whitespace-pre-wrap">
+                      <span className="text-[10px] font-extrabold text-rose-800 dark:text-rose-200 uppercase tracking-widest block">Admin Remarks:</span>
+                      <div className="bg-white dark:bg-slate-950/90 border border-rose-200 dark:border-rose-500/35 p-4 rounded-xl shadow-inner">
+                        <p className="text-xs font-semibold text-slate-900 dark:text-rose-50 leading-relaxed whitespace-pre-wrap">
                           {displayRemarks || "Changes requested. Please review and resubmit."}
                         </p>
                       </div>
@@ -983,13 +956,13 @@ export default function CrManagement() {
               </div>
 
               {/* Unit Testing Document */}
-              {selectedTask.unitTestDocUrl && (
+              {selectedTask.unitTestDocId && (
                 <div className="space-y-2 text-xs border-t border-border pt-4">
                   <span className="text-muted-foreground block font-bold uppercase tracking-wider text-[10px]">Unit Testing Document</span>
                   <div className="flex items-center gap-2.5 p-2.5 rounded-xl border border-border bg-muted/40">
-                    {selectedTask.unitTestDocUrl.startsWith("data:image/") ? (
+                    {/\.(png|jpe?g|gif|webp)$/i.test(selectedTask.unitTestDocName || "") ? (
                       <div className="w-12 h-12 rounded-lg overflow-hidden border border-border shrink-0 bg-background">
-                        <img src={selectedTask.unitTestDocUrl} alt={selectedTask.unitTestDocName || "Unit Test"} className="w-full h-full object-cover" />
+                        <img src={documentPreviewUrl(selectedTask.unitTestDocId)} alt={selectedTask.unitTestDocName || "Unit Test"} className="w-full h-full object-cover" />
                       </div>
                     ) : (
                       <div className="w-12 h-12 rounded-lg flex items-center justify-center border border-border bg-background text-lg shrink-0">
@@ -1003,7 +976,7 @@ export default function CrManagement() {
                     <div className="flex items-center gap-1 shrink-0">
                       <button
                         type="button"
-                        onClick={() => setDownloadTarget({ base64Data: selectedTask.unitTestDocUrl!, defaultFileName: selectedTask.unitTestDocName! })}
+                        onClick={() => downloadDocument(selectedTask.unitTestDocId!, selectedTask.unitTestDocName || "unit_test_document")}
                         className="p-1.5 rounded-lg hover:bg-muted text-muted-foreground hover:text-sky-500 transition-colors"
                         title="Download"
                       >
@@ -1030,23 +1003,23 @@ export default function CrManagement() {
                 </div>
               </div>
 
-              {/* Workflow Transition Dates — Event-Driven */}
+              {/* Workflow Transition Dates — Flat Fields */}
               {(() => {
-                const devStartDate = selectedTask.devStartDate || getAuditDate(selectedTask.id, "IN_PROGRESS")
-                const sitDeployDate = getAuditDate(selectedTask.id, "SIT_DEPLOYED")
-                const sitCompletedDate = getAuditDate(selectedTask.id, "SIT_COMPLETED")
-                const codeReviewDate = getAuditDate(selectedTask.id, "CODE_REVIEW")
-                const uatDeployDate = getAuditDate(selectedTask.id, "MOVE_TO_UAT")
-                const testingCompletedDate = getAuditDate(selectedTask.id, "UAT_COMPLETED")
-                const prodDeployDate = getAuditDate(selectedTask.id, "PROD_DEPLOYED")
+                const devStartDate = selectedTask.devStartDate ? fmtDate(selectedTask.devStartDate) : null
+                const sitDeployDate = selectedTask.sitDate ? fmtDate(selectedTask.sitDate) : null
+                const sitCompletedDate = selectedTask.sitCompletedDate ? fmtDate(selectedTask.sitCompletedDate) : null
+                const codeReviewDate = selectedTask.codeReviewDate ? fmtDate(selectedTask.codeReviewDate) : null
+                const uatDeployDate = selectedTask.uatDate ? fmtDate(selectedTask.uatDate) : null
+                const testingCompletedDate = selectedTask.testingCompletedDate ? fmtDate(selectedTask.testingCompletedDate) : null
+                const prodDeployDate = selectedTask.productionDate ? fmtDate(selectedTask.productionDate) : null
 
-                const hasDevStartDate = devStartDate && devStartDate !== "—"
-                const hasSitDeployDate = sitDeployDate && sitDeployDate !== "—"
-                const hasSitCompletedDate = sitCompletedDate && sitCompletedDate !== "—"
-                const hasCodeReviewDate = codeReviewDate && codeReviewDate !== "—"
-                const hasUatDeployDate = uatDeployDate && uatDeployDate !== "—"
-                const hasTestingCompletedDate = testingCompletedDate && testingCompletedDate !== "—"
-                const hasProdDeployDate = prodDeployDate && prodDeployDate !== "—"
+                const hasDevStartDate = !!devStartDate
+                const hasSitDeployDate = !!sitDeployDate
+                const hasSitCompletedDate = !!sitCompletedDate
+                const hasCodeReviewDate = !!codeReviewDate
+                const hasUatDeployDate = !!uatDeployDate
+                const hasTestingCompletedDate = !!testingCompletedDate
+                const hasProdDeployDate = !!prodDeployDate
 
                 const hasAnyDate = hasDevStartDate || hasSitDeployDate || hasSitCompletedDate || hasCodeReviewDate || hasUatDeployDate || hasTestingCompletedDate || hasProdDeployDate
 
@@ -1103,10 +1076,10 @@ export default function CrManagement() {
                 )
               })()}
 
-              {/* Testing Information — Event-Driven */}
+              {/* Testing Information — Flat Fields */}
               {(() => {
-                const uatDeployDate = getAuditDate(selectedTask.id, "MOVE_TO_UAT")
-                const hasUatDeployDate = uatDeployDate && uatDeployDate !== "—"
+                const uatDeployDate = selectedTask.uatDate ? fmtDate(selectedTask.uatDate) : null
+                const hasUatDeployDate = !!uatDeployDate
                 const isUatOrLater = hasUatDeployDate || ["MOVE_TO_UAT", "UAT_TESTING", "BUG_FOUND", "UAT_COMPLETED", "PROD_DEPLOYED", "CLOSED"].includes(selectedTask.status)
 
                 if (!isUatOrLater) return null
@@ -1203,8 +1176,8 @@ export default function CrManagement() {
 
               {/* Admin Reassignment Form */}
               {isAdmin && (() => {
-                const uatDeployDate = getAuditDate(selectedTask.id, "MOVE_TO_UAT")
-                const hasUatDeployDate = uatDeployDate && uatDeployDate !== "—"
+                const uatDeployDate = selectedTask.uatDate ? fmtDate(selectedTask.uatDate) : null
+                const hasUatDeployDate = !!uatDeployDate
                 const isUatOrLater = hasUatDeployDate || ["MOVE_TO_UAT", "UAT_TESTING", "BUG_FOUND", "UAT_COMPLETED", "PROD_DEPLOYED", "CLOSED"].includes(selectedTask.status)
 
                 if (!isUatOrLater) return null
@@ -1333,12 +1306,11 @@ export default function CrManagement() {
                             <ExternalLink className="h-3 w-3" />
                             {bug.jtrackId}
                           </button>
-                          <span className={`px-2 py-0.5 rounded-lg text-[9px] font-bold border ${
-                            bug.status === 'OPEN' ? 'text-sky-600 dark:text-sky-400 bg-sky-500/10 border-sky-500/20' :
-                            bug.status === 'RESOLVED' ? 'text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 border-emerald-500/20' :
-                            bug.status === 'CLOSED' ? 'text-slate-500 dark:text-slate-400 bg-slate-500/10 border-slate-500/20' :
-                            'text-amber-600 dark:text-amber-400 bg-amber-500/10 border-amber-500/20'
-                          }`}>{bug.status}</span>
+                          <span className={`px-2 py-0.5 rounded-lg text-[9px] font-bold border ${bug.status === 'OPEN' ? 'text-sky-600 dark:text-sky-400 bg-sky-500/10 border-sky-500/20' :
+                              bug.status === 'RESOLVED' ? 'text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 border-emerald-500/20' :
+                                bug.status === 'CLOSED' ? 'text-slate-500 dark:text-slate-400 bg-slate-500/10 border-slate-500/20' :
+                                  'text-amber-600 dark:text-amber-400 bg-amber-500/10 border-amber-500/20'
+                            }`}>{bug.status}</span>
                         </div>
                         <p className="text-[10px] text-foreground font-semibold truncate">{bug.title}</p>
                         <div className="flex justify-between text-[9px] text-muted-foreground">
@@ -1424,7 +1396,7 @@ export default function CrManagement() {
                         lang="en-GB"
                         value={exportStartDate}
                         onChange={(e) => setExportStartDate(e.target.value)}
-                        onClick={(e) => { try { e.currentTarget.showPicker(); } catch (err) {} }}
+                        onClick={(e) => { try { e.currentTarget.showPicker(); } catch (err) { } }}
                         className="h-10 w-full bg-white/[0.04] border border-white/[0.10] focus:ring-2 focus:ring-violet-500/30 focus:border-violet-500/50 rounded-xl px-3 py-2 text-xs text-slate-200 focus:outline-none transition-all cursor-pointer [color-scheme:dark]"
                       />
                     </div>
@@ -1435,7 +1407,7 @@ export default function CrManagement() {
                         lang="en-GB"
                         value={exportEndDate}
                         onChange={(e) => setExportEndDate(e.target.value)}
-                        onClick={(e) => { try { e.currentTarget.showPicker(); } catch (err) {} }}
+                        onClick={(e) => { try { e.currentTarget.showPicker(); } catch (err) { } }}
                         className="h-10 w-full bg-white/[0.04] border border-white/[0.10] focus:ring-2 focus:ring-violet-500/30 focus:border-violet-500/50 rounded-xl px-3 py-2 text-xs text-slate-200 focus:outline-none transition-all cursor-pointer [color-scheme:dark]"
                       />
                     </div>
@@ -1656,11 +1628,10 @@ export default function CrManagement() {
                             </div>
                             <p className="font-semibold text-slate-200 text-xs truncate">{bug.title}</p>
                           </div>
-                          <span className={`text-[10px] font-bold px-2 py-0.5 rounded-lg uppercase tracking-wider ${
-                            bug.status === "RESOLVED" || bug.status === "VERIFIED" || bug.status === "CLOSED"
+                          <span className={`text-[10px] font-bold px-2 py-0.5 rounded-lg uppercase tracking-wider ${bug.status === "RESOLVED" || bug.status === "VERIFIED" || bug.status === "CLOSED"
                               ? "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20"
                               : "bg-rose-500/10 text-rose-400 border border-rose-500/20"
-                          }`}>
+                            }`}>
                             {bug.status}
                           </span>
                         </div>

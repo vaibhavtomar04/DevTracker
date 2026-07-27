@@ -8,6 +8,7 @@ import com.devtrack.api.repository.*;
 import com.devtrack.api.config.NotificationWebSocketHandler;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -60,6 +61,9 @@ public class BugValidationService {
 
     @Autowired
     private QualityRiskService qualityRiskService;
+
+    @Autowired
+    private com.devtrack.api.event.DomainEventPublisher domainEventPublisher;
 
     @Autowired
     private EmailNotificationService emailNotificationService;
@@ -138,6 +142,7 @@ public class BugValidationService {
     }
 
     @Transactional
+    @CacheEvict(value = "dashboardSummary", allEntries = true)
     public Bug acceptReview(Long reviewId, User actor, String overrideStatus) {
         BugReview review = bugReviewRepository.findById(reviewId)
                 .orElseThrow(() -> new RuntimeException("Bug review not found."));
@@ -228,6 +233,7 @@ public class BugValidationService {
         String oldCRStatus = cr.getStatus();
         cr.setStatus("BUG_FOUND");
         taskRepository.save(cr);
+        emitTaskEvent(cr, "UPDATED", actor != null ? actor.getId() : null);
         try {
             qualityRiskService.evaluateCrRisk(cr.getId(), "BUG_ACCEPTED");
         } catch (Exception e) {
@@ -362,6 +368,7 @@ public class BugValidationService {
     }
 
     @Transactional
+    @CacheEvict(value = "dashboardSummary", allEntries = true)
     public BugReview testerRaiseAgain(Long reviewId, User tester) {
         BugReview review = bugReviewRepository.findById(reviewId)
                 .orElseThrow(() -> new RuntimeException("Bug review not found."));
@@ -395,6 +402,7 @@ public class BugValidationService {
         taskRepository.findById(review.getCrId()).ifPresent(cr -> {
             cr.setTotalRetests((cr.getTotalRetests() != null ? cr.getTotalRetests() : 0) + 1);
             taskRepository.save(cr);
+            emitTaskEvent(cr, "UPDATED", tester != null ? tester.getId() : null);
             try {
                 qualityRiskService.evaluateCrRisk(cr.getId(), "RETEST_RECORDED");
             } catch (Exception e) {
@@ -406,6 +414,7 @@ public class BugValidationService {
     }
 
     @Transactional
+    @CacheEvict(value = "dashboardSummary", allEntries = true)
     public BugReview testerChallenge(Long reviewId, User tester) {
         BugReview review = bugReviewRepository.findById(reviewId)
                 .orElseThrow(() -> new RuntimeException("Bug review not found."));
@@ -424,6 +433,7 @@ public class BugValidationService {
         String oldCRStatus = cr.getStatus();
         cr.setStatus("Bug Review Pending");
         taskRepository.save(cr);
+        emitTaskEvent(cr, "UPDATED", tester != null ? tester.getId() : null);
 
         // Audit Log for Task status change
         AuditLog taskAudit = new AuditLog();
@@ -466,6 +476,7 @@ public class BugValidationService {
     }
 
     @Transactional
+    @CacheEvict(value = "dashboardSummary", allEntries = true)
     public BugReview adminAcceptRejection(Long reviewId, User admin) {
         BugReview review = bugReviewRepository.findById(reviewId)
                 .orElseThrow(() -> new RuntimeException("Bug review not found."));
@@ -484,6 +495,7 @@ public class BugValidationService {
         String oldCRStatus = cr.getStatus();
         cr.setStatus("UAT_TESTING");
         taskRepository.save(cr);
+        emitTaskEvent(cr, "UPDATED", admin != null ? admin.getId() : null);
 
         // Audit Log for Task status change
         AuditLog taskAudit = new AuditLog();
@@ -519,6 +531,26 @@ public class BugValidationService {
     @Transactional
     public Bug adminForceAccept(Long reviewId, User admin) {
         return acceptReview(reviewId, admin, "ADMIN_FORCED");
+    }
+
+    private void emitTaskEvent(Task task, String action, Long actorId) {
+        if (task == null) return;
+        try {
+            java.util.Set<Long> recipients = new java.util.LinkedHashSet<>();
+            if (task.getAssignedDeveloper() != null) recipients.add(task.getAssignedDeveloper().getId());
+            if (task.getDevelopers() != null) {
+                for (com.devtrack.api.model.TaskDeveloper td : task.getDevelopers()) {
+                    if (td.getDeveloper() != null) recipients.add(td.getDeveloper().getId());
+                }
+            }
+            if (task.getTester() != null) recipients.add(task.getTester().getId());
+            if (task.getCreatedBy() != null) recipients.add(task.getCreatedBy().getId());
+            if (recipients.isEmpty()) return;
+            domainEventPublisher.publish(new java.util.ArrayList<>(recipients),
+                com.devtrack.api.event.DomainEventPayload.of("TASK", action, task.getId(), actorId));
+        } catch (Exception e) {
+            log.warn("Failed to emit typed TASK event ({}) for id={}: {}", action, task.getId(), e.getMessage());
+        }
     }
 
     private void createAndPushNotification(Long userId, String title, String desc) {

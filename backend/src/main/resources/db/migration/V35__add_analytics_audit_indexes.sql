@@ -24,3 +24,29 @@ SET @sqlstmt := IF(@exist > 0, 'SELECT ''index idx_bugs_status_created exists'''
 PREPARE stmt FROM @sqlstmt;
 EXECUTE stmt;
 DEALLOCATE PREPARE stmt;
+
+
+ALTER TABLE tasks
+  ADD COLUMN code_review_date   DATETIME NULL,
+  ADD COLUMN sit_completed_date DATETIME NULL,
+  ADD COLUMN uat_completed_date DATETIME NULL;
+
+-- One-time historical backfill (the ONLY audit read anywhere; repairs the
+-- status vs workflow_approve fieldName inconsistency by matching both).
+UPDATE tasks t
+JOIN (SELECT entity_id, MIN(changed_date) d FROM audit_logs
+      WHERE entity_type='TASK' AND new_value='CODE_REVIEW'
+        AND field_name IN ('status','workflow_approve') GROUP BY entity_id) a
+  ON a.entity_id=t.id SET t.code_review_date=a.d WHERE t.code_review_date IS NULL;
+
+UPDATE tasks t
+JOIN (SELECT entity_id, MIN(changed_date) d FROM audit_logs
+      WHERE entity_type='TASK' AND new_value='SIT_COMPLETED'
+        AND field_name IN ('status','workflow_approve') GROUP BY entity_id) a
+  ON a.entity_id=t.id SET t.sit_completed_date=a.d WHERE t.sit_completed_date IS NULL;
+
+UPDATE tasks t
+JOIN (SELECT entity_id, MIN(changed_date) d FROM audit_logs
+      WHERE entity_type='TASK' AND new_value='UAT_COMPLETED'
+        AND field_name IN ('status','workflow_approve') GROUP BY entity_id) a
+  ON a.entity_id=t.id SET t.uat_completed_date=a.d WHERE t.uat_completed_date IS NULL;

@@ -46,7 +46,9 @@ public class GlobalExceptionHandler {
         body.put("errors", errors);
         body.put("timestamp", LocalDateTime.now().toString());
 
-        return new ResponseEntity<>(body, HttpStatus.BAD_REQUEST);
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                .contentType(org.springframework.http.MediaType.APPLICATION_JSON)
+                .body(body);
     }
 
     @ExceptionHandler(SQLException.class)
@@ -115,6 +117,8 @@ public class GlobalExceptionHandler {
         body.put("success", false);
         body.put("message", message);
         body.put("timestamp", LocalDateTime.now().toString());
-        return new ResponseEntity<>(body, status);
+        return ResponseEntity.status(status)
+                .contentType(org.springframework.http.MediaType.APPLICATION_JSON)
+                .body(body);
     }
 }

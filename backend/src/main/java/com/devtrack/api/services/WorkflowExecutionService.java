@@ -6,6 +6,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDateTime;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Optional;
@@ -70,6 +71,16 @@ public class WorkflowExecutionService {
         taskRepository.save(task);
     }
 
+    private void stampMilestone(Task t, String status) {
+    LocalDateTime now = LocalDateTime.now();
+    switch (status) {
+        case "CODE_REVIEW"   -> { if (t.getCodeReviewDate()   == null) t.setCodeReviewDate(now); }
+        case "SIT_COMPLETED" -> { if (t.getSitCompletedDate() == null) t.setSitCompletedDate(now); }
+        case "UAT_COMPLETED" -> { if (t.getUatCompletedDate() == null) t.setUatCompletedDate(now); }
+        default -> {}
+    }
+}
+
     @Transactional
     public void approveStep(Long taskId) {
         TaskWorkflowMap currentActiveStep = taskWorkflowMapRepository.findActiveStepByTaskId(taskId)
@@ -92,6 +103,7 @@ public class WorkflowExecutionService {
             
             Task task = next.getTask();
             task.setStatus(next.getStepName());
+            stampMilestone(task, next.getStepName());
             taskRepository.save(task);
         } else {
             // Workflow complete: Mark all steps as CLOSED and task as CLOSED

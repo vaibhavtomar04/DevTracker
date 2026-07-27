@@ -26,6 +26,8 @@ public class QualityRiskService {
     private final UserRepository userRepository;
     private final com.devtrack.api.config.NotificationWebSocketHandler webSocketHandler;
     private final NotificationRepository notificationRepository;
+    private final com.devtrack.api.event.DomainEventPublisher domainEventPublisher;
+    private final org.springframework.cache.CacheManager cacheManager;
 
     private static final String KEY_BUGS = "quality_risk.threshold.bugs";
     private static final String KEY_RETESTS = "quality_risk.threshold.retests";
@@ -72,6 +74,15 @@ public class QualityRiskService {
         boolean oldIsRisk = cr.isQualityRisk();
         cr.setQualityRisk(isAtRisk);
         taskRepository.save(cr);
+        if (oldIsRisk != isAtRisk) {
+            try {
+                org.springframework.cache.Cache dashCache = cacheManager.getCache("dashboardSummary");
+                if (dashCache != null) dashCache.clear();
+            } catch (Exception e) {
+                log.warn("Failed to evict dashboardSummary on risk change for CR {}: {}", crId, e.getMessage());
+            }
+            emitTaskEvent(cr, "UPDATED", null);
+        }
 
         // 4. Save Risk History Snapshot
         Map<String, Object> thresholdSnapshotMap = new HashMap<>();
@@ -137,6 +148,26 @@ public class QualityRiskService {
         // Push Notifications
         for (Long uid : notifiedUserIds) {
             createAndPushNotification(uid, title, desc);
+        }
+    }
+
+    private void emitTaskEvent(Task task, String action, Long actorId) {
+        if (task == null) return;
+        try {
+            Set<Long> recipients = new LinkedHashSet<>();
+            if (task.getAssignedDeveloper() != null) recipients.add(task.getAssignedDeveloper().getId());
+            if (task.getDevelopers() != null) {
+                for (TaskDeveloper td : task.getDevelopers()) {
+                    if (td.getDeveloper() != null) recipients.add(td.getDeveloper().getId());
+                }
+            }
+            if (task.getTester() != null) recipients.add(task.getTester().getId());
+            if (task.getCreatedBy() != null) recipients.add(task.getCreatedBy().getId());
+            if (recipients.isEmpty()) return;
+            domainEventPublisher.publish(new ArrayList<>(recipients),
+                com.devtrack.api.event.DomainEventPayload.of("TASK", action, task.getId(), actorId));
+        } catch (Exception e) {
+            log.warn("Failed to emit typed TASK event ({}) for id={}: {}", action, task.getId(), e.getMessage());
         }
     }
 

@@ -43,33 +43,8 @@ function fullName(u: any): string {
 	return u.fullName || u.name || u.username || "";
 }
 
-/** Earliest audit-log day where the given task moved into `status`. Mirrors crManagement.getAuditDate. */
-function getAuditDate(auditLogs: AnyRec[], taskId: any, status: string): string {
-	const log = auditLogs
-		.filter(
-			(l) =>
-				l.entityType === "TASK" &&
-				String(l.entityId) === String(taskId) &&
-				l.fieldName === "status" &&
-				String(l.newValue).toUpperCase() === status.toUpperCase()
-		)
-		.sort((a, b) => new Date(a.changedDate || 0).getTime() - new Date(b.changedDate || 0).getTime())[0];
-	return log?.changedDate ? new Date(log.changedDate).toISOString().split("T")[0] : "";
-}
 
-/** Latest resolve/close/verify day for a bug from the audit log. */
-function getBugResolveDate(auditLogs: AnyRec[], bugId: any): string {
-	const log = auditLogs
-		.filter(
-			(l) =>
-				l.entityType === "BUG" &&
-				String(l.entityId) === String(bugId) &&
-				l.fieldName === "status" &&
-				FIXED_BUG_STATUSES.includes(String(l.newValue).toUpperCase())
-		)
-		.sort((a, b) => new Date(b.changedDate || 0).getTime() - new Date(a.changedDate || 0).getTime())[0];
-	return log?.changedDate ? new Date(log.changedDate).toISOString().split("T")[0] : "";
-}
+
 
 function daysBetween(a?: string, b?: string): number | null {
 	if (!a || !b) return null;
@@ -124,19 +99,16 @@ export function buildCrAuditPayload(args: CrAuditExportArgs): AnyRec {
 		const sprintLabel = t.sprintName || (t.sprintId ? `Sprint #${t.sprintId}` : "");
 		if (sprintLabel) sprints.add(sprintLabel);
 
-		// timeline (audit-log derived, falling back to raw columns)
-		const created = t.createdDate || "";
-		const devStart = t.devStartDate || getAuditDate(auditLogs, t.id, "IN_PROGRESS") || "";
-		const sitDeploy = getAuditDate(auditLogs, t.id, "SIT_DEPLOYED") || t.sitDate || "";
-		const sitCompleted = getAuditDate(auditLogs, t.id, "SIT_COMPLETED") || "";
-		const codeReview = getAuditDate(auditLogs, t.id, "CODE_REVIEW") || "";
-		const testingCompleted =
-			(t.testingCompletedDate ? new Date(t.testingCompletedDate).toISOString().split("T")[0] : "") ||
-			getAuditDate(auditLogs, t.id, "TESTING_COMPLETED") ||
-			"";
-		const uatDeploy = getAuditDate(auditLogs, t.id, "UAT_DEPLOYED") || getAuditDate(auditLogs, t.id, "MOVE_TO_UAT") || t.uatDate || "";
-		const uatCompleted = getAuditDate(auditLogs, t.id, "UAT_COMPLETED") || "";
-		const prodDeploy = getAuditDate(auditLogs, t.id, "PROD_DEPLOYED") || t.productionDate || "";
+		// timeline (flat date fields)
+		const created          = t.createdDate || "";
+		const devStart         = t.devStartDate || "";
+		const sitDeploy        = t.sitDate || "";
+		const sitCompleted     = t.sitCompletedDate || "";
+		const codeReview       = t.codeReviewDate || "";
+		const testingCompleted = t.testingCompletedDate || "";
+		const uatDeploy        = t.uatDate || "";
+		const uatCompleted     = t.uatCompletedDate || "";
+		const prodDeploy       = t.productionDate || "";
 
 		const developmentTimeDays = daysBetween(devStart || created, sitDeploy || testingCompleted);
 		const testingTimeDays = daysBetween(sitDeploy || sitCompleted, testingCompleted || uatCompleted);
@@ -198,7 +170,7 @@ export function buildCrAuditPayload(args: CrAuditExportArgs): AnyRec {
 			rollbackCount: t.rollbackCount ?? 0,
 			totalRetests: t.totalRetests ?? 0,
 			codeReviewed: !!(t.codeReviewComments && String(t.codeReviewComments).trim()),
-			testEvidenceAttached: !!t.unitTestDocUrl,
+			testEvidenceAttached: !!(t.unitTestDocId || t.unitTestDocUrl),
 			efforts: t.efforts ?? null,
 		};
 	});
@@ -219,7 +191,7 @@ export function buildCrAuditPayload(args: CrAuditExportArgs): AnyRec {
 				raisedBy: fullName(b.raisedBy),
 				assignedDeveloper: fullName(b.assignedDeveloper),
 				raisedDate: b.createdDate ? new Date(b.createdDate).toISOString().split("T")[0] : "",
-				resolvedDate: isFixed(b.status) ? getBugResolveDate(auditLogs, b.id) : "",
+				resolvedDate: b.resolvedDate ? (typeof b.resolvedDate === "string" && b.resolvedDate.length === 10 ? b.resolvedDate : new Date(b.resolvedDate).toISOString().split("T")[0]) : "",
 				url: baseUrl ? `${baseUrl}/dashboard/crs?bug=${b.id}` : "",
 			});
 		}

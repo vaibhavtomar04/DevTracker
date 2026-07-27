@@ -51,7 +51,7 @@ export default function RecognitionPage() {
     loadData();
     const timer = setInterval(() => {
       loadData(true);
-    }, 5000);
+    }, 6000);
     return () => clearInterval(timer);
   }, []);
 
@@ -106,7 +106,7 @@ export default function RecognitionPage() {
       {/* ── Top Header Banner (Theme-Aware) ────────────────────────── */}
       <div className="relative overflow-hidden rounded-3xl border border-border bg-card p-6 md:p-8 backdrop-blur-xl shadow-xl">
         <div className="absolute top-0 right-0 -mt-12 -mr-12 w-64 h-64 bg-primary/10 rounded-full blur-3xl pointer-events-none" />
-        
+
         <div className="relative flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
           <div className="space-y-2">
             <div className="flex items-center space-x-3">
@@ -237,31 +237,28 @@ export default function RecognitionPage() {
       <div className="flex items-center space-x-2 border-b border-border pb-2">
         <button
           onClick={() => setActiveTab("unlocked")}
-          className={`px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
-            activeTab === "unlocked"
+          className={`px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${activeTab === "unlocked"
               ? "bg-primary text-white shadow-lg"
               : "text-muted-foreground hover:text-foreground hover:bg-muted/40"
-          }`}
+            }`}
         >
           Unlocked ({unlocked.length})
         </button>
         <button
           onClick={() => setActiveTab("progress")}
-          className={`px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
-            activeTab === "progress"
+          className={`px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${activeTab === "progress"
               ? "bg-primary text-white shadow-lg"
               : "text-muted-foreground hover:text-foreground hover:bg-muted/40"
-          }`}
+            }`}
         >
           In Progress ({progress.length})
         </button>
         <button
           onClick={() => setActiveTab("all")}
-          className={`px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
-            activeTab === "all"
+          className={`px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${activeTab === "all"
               ? "bg-primary text-white shadow-lg"
               : "text-muted-foreground hover:text-foreground hover:bg-muted/40"
-          }`}
+            }`}
         >
           All Badges ({catalogue.length})
         </button>
@@ -379,9 +376,8 @@ export default function RecognitionPage() {
                 return (
                   <div
                     key={item.id}
-                    className={`relative overflow-hidden rounded-2xl border ${
-                      isUnlocked ? style.border : "border-border"
-                    } ${isUnlocked ? "bg-card" : "bg-card/40 opacity-70"} p-5 backdrop-blur-xl transition-all shadow-md`}
+                    className={`relative overflow-hidden rounded-2xl border ${isUnlocked ? style.border : "border-border"
+                      } ${isUnlocked ? "bg-card" : "bg-card/40 opacity-70"} p-5 backdrop-blur-xl transition-all shadow-md`}
                   >
                     <div className="flex items-start justify-between">
                       <div className="flex items-center space-x-3">

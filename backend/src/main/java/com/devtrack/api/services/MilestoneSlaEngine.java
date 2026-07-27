@@ -222,7 +222,10 @@ public class MilestoneSlaEngine {
             
             // Check DB table 'app_configs' for MILESTONE_SLA_EMAIL_ENABLED setting
             boolean isEmailEnabled = configRepository.findByConfigKey("MILESTONE_SLA_EMAIL_ENABLED")
-                    .map(c -> "true".equalsIgnoreCase(c.getConfigValue()))
+                    .map(c -> {
+                        String val = c.getConfigValue() != null ? c.getConfigValue().trim().toLowerCase() : "";
+                        return !"false".equals(val) && !"flase".equals(val) && !"0".equals(val) && !"off".equals(val) && !"disabled".equals(val);
+                    })
                     .orElse(true);
 
             if (!isEmailEnabled) {

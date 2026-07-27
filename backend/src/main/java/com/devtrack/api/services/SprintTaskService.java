@@ -3,7 +3,9 @@ package com.devtrack.api.services;
 import com.devtrack.api.dto.SprintTaskDto;
 import com.devtrack.api.model.*;
 import com.devtrack.api.repository.*;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
@@ -15,10 +17,14 @@ import java.util.stream.Collectors;
 
 @Service
 @Transactional
+@Slf4j
 public class SprintTaskService {
 
     @Autowired
     private SprintTaskRepository sprintTaskRepository;
+
+    @Autowired
+    private com.devtrack.api.event.DomainEventPublisher domainEventPublisher;
 
     @Autowired
     private SprintTaskDependencyRepository dependencyRepository;
@@ -45,6 +51,7 @@ public class SprintTaskService {
         return convertToDto(task);
     }
 
+    @CacheEvict(value = "dashboardSummary", allEntries = true)
     public SprintTaskDto createSprintTask(SprintTaskDto dto) {
         String username = SecurityContextHolder.getContext().getAuthentication().getName();
         User currentUser = userRepository.findByUsername(username).orElseThrow();
@@ -96,6 +103,7 @@ public class SprintTaskService {
                 if (cr != null) {
                     cr.getSprintTasks().add(saved);
                     taskRepository.save(cr);
+                    emitTaskEvent(cr, "UPDATED", currentUser != null ? currentUser.getId() : null);
                 }
             }
         }
@@ -103,6 +111,7 @@ public class SprintTaskService {
         return convertToDto(saved);
     }
 
+    @CacheEvict(value = "dashboardSummary", allEntries = true)
     public SprintTaskDto updateSprintTask(Long id, SprintTaskDto dto) {
         String username = SecurityContextHolder.getContext().getAuthentication().getName();
         SprintTask task = sprintTaskRepository.findById(id)
@@ -132,6 +141,7 @@ public class SprintTaskService {
             for (Task cr : currentCrs) {
                 cr.getSprintTasks().remove(task);
                 taskRepository.save(cr);
+                emitTaskEvent(cr, "UPDATED", null);
             }
             task.getLinkedCrs().clear();
 
@@ -142,6 +152,7 @@ public class SprintTaskService {
                     cr.getSprintTasks().add(task);
                     taskRepository.save(cr);
                     task.getLinkedCrs().add(cr);
+                    emitTaskEvent(cr, "UPDATED", null);
                 }
             }
         }
@@ -261,6 +272,7 @@ public class SprintTaskService {
     }
 
     // CR Task Link Endpoints
+    @CacheEvict(value = "dashboardSummary", allEntries = true)
     public void linkSprintTasksToCR(Long crId, List<Long> sprintTaskIds) {
         Task cr = taskRepository.findById(crId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "CR Task not found"));
@@ -283,6 +295,7 @@ public class SprintTaskService {
             }
         }
         taskRepository.save(cr);
+        emitTaskEvent(cr, "UPDATED", null);
     }
 
     private SprintTaskDto convertToDto(SprintTask task) {
@@ -316,5 +329,25 @@ public class SprintTaskService {
         }
 
         return dto;
+    }
+
+    private void emitTaskEvent(Task task, String action, Long actorId) {
+        if (task == null) return;
+        try {
+            java.util.Set<Long> recipients = new java.util.LinkedHashSet<>();
+            if (task.getAssignedDeveloper() != null) recipients.add(task.getAssignedDeveloper().getId());
+            if (task.getDevelopers() != null) {
+                for (TaskDeveloper td : task.getDevelopers()) {
+                    if (td.getDeveloper() != null) recipients.add(td.getDeveloper().getId());
+                }
+            }
+            if (task.getTester() != null) recipients.add(task.getTester().getId());
+            if (task.getCreatedBy() != null) recipients.add(task.getCreatedBy().getId());
+            if (recipients.isEmpty()) return;
+            domainEventPublisher.publish(new java.util.ArrayList<>(recipients),
+                com.devtrack.api.event.DomainEventPayload.of("TASK", action, task.getId(), actorId));
+        } catch (Exception e) {
+            log.warn("Failed to emit typed TASK event ({}) for id={}: {}", action, task.getId(), e.getMessage());
+        }
     }
 }

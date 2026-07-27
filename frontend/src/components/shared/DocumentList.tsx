@@ -34,7 +34,7 @@ interface DocumentListProps {
   canDelete?: boolean;
 }
 
-const GROUP_ORDER: DocType[] = ['BRD', 'API_DOC', 'DESIGN', 'SUPPORT'];
+const GROUP_ORDER: DocType[] = ['BRD', 'API_DOC', 'DESIGN', 'SUPPORT', 'UNIT_TEST'];
 
 const FILE_ICONS: Record<string, string> = {
   pdf: '📄',
@@ -146,9 +146,12 @@ export const DocumentList: React.FC<DocumentListProps> = ({
     API_DOC: [],
     DESIGN: [],
     SUPPORT: [],
+    UNIT_TEST: [],
   };
   docs.forEach((doc) => {
-    grouped[doc.docType].push(doc);
+    if (grouped[doc.docType]) {
+      grouped[doc.docType].push(doc);
+    }
   });
 
   return (

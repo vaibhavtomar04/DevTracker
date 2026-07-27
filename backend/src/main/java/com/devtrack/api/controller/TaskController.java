@@ -22,6 +22,7 @@ import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.CrossOrigin;
@@ -55,6 +56,8 @@ import com.devtrack.api.event.RecognitionTriggerEvent;
 import com.devtrack.api.services.EmailNotificationService;
 import com.devtrack.api.services.WorkflowExecutionService;
 import org.springframework.context.ApplicationEventPublisher;
+import com.devtrack.api.mapper.TaskMapper;
+import com.devtrack.api.dto.TaskListDto;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -106,6 +109,12 @@ public class TaskController {
     @Autowired
     private ApplicationEventPublisher applicationEventPublisher;
 
+    @Autowired
+    private com.devtrack.api.event.DomainEventPublisher domainEventPublisher;
+
+    @Autowired
+    private com.devtrack.api.services.DocumentService documentService;
+
     TaskController(EmailNotificationService emailNotificationService) {
         this.emailNotificationService = emailNotificationService;
     }
@@ -116,98 +125,75 @@ public class TaskController {
             @RequestParam(required = false) Integer size,
             @RequestParam(required = false) String status,
             @RequestParam(required = false) String priority,
-            @RequestParam(required = false) String search) {
+            @RequestParam(required = false) String search,
+            @RequestParam(required = false) Boolean includeClosed) {
 
         // ── Command Palette full-text search ─────────────────────────────────
         if (search != null && !search.isBlank()) {
-            Pageable pageable = PageRequest.of(
-                    page != null ? page : 0,
-                    size != null ? size : 10,
-                    Sort.by("id").descending());
-            return ResponseEntity.ok(taskRepository.searchAll(search.trim(), pageable));
+            Pageable pageable = PageRequest.of(page != null ? page : 0, size != null ? size : 10, Sort.by("id").descending());
+            return ResponseEntity.ok(taskRepository.searchAll(search.trim(), pageable).map(TaskMapper::toListDto));
         }
 
-        if (page == null && size == null) {
-            // Default: return first 50 active CRs (excludes terminal states) instead of
-            // loading the entire tasks table with 7-way JOINs (unbounded dump anti-pattern).
-            // Callers that genuinely need ALL records must explicitly pass ?page=0&size=N.
-            Pageable defaultPage = PageRequest.of(0, 50, Sort.by("id").descending());
-            return ResponseEntity.ok(taskRepository.findAllOptimizedByStatusNotIn(
-                    List.of("CLOSED", "PROD_COMPLETED"), defaultPage));
+        Pageable pageable = PageRequest.of(page != null ? page : 0, size != null ? size : 100, Sort.by("id").descending());
+
+        if (Boolean.TRUE.equals(includeClosed)) {
+            return ResponseEntity.ok(taskRepository.findAllOptimized(pageable).map(TaskMapper::toListDto));
         }
 
-        Pageable pageable = PageRequest.of(page != null ? page : 0, size != null ? size : 10, Sort.by("id").descending());
-        if(status!=null && !status.isBlank() && priority!=null && !priority.isBlank()) {
-        	return ResponseEntity.ok(taskRepository.findAllOptimizedByStatusAndPriority(List.of(status), priority, pageable));
+        if (status != null && !status.isBlank()) {
+            List<String> statusList = java.util.Arrays.stream(status.split(","))
+                    .map(String::trim)
+                    .filter(s -> !s.isEmpty())
+                    .collect(java.util.stream.Collectors.toList());
+            if (priority != null && !priority.isBlank()) {
+                return ResponseEntity.ok(taskRepository.findAllOptimizedByStatusAndPriority(statusList, priority, pageable).map(TaskMapper::toListDto));
+            }
+            return ResponseEntity.ok(taskRepository.findAllOptimizedByStatusIn(statusList, pageable).map(TaskMapper::toListDto));
+        } else if (priority != null && !priority.isBlank()) {
+            return ResponseEntity.ok(taskRepository.findAllOptimizedByPriority(priority, pageable).map(TaskMapper::toListDto));
+        } else {
+            return ResponseEntity.ok(taskRepository.findAllOptimizedByStatusNotIn(List.of("CLOSED", "PROD_COMPLETED", "PROD_DEPLOYED"), pageable).map(TaskMapper::toListDto));
         }
-        else if(status!=null && !status.isBlank()) {
-        	return ResponseEntity.ok(taskRepository.findAllOptimizedByStatusIn(List.of(status), pageable));
-        }
-        else if(priority!=null && !priority.isBlank()) {
-        	return ResponseEntity.ok(taskRepository.findAllOptimizedByPriority(priority, pageable));
-        }
-        else {
-            return ResponseEntity.ok(taskRepository.findAllOptimizedByStatusNotIn(List.of("CLOSED","PROD_COMPLETED"), pageable));
-        }
-
     }
     
     @GetMapping("/download-tasks")
-    public Page<Task> downloadTasks(@RequestParam(required = false) String status, 
-            @RequestParam(required = false) String priority) {
-    	
-        if(status!=null && !status.isBlank() && priority!=null && !priority.isBlank()) {
-        	return taskRepository.findAllOptimizedByStatusAndPriority(List.of(status), priority, null);
-        }
-        else if(status!=null && !status.isBlank()) {
-        	return taskRepository.findAllOptimizedByStatusIn(List.of(status), null);
-        }
-        else if(priority!=null && !priority.isBlank()) {
-        	return taskRepository.findAllOptimizedByPriority(priority, null);
-        }
-        else {
-            return taskRepository.findAllOptimizedByStatusNotIn(List.of("CLOSED","PROD_COMPLETED"), null);
-        }
-        
+public Page<TaskListDto> downloadTasks(@RequestParam(required = false) String status,
+        @RequestParam(required = false) String priority) {
+    if (status != null && !status.isBlank() && priority != null && !priority.isBlank()) {
+        return taskRepository.findAllOptimizedByStatusAndPriority(List.of(status), priority, null).map(TaskMapper::toListDto);
+    } else if (status != null && !status.isBlank()) {
+        return taskRepository.findAllOptimizedByStatusIn(List.of(status), null).map(TaskMapper::toListDto);
+    } else if (priority != null && !priority.isBlank()) {
+        return taskRepository.findAllOptimizedByPriority(priority, null).map(TaskMapper::toListDto);
+    } else {
+        return taskRepository.findAllOptimizedByStatusNotIn(List.of("CLOSED", "PROD_COMPLETED"), null).map(TaskMapper::toListDto);
     }
-
-    @GetMapping("/my")
-    public Page<Task> getMyTasks(
-            @RequestParam(defaultValue = "0") int page, @RequestParam(defaultValue = "10") int size,
-            @RequestParam(required = false) String status, @RequestParam(required = false) String priority) {
-    	
-        String username = SecurityContextHolder.getContext().getAuthentication().getName();
-        User user = userRepository.findByUsername(username).orElseThrow();
-        Pageable pageable = PageRequest.of(page, size, Sort.by("id").descending());
-        
-        if(status!=null && !status.isBlank() && priority!=null && !priority.isBlank()) {
-        	return taskRepository.findAllOptimizedByDeveloperAndStatusAndPriority(user.getId(), List.of(status), priority, pageable);
-        }
-        else if(status!=null && !status.isBlank()) {
-        	return taskRepository.findAllOptimizedByAssignedDeveloperIdAndStatusIn(user.getId(), List.of(status), pageable);
-        }
-        else if(priority!=null && !priority.isBlank()) {
-        	return taskRepository.findAllOptimizedByDeveloperAndPriority(user.getId(), priority, pageable);
-        } else {
-            return taskRepository.findAllOptimizedByAssignedDeveloperIdAndStatusNot(user.getId(), List.of("CLOSED","PROD_COMPLETED"), pageable);
-        }
-    }
+}
 
     @GetMapping("/{id}")
-    public ResponseEntity<Task> getTaskById(@PathVariable Long id) {
+    public ResponseEntity<TaskListDto> getTaskById(@PathVariable Long id) {
         return taskRepository.findByIdOptimized(id)
+                .map(TaskMapper::toListDto)
                 .map(ResponseEntity::ok)
                 .orElse(ResponseEntity.notFound().build());
     }
 
-    @PostMapping("/batch-details")
-    public ResponseEntity<List<Task>> getTasksBatch(@RequestBody java.util.Map<String, List<Long>> payload) {
-        List<Long> ids = payload != null ? payload.get("ids") : null;
-        if (ids == null || ids.isEmpty()) {
-            return ResponseEntity.ok(java.util.Collections.emptyList());
-        }
-        return ResponseEntity.ok(taskRepository.findAllById(ids));
+    @GetMapping("/{id}/detail")
+    public ResponseEntity<com.devtrack.api.dto.TaskDetailDto> getTaskDetail(@PathVariable Long id) {
+        Task t = taskRepository.findByIdOptimized(id)
+            .orElseThrow(() -> new org.springframework.web.server.ResponseStatusException(org.springframework.http.HttpStatus.NOT_FOUND, "Task not found: " + id));
+        return ResponseEntity.ok(TaskMapper.toDetailDto(t)); 
     }
+
+
+    @PostMapping("/batch-details")
+public ResponseEntity<List<TaskListDto>> getTasksBatch(@RequestBody java.util.Map<String, List<Long>> payload) {
+    List<Long> ids = payload != null ? payload.get("ids") : null;
+    if (ids == null || ids.isEmpty()) {
+        return ResponseEntity.ok(java.util.Collections.emptyList());
+    }
+    return ResponseEntity.ok(taskRepository.findAllById(ids).stream().map(TaskMapper::toListDto).toList());
+}
 
     private String generateUniqueJtrackId(String requestedJtrackId) {
         if (requestedJtrackId == null || requestedJtrackId.trim().isEmpty()) {
@@ -331,8 +317,8 @@ public class TaskController {
         }
         
         notifyAllDevelopersAndTester(savedTask, "New CR Created: " + savedTask.getJtrackId(), 
-            "Change Request (CR) '" + savedTask.getTitle() + "' has been successfully created and assigned.");
-            
+            savedTask.getTitle() + "' has been successfully created and assigned.");
+            emitTaskEvent(savedTask, "CREATED", currentUser.getId());
         return savedTask;
     }
 
@@ -418,6 +404,15 @@ public class TaskController {
                     if (currentTargetStatus.equals("PROD_DEPLOYED") && taskDetails.getProductionDate() == null && task.getProductionDate() == null) {
                         taskDetails.setProductionDate(LocalDate.now());
                     }
+                    if (currentTargetStatus.equals("CODE_REVIEW")   && task.getCodeReviewDate()   == null) {
+    task.setCodeReviewDate(LocalDateTime.now());
+}
+if (currentTargetStatus.equals("SIT_COMPLETED") && task.getSitCompletedDate() == null) {
+    task.setSitCompletedDate(LocalDateTime.now());
+}
+if (currentTargetStatus.equals("UAT_COMPLETED") && task.getUatCompletedDate() == null) {
+    task.setUatCompletedDate(LocalDateTime.now());
+}
 
                     if (currentTargetStatus.equals("IN_PROGRESS") && taskDetails.getDevStartDate() == null && task.getDevStartDate() == null) {
                         return ResponseEntity.badRequest().body("Dev Start Date is mandatory for IN_PROGRESS status.");
@@ -502,16 +497,11 @@ public class TaskController {
                         task.setCodeReviewComments(taskDetails.getCodeReviewComments());
                     }
                     // Persist unit testing document if provided
-                    if (taskDetails.getUnitTestDocUrl() != null) {
-                        task.setUnitTestDocUrl(taskDetails.getUnitTestDocUrl());
+                    if (taskDetails.getUnitTestDocId() != null) {
+                        task.setUnitTestDocId(taskDetails.getUnitTestDocId());
                     }
                     if (taskDetails.getUnitTestDocName() != null) {
                         task.setUnitTestDocName(taskDetails.getUnitTestDocName());
-                    }
-                    // Allow clearing the unit test document (e.g. empty string to remove)
-                    if ("".equals(taskDetails.getUnitTestDocUrl())) {
-                        task.setUnitTestDocUrl(null);
-                        task.setUnitTestDocName(null);
                     }
 
                     if (taskDetails.getDeploymentNote() != null) {
@@ -662,7 +652,7 @@ public class TaskController {
                                 }
                             }
 
-                            if (("TESTING_POOL".equalsIgnoreCase(savedFinal.getStatus()) || "UAT_TESTING".equalsIgnoreCase(savedFinal.getStatus())) && savedFinal.getUnitTestDocUrl() != null) {
+                            if (("TESTING_POOL".equalsIgnoreCase(savedFinal.getStatus()) || "UAT_TESTING".equalsIgnoreCase(savedFinal.getStatus())) && savedFinal.getUnitTestDocId() != null) {
                                 try {
                                     emailNotificationService.sendMailForUatTesting(savedFinal, remarksForNotif != null ? remarksForNotif : "CR Pushed to UAT", currentUserFinal);
                                 } catch (Exception e) {
@@ -753,11 +743,13 @@ public class TaskController {
                     }
 
                     Task reloaded = taskRepository.findByIdOptimized(saved.getId()).orElse(saved);
-                    return ResponseEntity.ok(reloaded);
+                    emitTaskEvent(reloaded, "UPDATED", currentUser.getId());
+                    return ResponseEntity.ok(TaskMapper.toListDto(reloaded));
                 })
                 .orElse(ResponseEntity.notFound().build());
     }
 
+    @CacheEvict(value = "dashboardSummary", allEntries = true)
     @PutMapping("/{id}/sprint")
     public ResponseEntity<?> assignTaskToSprint(@PathVariable Long id, @RequestBody java.util.Map<String, Object> payload) {
         return taskRepository.findById(id)
@@ -784,11 +776,14 @@ public class TaskController {
                     com.devtrack.api.services.AuditLogHelper.enrich(log);
                     auditLogRepository.save(log);
 
-                    return ResponseEntity.ok(taskRepository.save(task));
+                    Task savedSprint = taskRepository.save(task);
+                    emitTaskEvent(savedSprint, "UPDATED", currentUser.getId());
+                    return ResponseEntity.ok(savedSprint);
                 })
                 .orElse(ResponseEntity.notFound().build());
     }
 
+    @CacheEvict(value = "dashboardSummary", allEntries = true)
     @PostMapping("/{id}/assign-tester")
     public ResponseEntity<?> assignTester(@PathVariable Long id) {
         String username = SecurityContextHolder.getContext().getAuthentication().getName();
@@ -828,9 +823,11 @@ public class TaskController {
         notifyAllDevelopersAndTester(task, "Tester Assigned to " + task.getJtrackId(),
             "Tester " + currentUser.getFullName() + " has self-assigned and started testing for " + task.getJtrackId() + ".");
 
+        emitTaskEvent(task, "UPDATED", currentUser.getId());
         return ResponseEntity.ok(task);
     }
 
+    @CacheEvict(value = "dashboardSummary", allEntries = true)
     @PostMapping("/{id}/reassign-tester")
     @PreAuthorize("hasAnyRole('ROLE_DEVADMIN', 'ROLE_TESTADMIN')")
     public ResponseEntity<?> reassignTester(@PathVariable Long id, @RequestBody java.util.Map<String, String> payload) {
@@ -886,11 +883,13 @@ public class TaskController {
                     createAndPushNotification(newTester.getId(), "Tester Assigned to " + saved.getJtrackId(),
                         "You have been assigned to " + saved.getJtrackId() + " by Admin " + adminUser.getFullName() + ". Reason: " + reason);
 
+                    emitTaskEvent(saved, "UPDATED", adminUser.getId());
                     return ResponseEntity.ok(saved);
                 })
                 .orElse(ResponseEntity.notFound().build());
     }
 
+    @CacheEvict(value = "dashboardSummary", allEntries = true)
     @PostMapping("/{id}/complete-testing")
     public ResponseEntity<?> completeTesting(@PathVariable Long id, @RequestBody java.util.Map<String, String> payload) {
         String comments = payload.get("comments");
@@ -905,6 +904,10 @@ public class TaskController {
                     
                     task.setStatus("TESTING_COMPLETED");
                     task.setTestingCompletedDate(LocalDateTime.now());
+                    task.setTestingCompletedDate(LocalDateTime.now());
+if (task.getUatCompletedDate() == null) {
+    task.setUatCompletedDate(LocalDateTime.now());  
+}
                     task.setTestingComments(comments);
                     task.setUpdatedDate(LocalDateTime.now());
                     
@@ -941,7 +944,8 @@ public class TaskController {
                         System.err.println("Failed to send test complete mail: " + e.getMessage());
                     }
                     
-                    return ResponseEntity.ok(saved);
+                    emitTaskEvent(saved, "UPDATED", currentUser.getId());
+                    return ResponseEntity.ok(TaskMapper.toListDto(saved));
                 })
                 .orElse(ResponseEntity.notFound().build());
     }
@@ -1005,6 +1009,7 @@ public class TaskController {
         }
     }
 
+    @CacheEvict(value = "dashboardSummary", allEntries = true)
     @DeleteMapping("/{id}")
     @PreAuthorize("hasAnyRole('DEVADMIN', 'DEVELOPER')")
     public ResponseEntity<?> deleteTask(@PathVariable Long id, @RequestParam(value = "remarks", required = false) String remarks) {
@@ -1057,7 +1062,7 @@ public class TaskController {
 
                     // Finally, delete the task itself
                     taskRepository.delete(task);
-                    
+                    emitTaskEvent(task, "DELETED", currentUser.getId());
                     return ResponseEntity.ok().build();
                 })
                 .orElse(ResponseEntity.notFound().build());
@@ -1067,25 +1072,12 @@ public class TaskController {
     public ResponseEntity<byte[]> downloadUnitTestDoc(@PathVariable Long id) {
         return taskRepository.findById(id)
                 .map(task -> {
-                    String dataUrl = task.getUnitTestDocUrl();
-                    if (dataUrl != null && dataUrl.startsWith("data:")) {
-                        int commaIndex = dataUrl.indexOf(",");
-                        if (commaIndex != -1) {
-                            String metadata = dataUrl.substring(0, commaIndex);
-                            String mimeType = "application/pdf";
-                            if (metadata.contains(";") && metadata.startsWith("data:")) {
-                                mimeType = metadata.substring(5, metadata.indexOf(";"));
-                            }
-                            String base64Bytes = dataUrl.substring(commaIndex + 1);
-                            byte[] bytes = java.util.Base64.getDecoder().decode(base64Bytes.trim());
-                            
-                            String filename = task.getUnitTestDocName() != null ? task.getUnitTestDocName() : "unit-test-document.pdf";
-                            
-                            return ResponseEntity.ok()
-                                    .header(org.springframework.http.HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + filename + "\"")
-                                    .contentType(org.springframework.http.MediaType.parseMediaType(mimeType))
-                                    .body(bytes);
-                        }
+                    if (task.getUnitTestDocId() != null) {
+                        com.devtrack.api.services.DocumentService.DocumentPayload p = documentService.loadForRender(task.getUnitTestDocId());
+                        return ResponseEntity.ok()
+                                .header(org.springframework.http.HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + p.meta().getFilename() + "\"")
+                                .contentType(org.springframework.http.MediaType.parseMediaType(p.meta().getContentType()))
+                                .body(p.data());
                     }
                     return ResponseEntity.notFound().<byte[]>build();
                 })
@@ -1093,6 +1085,7 @@ public class TaskController {
     }
 
     // UAT and Pool Endpoints
+    @CacheEvict(value = "dashboardSummary", allEntries = true)
     @PostMapping("/{id}/push-to-pool")
     @PreAuthorize("hasRole('DEVADMIN')")
     public ResponseEntity<?> pushToPool(@PathVariable Long id) {
@@ -1103,11 +1096,14 @@ public class TaskController {
                     }
                     task.setInPool(true);
                     task.setInPoolDate(java.time.LocalDateTime.now());
-                    return ResponseEntity.ok(taskRepository.save(task));
+                    Task savedPool = taskRepository.save(task);
+                    emitTaskEvent(savedPool, "UPDATED", currentActorId());
+                    return ResponseEntity.ok(savedPool);
                 })
                 .orElse(ResponseEntity.notFound().build());
     }
 
+    @CacheEvict(value = "dashboardSummary", allEntries = true)
     @PostMapping("/{id}/pick-from-pool")
     @PreAuthorize("hasAnyRole('DEVELOPER', 'DEVADMIN')")
     public ResponseEntity<?> pickFromPool(@PathVariable Long id) {
@@ -1130,11 +1126,14 @@ public class TaskController {
                          poolRow.setDeveloper(currentUser);
                         task.getDevelopers().add(poolRow);
                     }
-                    return ResponseEntity.ok(taskRepository.save(task));
+                    Task savedPick = taskRepository.save(task);
+                    emitTaskEvent(savedPick, "UPDATED", currentUser.getId());
+                    return ResponseEntity.ok(savedPick);
                 })
                 .orElse(ResponseEntity.notFound().build());
     }
 
+    @CacheEvict(value = "dashboardSummary", allEntries = true)
     @PostMapping("/{id}/pick-for-sit")
     @PreAuthorize("hasAnyRole('TESTER', 'TESTADMIN')")
     public ResponseEntity<?> pickForSit(@PathVariable Long id) {
@@ -1146,11 +1145,14 @@ public class TaskController {
                         return ResponseEntity.badRequest().body("Task is already being tested.");
                     }
                     task.setTester(currentUser);
-                    return ResponseEntity.ok(taskRepository.save(task));
+                    Task savedSit = taskRepository.save(task);
+                    emitTaskEvent(savedSit, "UPDATED", currentUser.getId());
+                    return ResponseEntity.ok(savedSit);
                 })
                 .orElse(ResponseEntity.notFound().build());
     }
 
+    @CacheEvict(value = "dashboardSummary", allEntries = true)
     @PostMapping("/{id}/approve-sit")
     @PreAuthorize("hasAnyRole('TESTER', 'TESTADMIN')")
     public ResponseEntity<?> approveSit(@PathVariable Long id, @RequestBody Task taskDetails) {
@@ -1183,10 +1185,13 @@ public class TaskController {
             log.setChangedBy(userRepository.findByUsername(SecurityContextHolder.getContext().getAuthentication().getName()).orElseThrow());
             auditLogRepository.save(log);
             
-            return ResponseEntity.ok(taskRepository.save(task));
+            Task savedApproveSit = taskRepository.save(task);
+            emitTaskEvent(savedApproveSit, "UPDATED", currentActorId());
+            return ResponseEntity.ok(savedApproveSit);
         }).orElse(ResponseEntity.notFound().build());
     }
 
+    @CacheEvict(value = "dashboardSummary", allEntries = true)
     @PostMapping("/{id}/reject-sit")
     @PreAuthorize("hasAnyRole('TESTER', 'TESTADMIN')")
     public ResponseEntity<?> rejectSit(@PathVariable Long id, @RequestBody Task taskDetails) {
@@ -1220,10 +1225,12 @@ public class TaskController {
             } catch (Exception e) {
                 TaskController.log.error("Failed to evaluate CR risk in rejectSit", e);
             }
+            emitTaskEvent(saved, "UPDATED", currentActorId());
             return ResponseEntity.ok(saved);
         }).orElse(ResponseEntity.notFound().build());
     }
 
+    @CacheEvict(value = "dashboardSummary", allEntries = true)
     @PostMapping("/{id}/pick-for-uat")
     @PreAuthorize("hasAnyRole('TESTER', 'TESTADMIN')")
     public ResponseEntity<?> pickForUat(@PathVariable Long id) {
@@ -1235,11 +1242,14 @@ public class TaskController {
                         return ResponseEntity.badRequest().body("Task is already being tested.");
                     }
                     task.setTester(currentUser);
-                    return ResponseEntity.ok(taskRepository.save(task));
+                    Task savedUatPick = taskRepository.save(task);
+                    emitTaskEvent(savedUatPick, "UPDATED", currentUser.getId());
+                    return ResponseEntity.ok(savedUatPick);
                 })
                 .orElse(ResponseEntity.notFound().build());
     }
 
+    @CacheEvict(value = "dashboardSummary", allEntries = true)
     @PostMapping("/{id}/approve-uat")
     @PreAuthorize("hasAnyRole('TESTER', 'TESTADMIN')")
     public ResponseEntity<?> approveUat(@PathVariable Long id, @RequestBody Task taskDetails) {
@@ -1265,6 +1275,9 @@ public class TaskController {
             String username = SecurityContextHolder.getContext().getAuthentication().getName();
             User currentUser = userRepository.findByUsername(username).orElseThrow();
             
+            if (task.getUatCompletedDate() == null) {
+    task.setUatCompletedDate(LocalDateTime.now());   
+}
             AuditLog log = new AuditLog();
             log.setEntityType("TASK");
             log.setEntityId(task.getId());
@@ -1277,10 +1290,13 @@ public class TaskController {
             
             emailNotificationService.sendMailOnUATTestingComplete(task, taskDetails.getRemarks(), currentUser);
             
-            return ResponseEntity.ok(taskRepository.save(task));
+            Task savedApproveUat = taskRepository.save(task);
+            emitTaskEvent(savedApproveUat, "UPDATED", currentUser.getId());
+            return ResponseEntity.ok(TaskMapper.toListDto(savedApproveUat));  
         }).orElse(ResponseEntity.notFound().build());
     }
 
+    @CacheEvict(value = "dashboardSummary", allEntries = true)
     @PostMapping("/{id}/reject-uat")
     @PreAuthorize("hasAnyRole('TESTER', 'TESTADMIN')")
     public ResponseEntity<?> rejectUat(@PathVariable Long id, @RequestBody Task taskDetails) {
@@ -1316,6 +1332,7 @@ public class TaskController {
             } catch (Exception e) {
                 TaskController.log.error("Failed to evaluate CR risk in rejectUat", e);
             }
+            emitTaskEvent(saved, "UPDATED", currentActorId());
             return ResponseEntity.ok(saved);
         }).orElse(ResponseEntity.notFound().build());
     }
@@ -1341,10 +1358,11 @@ public class TaskController {
 
     // Dynamic Workflow Endpoints
     @GetMapping("/current")
-    public List<Task> getTasksByStepType(@RequestParam String type) {
-        return taskWorkflowMapRepository.findTasksByStepType(type);
-    }
+public List<TaskListDto> getTasksByStepType(@RequestParam String type) {
+    return taskWorkflowMapRepository.findTasksByStepType(type).stream().map(TaskMapper::toListDto).toList();
+}
 
+    @CacheEvict(value = "dashboardSummary", allEntries = true)
     @PostMapping("/{id}/approve")
     public ResponseEntity<?> approveWorkflowStep(@PathVariable Long id, @RequestBody(required = false) Task taskDetails) {
     	log.info("Inside approveWorkflowStep");
@@ -1459,7 +1477,7 @@ public class TaskController {
             	emailNotificationService.sendMailOnCodeReviewUpdate(task, taskDetails != null ? taskDetails.getRemarks() : "Approved", oldStatus, currentUser);
             }
             
-            if(nextStage!=null && nextStage.equalsIgnoreCase("UAT_TESTING") && task.getUnitTestDocUrl() != null) {
+            if(nextStage!=null && nextStage.equalsIgnoreCase("UAT_TESTING") && task.getUnitTestDocId() != null) {
             	emailNotificationService.sendMailForUatTesting(task, taskDetails != null ? taskDetails.getRemarks() : "Sent to UAT", currentUser);
             }
 
@@ -1486,10 +1504,12 @@ public class TaskController {
             notifyAllDevelopersAndTester(updatedTask, updatedTask.getJtrackId() + " Step Approved",
                 "Code Review Step approved. Status is now " + updatedTask.getStatus() + ". Remarks: " + (taskDetails != null ? taskDetails.getRemarks() : "Approved"));
             
+            emitTaskEvent(updatedTask, "UPDATED", currentUser.getId());
             return ResponseEntity.ok().build();
         }).orElse(ResponseEntity.notFound().build());
     }
 
+    @CacheEvict(value = "dashboardSummary", allEntries = true)
     @PostMapping("/{id}/reject")
     public ResponseEntity<?> rejectWorkflowStep(@PathVariable Long id, @RequestBody(required = false) Task taskDetails) {
         return taskRepository.findById(id).map(task -> {
@@ -1523,6 +1543,7 @@ public class TaskController {
             notifyAllDevelopersAndTester(updatedTask, updatedTask.getJtrackId() + " Sent Back by Admin",
                 "CR has been sent back by Admin/Reviewer: " + currentUser.getFullName() + ". Remarks: " + (taskDetails != null ? taskDetails.getRemarks() : "Step Rejected"));
             
+            emitTaskEvent(updatedTask, "UPDATED", currentUser.getId());
             return ResponseEntity.ok().build();
         }).orElse(ResponseEntity.notFound().build());
     }
@@ -1544,6 +1565,35 @@ public class TaskController {
             ));
         } catch (Exception e) {
             log.error("Failed to send real-time notification to userId {}: {}", userId, e.getMessage());
+        }
+    }
+
+    private void emitTaskEvent(Task task, String action, Long actorId) {
+    if (task == null) return;
+    try {
+        java.util.Set<Long> recipients = new java.util.LinkedHashSet<>();
+        if (task.getAssignedDeveloper() != null) recipients.add(task.getAssignedDeveloper().getId());
+        if (task.getDevelopers() != null) {
+            for (TaskDeveloper td : task.getDevelopers()) {
+                if (td.getDeveloper() != null) recipients.add(td.getDeveloper().getId());
+            }
+        }
+        if (task.getTester() != null) recipients.add(task.getTester().getId());
+        if (task.getCreatedBy() != null) recipients.add(task.getCreatedBy().getId());
+        if (recipients.isEmpty()) return;
+        domainEventPublisher.publish(new java.util.ArrayList<>(recipients),
+            com.devtrack.api.event.DomainEventPayload.of("TASK", action, task.getId(), actorId));
+    } catch (Exception e) {
+        log.warn("Failed to emit typed TASK event ({}) for id={}: {}", action, task.getId(), e.getMessage());
+    }
+}
+
+    private Long currentActorId() {
+        try {
+            String username = SecurityContextHolder.getContext().getAuthentication().getName();
+            return userRepository.findByUsername(username).map(User::getId).orElse(null);
+        } catch (Exception e) {
+            return null;
         }
     }
 

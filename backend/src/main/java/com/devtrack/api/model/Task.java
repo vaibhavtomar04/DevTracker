@@ -56,6 +56,13 @@ public class Task {
     @Column(name = "brd_document_id")
     private Long brdDocumentId;
 
+    @Column(name = "code_review_date")
+    private LocalDateTime codeReviewDate;
+    @Column(name = "sit_completed_date")
+    private LocalDateTime sitCompletedDate;
+    @Column(name = "uat_completed_date")
+    private LocalDateTime uatCompletedDate;
+
     @ManyToOne
     @JoinColumn(name = "assigned_developer_id")
     @ToString.Exclude
@@ -131,8 +138,8 @@ public class Task {
     @Column(name = "rollback_count")
     private Integer rollbackCount = 0;
 
-    @Column(name = "unit_test_doc_url", columnDefinition = "LONGTEXT")
-    private String unitTestDocUrl;
+    @Column(name = "unit_test_doc_id")
+    private Long unitTestDocId;
 
     @Column(name = "unit_test_doc_name", length = 512)
     private String unitTestDocName;

@@ -5,6 +5,7 @@ import { useTaskStore } from "@/store/taskStore"
 import { useDashboardStore } from "@/store/dashboardStore"
 import { useAuthStore } from "@/store/authStore"
 import { Button } from "@/components/ui/button"
+import { FEATURES } from "@/config/appConfig"
 import {
   FileCheck,
   Bug as BugIcon,
@@ -19,7 +20,7 @@ import type { Task } from "@/services/mockData"
 import RaiseBugModal from "@/components/shared/RaiseBugModal"
 import BugDetailModal from "@/components/shared/BugDetailModal"
 import { CRTimelinePopup } from "@/components/shared/CRTimelinePopup"
-import { listDocuments, downloadDocument, uploadDocument, deleteDocument } from "@/services/document.service"
+import { listDocuments, downloadDocument, uploadDocument, deleteDocument, documentPreviewUrl } from "@/services/document.service"
 const getFileIcon = (fileName: string) => {
   const ext = fileName.split('.').pop()?.toLowerCase()
   if (['zip', 'rar', '7z', 'tar', 'gz'].includes(ext || '')) return "🗜️"
@@ -101,7 +102,7 @@ export default function TesterDashboard() {
 
   useEffect(() => {
     fetchSummary() // fires fast parallel backend KPI queries before full task load
-    fetchData()
+    if (!FEATURES.ENABLE_NEW_BOOTSTRAP) fetchData()
   }, [])
 
   const filterBySearch = (item: { title: string; jtrackId: string; description: string }) => {
@@ -140,9 +141,9 @@ export default function TesterDashboard() {
     if (!isAdmin && r.raisedBy?.id !== user?.id) return false
     if (!searchQuery) return true
     const s = searchQuery.toLowerCase()
-    return (r.title?.toLowerCase().includes(s) || false) || 
-           (r.description?.toLowerCase().includes(s) || false) ||
-           (r.crJtrackId?.toLowerCase().includes(s) || false)
+    return (r.title?.toLowerCase().includes(s) || false) ||
+      (r.description?.toLowerCase().includes(s) || false) ||
+      (r.crJtrackId?.toLowerCase().includes(s) || false)
   })
 
   const handleAssignToMe = (task: Task) => {
@@ -200,7 +201,7 @@ export default function TesterDashboard() {
     setIsConfirmingChoices(true)
     try {
       const openSprintTasks = ((taskToPass as any).sprintTasks || []).filter((st: any) => st.status !== "COMPLETED")
-      
+
       await Promise.all(
         openSprintTasks.map(async (st: any) => {
           const choice = selectedChoices[st.id] || "COMPLETE_AFTER_TESTING"
@@ -271,7 +272,7 @@ export default function TesterDashboard() {
     if (!files || files.length === 0 || !selectedTask) return
 
     const filesArray = Array.from(files)
-    
+
     for (const file of filesArray) {
       const fileName = file.name
       setUploadingFiles(prev => ({ ...prev, [fileName]: 0 }))
@@ -293,7 +294,7 @@ export default function TesterDashboard() {
     // Clear input value so picking more/same files works
     if (e.target) e.target.value = ''
     // Refresh documents list
-    listDocuments(selectedTask.id).then(setTaskDocs).catch(() => {})
+    listDocuments(selectedTask.id).then(setTaskDocs).catch(() => { })
   }
 
   const handleDeleteDoc = async (docId: number, docName: string) => {
@@ -302,7 +303,7 @@ export default function TesterDashboard() {
       await deleteDocument(docId)
       addToast(`Deleted ${docName} successfully!`, "info")
       if (selectedTask) {
-        listDocuments(selectedTask.id).then(setTaskDocs).catch(() => {})
+        listDocuments(selectedTask.id).then(setTaskDocs).catch(() => { })
       }
     } catch (err: any) {
       addToast(err.message || "Failed to delete document", "error")
@@ -340,55 +341,50 @@ export default function TesterDashboard() {
               Run regression checklists, execute test scenarios, signoff SIT/UAT gates, and file bugs.
             </p>
           </div>
-          
+
           <div className="flex border border-white/[0.06] bg-white/[0.03] p-1 rounded-xl text-xs backdrop-blur-md shadow-[inset_0_0_0_1px_rgba(255,255,255,0.04)]">
             <button
               onClick={() => { setActiveQueue("pool"); setSelectedTask(null); setSelectedReview(null); }}
-              className={`px-3.5 py-1.5 rounded-lg font-bold transition-all cursor-pointer ${
-                activeQueue === "pool"
-                  ? "bg-gradient-to-r from-violet-600 to-indigo-600 text-white shadow-md border border-violet-500/20"
-                  : "text-slate-400 hover:text-slate-200"
-              }`}
+              className={`px-3.5 py-1.5 rounded-lg font-bold transition-all cursor-pointer ${activeQueue === "pool"
+                ? "bg-gradient-to-r from-violet-600 to-indigo-600 text-white shadow-md border border-violet-500/20"
+                : "text-slate-400 hover:text-slate-200"
+                }`}
             >
               Testing Pool ({testingPool.length})
             </button>
             <button
               onClick={() => { setActiveQueue("my-assigned"); setSelectedTask(null); setSelectedReview(null); }}
-              className={`px-3.5 py-1.5 rounded-lg font-bold transition-all cursor-pointer ${
-                activeQueue === "my-assigned"
-                  ? "bg-gradient-to-r from-violet-600 to-indigo-600 text-white shadow-md border border-violet-500/20"
-                  : "text-slate-400 hover:text-slate-200"
-              }`}
+              className={`px-3.5 py-1.5 rounded-lg font-bold transition-all cursor-pointer ${activeQueue === "my-assigned"
+                ? "bg-gradient-to-r from-violet-600 to-indigo-600 text-white shadow-md border border-violet-500/20"
+                : "text-slate-400 hover:text-slate-200"
+                }`}
             >
               {isAdmin ? "Assigned CRs" : "My Assigned Testing"} ({myAssignedTesting.length})
             </button>
             <button
               onClick={() => { setActiveQueue("bugs"); setSelectedTask(null); setSelectedReview(null); }}
-              className={`px-3.5 py-1.5 rounded-lg font-bold transition-all cursor-pointer ${
-                activeQueue === "bugs"
-                  ? "bg-gradient-to-r from-violet-600 to-indigo-600 text-white shadow-md border border-violet-500/20"
-                  : "text-slate-400 hover:text-slate-200"
-              }`}
+              className={`px-3.5 py-1.5 rounded-lg font-bold transition-all cursor-pointer ${activeQueue === "bugs"
+                ? "bg-gradient-to-r from-violet-600 to-indigo-600 text-white shadow-md border border-violet-500/20"
+                : "text-slate-400 hover:text-slate-200"
+                }`}
             >
               Bugs & Defective CRs ({bugQueue.length + defectiveCRs.length})
             </button>
             <button
               onClick={() => { setActiveQueue("rejections"); setSelectedTask(null); setSelectedReview(null); }}
-              className={`px-3.5 py-1.5 rounded-lg font-bold transition-all cursor-pointer ${
-                activeQueue === "rejections"
-                  ? "bg-gradient-to-r from-violet-600 to-indigo-600 text-white shadow-md border border-violet-500/20"
-                  : "text-slate-400 hover:text-slate-200"
-              }`}
+              className={`px-3.5 py-1.5 rounded-lg font-bold transition-all cursor-pointer ${activeQueue === "rejections"
+                ? "bg-gradient-to-r from-violet-600 to-indigo-600 text-white shadow-md border border-violet-500/20"
+                : "text-slate-400 hover:text-slate-200"
+                }`}
             >
               {isAdmin ? "Rejected Bugs" : "My Rejected Bugs"} ({myRejectedReviews.length})
             </button>
             <button
               onClick={() => { setActiveQueue("completed"); setSelectedTask(null); setSelectedReview(null); }}
-              className={`px-3.5 py-1.5 rounded-lg font-bold transition-all cursor-pointer ${
-                activeQueue === "completed"
-                  ? "bg-gradient-to-r from-violet-600 to-indigo-600 text-white shadow-md border border-violet-500/20"
-                  : "text-slate-400 hover:text-slate-200"
-              }`}
+              className={`px-3.5 py-1.5 rounded-lg font-bold transition-all cursor-pointer ${activeQueue === "completed"
+                ? "bg-gradient-to-r from-violet-600 to-indigo-600 text-white shadow-md border border-violet-500/20"
+                : "text-slate-400 hover:text-slate-200"
+                }`}
             >
               Completed CRs ({completedCRs.length})
             </button>
@@ -417,11 +413,10 @@ export default function TesterDashboard() {
                       key={task.id}
                       variants={cardVariants}
                       onClick={() => setSelectedTask(task)}
-                      className={`p-5 rounded-2xl border backdrop-blur-md transition-all duration-300 cursor-pointer shadow-[inset_0_0_0_1px_rgba(255,255,255,0.04)] hover:shadow-[0_0_20px_rgba(6,182,212,0.12)] hover:border-cyan-500/30 ${
-                        isSelected
-                          ? "bg-cyan-500/10 border-cyan-500/40 shadow-[0_0_25px_rgba(6,182,212,0.15)]"
-                          : "bg-[#161619] border-white/[0.06]"
-                      }`}
+                      className={`p-5 rounded-2xl border backdrop-blur-md transition-all duration-300 cursor-pointer shadow-[inset_0_0_0_1px_rgba(255,255,255,0.04)] hover:shadow-[0_0_20px_rgba(6,182,212,0.12)] hover:border-cyan-500/30 ${isSelected
+                        ? "bg-cyan-500/10 border-cyan-500/40 shadow-[0_0_25px_rgba(6,182,212,0.15)]"
+                        : "bg-[#161619] border-white/[0.06]"
+                        }`}
                     >
                       <div className="flex justify-between items-start mb-3">
                         <span className="font-mono text-xs font-bold text-indigo-400 tracking-wider">{task.jtrackId}</span>
@@ -433,7 +428,7 @@ export default function TesterDashboard() {
                       <p className="text-xs text-slate-400 line-clamp-2 leading-relaxed mb-4">
                         {task.description}
                       </p>
-                      
+
                       <div className="grid grid-cols-2 gap-2 text-[10px] text-slate-400 border-t border-white/[0.06] pt-3 mb-4">
                         <div>
                           <span className="text-slate-500">Developer:</span>{" "}
@@ -501,11 +496,10 @@ export default function TesterDashboard() {
                       key={task.id}
                       variants={cardVariants}
                       onClick={() => setSelectedTask(task)}
-                      className={`p-5 rounded-2xl border backdrop-blur-md transition-all duration-300 cursor-pointer shadow-[inset_0_0_0_1px_rgba(255,255,255,0.04)] hover:shadow-[0_0_20px_rgba(6,182,212,0.12)] hover:border-cyan-500/30 ${
-                        isSelected
-                          ? "bg-cyan-500/10 border-cyan-500/40 shadow-[0_0_25px_rgba(6,182,212,0.15)]"
-                          : "bg-[#161619] border-white/[0.06]"
-                      }`}
+                      className={`p-5 rounded-2xl border backdrop-blur-md transition-all duration-300 cursor-pointer shadow-[inset_0_0_0_1px_rgba(255,255,255,0.04)] hover:shadow-[0_0_20px_rgba(6,182,212,0.12)] hover:border-cyan-500/30 ${isSelected
+                        ? "bg-cyan-500/10 border-cyan-500/40 shadow-[0_0_25px_rgba(6,182,212,0.15)]"
+                        : "bg-[#161619] border-white/[0.06]"
+                        }`}
                     >
                       <div className="flex justify-between items-start mb-3">
                         <span className="font-mono text-xs font-bold text-indigo-400 tracking-wider">{task.jtrackId}</span>
@@ -538,7 +532,7 @@ export default function TesterDashboard() {
                       <p className="text-xs text-slate-400 line-clamp-2 leading-relaxed mb-4">
                         {task.description}
                       </p>
-                      
+
                       <div className="grid grid-cols-2 gap-2 text-[10px] text-slate-400 border-t border-white/[0.06] pt-3">
                         <div>
                           <span className="text-slate-500">Tester:</span>{" "}
@@ -582,11 +576,10 @@ export default function TesterDashboard() {
                           key={`def-cr-${task.id}`}
                           variants={cardVariants}
                           onClick={() => setSelectedTask(task)}
-                          className={`p-5 rounded-2xl border backdrop-blur-md transition-all duration-300 cursor-pointer shadow-[inset_0_0_0_1px_rgba(255,255,255,0.04)] hover:shadow-[0_0_20px_rgba(244,63,94,0.10)] hover:border-rose-500/30 ${
-                            isSelected
-                              ? "bg-rose-500/10 border-rose-500/40 shadow-[0_0_25px_rgba(244,63,94,0.12)]"
-                              : "bg-[#161619] border-white/[0.06]"
-                          }`}
+                          className={`p-5 rounded-2xl border backdrop-blur-md transition-all duration-300 cursor-pointer shadow-[inset_0_0_0_1px_rgba(255,255,255,0.04)] hover:shadow-[0_0_20px_rgba(244,63,94,0.10)] hover:border-rose-500/30 ${isSelected
+                            ? "bg-rose-500/10 border-rose-500/40 shadow-[0_0_25px_rgba(244,63,94,0.12)]"
+                            : "bg-[#161619] border-white/[0.06]"
+                            }`}
                         >
                           <div className="flex justify-between items-start mb-3">
                             <span className="font-mono text-xs font-bold text-rose-400 tracking-wider">{task.jtrackId}</span>
@@ -623,11 +616,10 @@ export default function TesterDashboard() {
                           key={bug.id}
                           variants={cardVariants}
                           onClick={() => setSelectedBugDetailId(bug.id)}
-                          className={`p-5 rounded-2xl border backdrop-blur-md transition-all duration-300 cursor-pointer shadow-[inset_0_0_0_1px_rgba(255,255,255,0.04)] hover:shadow-[0_0_20px_rgba(245,158,11,0.10)] hover:border-amber-500/30 ${
-                            isSelected
-                              ? "bg-amber-500/10 border-amber-500/40 shadow-[0_0_25px_rgba(245,158,11,0.12)]"
-                              : "bg-[#161619] border-white/[0.06]"
-                          }`}
+                          className={`p-5 rounded-2xl border backdrop-blur-md transition-all duration-300 cursor-pointer shadow-[inset_0_0_0_1px_rgba(255,255,255,0.04)] hover:shadow-[0_0_20px_rgba(245,158,11,0.10)] hover:border-amber-500/30 ${isSelected
+                            ? "bg-amber-500/10 border-amber-500/40 shadow-[0_0_25px_rgba(245,158,11,0.12)]"
+                            : "bg-[#161619] border-white/[0.06]"
+                            }`}
                         >
                           <div className="flex justify-between items-start mb-3">
                             <span className="font-mono text-xs font-bold text-rose-400 tracking-wider">{bug.jtrackId}</span>
@@ -666,11 +658,10 @@ export default function TesterDashboard() {
                       key={`review-${review.id}`}
                       variants={cardVariants}
                       onClick={() => setSelectedReview(review)}
-                      className={`p-5 rounded-2xl border backdrop-blur-md transition-all duration-300 cursor-pointer shadow-[inset_0_0_0_1px_rgba(255,255,255,0.04)] hover:shadow-[0_0_20px_rgba(244,63,94,0.10)] hover:border-rose-500/30 ${
-                        isSelected
-                          ? "bg-rose-500/10 border-rose-500/40 shadow-[0_0_25px_rgba(244,63,94,0.12)]"
-                          : "bg-[#161619] border-white/[0.06]"
-                      }`}
+                      className={`p-5 rounded-2xl border backdrop-blur-md transition-all duration-300 cursor-pointer shadow-[inset_0_0_0_1px_rgba(255,255,255,0.04)] hover:shadow-[0_0_20px_rgba(244,63,94,0.10)] hover:border-rose-500/30 ${isSelected
+                        ? "bg-rose-500/10 border-rose-500/40 shadow-[0_0_25px_rgba(244,63,94,0.12)]"
+                        : "bg-[#161619] border-white/[0.06]"
+                        }`}
                     >
                       <div className="flex justify-between items-start mb-3">
                         <span className="font-mono text-xs font-bold text-rose-400 tracking-wider">
@@ -709,11 +700,10 @@ export default function TesterDashboard() {
                       key={task.id}
                       variants={cardVariants}
                       onClick={() => setSelectedTask(task)}
-                      className={`p-5 rounded-2xl border backdrop-blur-md transition-all duration-300 cursor-pointer shadow-[inset_0_0_0_1px_rgba(255,255,255,0.04)] hover:shadow-[0_0_20px_rgba(6,182,212,0.12)] hover:border-cyan-500/30 ${
-                        isSelected
-                          ? "bg-cyan-500/10 border-cyan-500/40 shadow-[0_0_25px_rgba(6,182,212,0.15)]"
-                          : "bg-[#161619] border-white/[0.06]"
-                      }`}
+                      className={`p-5 rounded-2xl border backdrop-blur-md transition-all duration-300 cursor-pointer shadow-[inset_0_0_0_1px_rgba(255,255,255,0.04)] hover:shadow-[0_0_20px_rgba(6,182,212,0.12)] hover:border-cyan-500/30 ${isSelected
+                        ? "bg-cyan-500/10 border-cyan-500/40 shadow-[0_0_25px_rgba(6,182,212,0.15)]"
+                        : "bg-[#161619] border-white/[0.06]"
+                        }`}
                     >
                       <div className="flex justify-between items-start mb-3">
                         <span className="font-mono text-xs font-bold text-indigo-400 tracking-wider">{task.jtrackId}</span>
@@ -725,7 +715,7 @@ export default function TesterDashboard() {
                       <p className="text-xs text-slate-400 line-clamp-2 leading-relaxed mb-4">
                         {task.description}
                       </p>
-                      
+
                       <div className="grid grid-cols-2 gap-2 text-[10px] text-slate-400 border-t border-white/[0.06] pt-3">
                         <div>
                           <span className="text-slate-500">Developer:</span>{" "}
@@ -760,386 +750,385 @@ export default function TesterDashboard() {
               exit={{ opacity: 0, scale: 0.95 }}
               className="bg-[#161619] border border-white/[0.08] w-full max-w-lg rounded-3xl p-6 space-y-5 text-xs text-zinc-300 shadow-2xl relative max-h-[90vh] overflow-y-auto"
             >
-            <div className="flex items-center justify-between border-b border-white/[0.08] pb-3.5">
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-2 flex-wrap">
-                  <span className="font-mono text-xs font-bold text-violet-400 tracking-wider">{selectedTask.jtrackId}</span>
-                  <button
-                    onClick={() => setTimelineTask(selectedTask)}
-                    className="flex items-center gap-1 px-2 py-0.5 rounded-lg text-[9px] font-bold bg-cyan-500/10 text-cyan-400 border border-cyan-500/20 hover:bg-cyan-500/20 transition-colors"
-                  >
-                    <GitBranch className="h-2.5 w-2.5" />
-                    View Timeline
-                  </button>
+              <div className="flex items-center justify-between border-b border-white/[0.08] pb-3.5">
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className="font-mono text-xs font-bold text-violet-400 tracking-wider">{selectedTask.jtrackId}</span>
+                    <button
+                      onClick={() => setTimelineTask(selectedTask)}
+                      className="flex items-center gap-1 px-2 py-0.5 rounded-lg text-[9px] font-bold bg-cyan-500/10 text-cyan-400 border border-cyan-500/20 hover:bg-cyan-500/20 transition-colors"
+                    >
+                      <GitBranch className="h-2.5 w-2.5" />
+                      View Timeline
+                    </button>
+                  </div>
+                  <h3 className="font-black text-slate-100 text-sm tracking-tight truncate max-w-[260px] mt-0.5">{selectedTask.title}</h3>
                 </div>
-                <h3 className="font-black text-slate-100 text-sm tracking-tight truncate max-w-[260px] mt-0.5">{selectedTask.title}</h3>
-              </div>
-              <Button
-                variant="ghost"
-                size="icon"
-                className="h-8 w-8 rounded-xl hover:bg-white/[0.06] text-slate-400 hover:text-slate-200 transition-colors"
-                onClick={() => setSelectedTask(null)}
-              >
-                <X className="h-4 w-4" />
-              </Button>
-            </div>
-
-            {/* General scope */}
-            <div className="space-y-2 text-xs">
-              <span className="text-slate-400 block font-bold uppercase tracking-wider text-[10px]">Scope</span>
-              <p className="p-3.5 rounded-xl border border-white/[0.06] bg-white/[0.01] leading-relaxed text-[11px] text-slate-300">
-                {selectedTask.description}
-              </p>
-            </div>
-
-            {selectedTask.status === "TESTING_POOL" ? (
-              <div className="space-y-4 border-t border-white/[0.08] pt-4 text-center">
-                <p className="text-slate-400 text-xs leading-relaxed">
-                  This Change Request is currently in the Testing Pool and is not assigned to any tester.
-                  Assign it to yourself to begin testing.
-                </p>
                 <Button
-                  className="w-full text-xs h-10 rounded-xl bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-500 hover:to-indigo-500 border border-violet-500/30 text-white font-bold"
-                  onClick={() => handleAssignToMe(selectedTask)}
+                  variant="ghost"
+                  size="icon"
+                  className="h-8 w-8 rounded-xl hover:bg-white/[0.06] text-slate-400 hover:text-slate-200 transition-colors"
+                  onClick={() => setSelectedTask(null)}
                 >
-                  Assign to Me
+                  <X className="h-4 w-4" />
                 </Button>
               </div>
-            ) : (
-              <>
-                {/* BRD & Unit Testing Documents Panel */}
-                <div className="space-y-4 border-t border-white/[0.08] pt-4 text-left">
-                  {/* BRD Document Field */}
-                  <div className="space-y-2 text-xs">
-                    <span className="text-slate-400 block font-bold uppercase tracking-wider text-[10px]">
-                      BRD Document
-                    </span>
-                    {(() => {
-                      const brdDoc = taskDocs.find(d => d.docType === 'BRD');
-                      return brdDoc ? (
+
+              {/* General scope */}
+              <div className="space-y-2 text-xs">
+                <span className="text-slate-400 block font-bold uppercase tracking-wider text-[10px]">Scope</span>
+                <p className="p-3.5 rounded-xl border border-white/[0.06] bg-white/[0.01] leading-relaxed text-[11px] text-slate-300">
+                  {selectedTask.description}
+                </p>
+              </div>
+
+              {selectedTask.status === "TESTING_POOL" ? (
+                <div className="space-y-4 border-t border-white/[0.08] pt-4 text-center">
+                  <p className="text-slate-400 text-xs leading-relaxed">
+                    This Change Request is currently in the Testing Pool and is not assigned to any tester.
+                    Assign it to yourself to begin testing.
+                  </p>
+                  <Button
+                    className="w-full text-xs h-10 rounded-xl bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-500 hover:to-indigo-500 border border-violet-500/30 text-white font-bold"
+                    onClick={() => handleAssignToMe(selectedTask)}
+                  >
+                    Assign to Me
+                  </Button>
+                </div>
+              ) : (
+                <>
+                  {/* BRD & Unit Testing Documents Panel */}
+                  <div className="space-y-4 border-t border-white/[0.08] pt-4 text-left">
+                    {/* BRD Document Field */}
+                    <div className="space-y-2 text-xs">
+                      <span className="text-slate-400 block font-bold uppercase tracking-wider text-[10px]">
+                        BRD Document
+                      </span>
+                      {(() => {
+                        const brdDoc = taskDocs.find(d => d.docType === 'BRD');
+                        return brdDoc ? (
+                          <div className="p-3 rounded-xl border border-white/[0.06] bg-white/[0.01] flex justify-between items-center text-[11px] hover:border-cyan-500/30 transition-colors">
+                            <div className="flex flex-col min-w-0 flex-1 mr-3">
+                              <span className="text-slate-200 truncate font-mono text-[10px] font-bold">{brdDoc.filename}</span>
+                              <span className="text-[9px] text-slate-500 mt-0.5">
+                                {brdDoc.uploadedByName ? `Uploaded by ${brdDoc.uploadedByName}` : 'Attached'}
+                              </span>
+                            </div>
+                            <Button
+                              variant="link"
+                              size="sm"
+                              className="text-cyan-400 hover:text-cyan-300 font-bold hover:underline shrink-0 p-0 h-auto"
+                              onClick={() => downloadDocument(brdDoc.id, brdDoc.filename)}
+                            >
+                              Download
+                            </Button>
+                          </div>
+                        ) : (
+                          <div className="p-3 rounded-xl border border-white/[0.04] bg-white/[0.005] text-slate-500 text-[10.5px] italic text-center">
+                            No BRD document attached.
+                          </div>
+                        );
+                      })()}
+                    </div>
+
+                    {/* Unit Testing Document Field */}
+                    <div className="space-y-2 text-xs">
+                      <span className="text-slate-400 block font-bold uppercase tracking-wider text-[10px]">
+                        Unit Testing Document
+                      </span>
+                      {selectedTask.unitTestDocId ? (
                         <div className="p-3 rounded-xl border border-white/[0.06] bg-white/[0.01] flex justify-between items-center text-[11px] hover:border-cyan-500/30 transition-colors">
                           <div className="flex flex-col min-w-0 flex-1 mr-3">
-                            <span className="text-slate-200 truncate font-mono text-[10px] font-bold">{brdDoc.filename}</span>
-                            <span className="text-[9px] text-slate-500 mt-0.5">
-                              {brdDoc.uploadedByName ? `Uploaded by ${brdDoc.uploadedByName}` : 'Attached'}
-                            </span>
+                            <span className="text-slate-200 truncate font-mono text-[10px] font-bold">{selectedTask.unitTestDocName || 'unit_testing_results.pdf'}</span>
+                            <span className="text-[9px] text-slate-500 mt-0.5">Developer verified</span>
                           </div>
                           <Button
                             variant="link"
                             size="sm"
                             className="text-cyan-400 hover:text-cyan-300 font-bold hover:underline shrink-0 p-0 h-auto"
-                            onClick={() => downloadDocument(brdDoc.id, brdDoc.filename)}
+                            onClick={() => downloadDocument(selectedTask.unitTestDocId!, selectedTask.unitTestDocName || 'unit_testing_results.pdf')}
                           >
                             Download
                           </Button>
                         </div>
                       ) : (
                         <div className="p-3 rounded-xl border border-white/[0.04] bg-white/[0.005] text-slate-500 text-[10.5px] italic text-center">
-                          No BRD document attached.
+                          No Unit Testing document attached.
                         </div>
-                      );
+                      )}
+                    </div>
+                  </div>
+
+
+                  {/* Attachments Section */}
+                  {(selectedTask.status !== "TESTING_COMPLETED" || taskDocs.filter(d => d.docType === 'SUPPORT').length > 0 || selectedTask.screenshotUrl) && (
+                    <div className="space-y-3 border-t border-white/[0.08] pt-4">
+                      <span className="text-slate-400 block text-[10px] font-bold uppercase tracking-wider">
+                        Proof of testing
+                      </span>
+
+                      <input
+                        type="file"
+                        accept="*"
+                        onChange={handleMultipleFilesChange}
+                        id="screenshot-file-input"
+                        multiple
+                        className="hidden"
+                      />
+
+                      {selectedTask.status !== "TESTING_COMPLETED" && (
+                        <button
+                          onClick={() => document.getElementById("screenshot-file-input")?.click()}
+                          className="w-full p-2.5 border border-dashed border-white/[0.10] rounded-xl bg-white/[0.01] hover:bg-white/[0.04] hover:border-violet-500/40 flex flex-col items-center justify-center text-center transition-colors cursor-pointer"
+                        >
+                          <ImageIcon className="h-4.5 w-4.5 text-violet-400 mb-1" />
+                          <span className="text-[9px] font-bold text-slate-300">Upload Proof of Testing</span>
+                        </button>
+                      )}
+
+                      {/* Uploading Files Progress */}
+                      {Object.entries(uploadingFiles).map(([fileName, pct]) => (
+                        <div key={fileName} className="p-2.5 rounded-xl border border-violet-500/20 bg-violet-500/5 space-y-1.5 text-left">
+                          <div className="flex justify-between items-center text-[10px] font-semibold text-violet-300">
+                            <span className="truncate max-w-[180px]">{fileName}</span>
+                            <span>{pct}%</span>
+                          </div>
+                          <div className="w-full bg-white/10 h-1 rounded-full overflow-hidden">
+                            <div className="bg-violet-500 h-full transition-all duration-300" style={{ width: `${pct}%` }} />
+                          </div>
+                        </div>
+                      ))}
+
+                      {/* Uploaded Supporting Documents (Proof of Testing) */}
+                      {taskDocs.filter(d => d.docType === 'SUPPORT').length > 0 && (
+                        <div className="space-y-2 max-h-48 overflow-y-auto pr-1">
+                          {taskDocs.filter(d => d.docType === 'SUPPORT').map(doc => (
+                            <div key={doc.id} className="flex items-center gap-2.5 p-2.5 rounded-xl border border-white/[0.06] bg-white/[0.02]">
+                              <div className="w-8 h-8 rounded-lg flex items-center justify-center border border-white/10 bg-black/40 text-sm shrink-0">
+                                {getFileIcon(doc.filename)}
+                              </div>
+                              <div className="flex-1 min-w-0 text-left">
+                                <span className="block truncate font-mono text-slate-200 text-[10px] font-bold">{doc.filename}</span>
+                                <span className="text-[8px] text-slate-500 font-semibold block mt-0.5">
+                                  {doc.uploadedByName ? `By ${doc.uploadedByName}` : 'Attached'}
+                                </span>
+                              </div>
+                              <div className="flex items-center gap-1 shrink-0">
+                                <button
+                                  type="button"
+                                  onClick={() => downloadDocument(doc.id, doc.filename)}
+                                  className="p-1.5 rounded-lg hover:bg-white/10 text-slate-400 hover:text-sky-400 transition-colors"
+                                  title="Download"
+                                >
+                                  <Download className="h-3.5 w-3.5" />
+                                </button>
+                                {selectedTask.status !== "TESTING_COMPLETED" && (
+                                  <button
+                                    type="button"
+                                    onClick={() => handleDeleteDoc(doc.id, doc.filename)}
+                                    className="p-1.5 rounded-lg hover:bg-rose-500/10 text-slate-500 hover:text-rose-400 transition-colors"
+                                    title="Delete"
+                                  >
+                                    <Trash2 className="h-3.5 w-3.5" />
+                                  </button>
+                                )}
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+
+                      {/* Legacy screenshot preview */}
+                      {selectedTask.screenshotUrl && (
+                        <div className="mt-2 flex items-center gap-2.5 p-2.5 rounded-xl border border-white/[0.06] bg-white/[0.02]">
+                          {(() => {
+                            const isImg = selectedTask.screenshotUrl?.startsWith("data:image/") || /\.(png|jpe?g|gif|webp)$/i.test(selectedTask.screenshotName || "")
+                            return isImg ? (
+                              <div className="w-12 h-12 rounded-lg overflow-hidden border border-white/10 shrink-0 bg-black/40">
+                                <img src={selectedTask.screenshotUrl} alt={selectedTask.screenshotName} className="w-full h-full object-cover" />
+                              </div>
+                            ) : (
+                              <div className="w-12 h-12 rounded-lg flex items-center justify-center border border-white/10 bg-black/40 text-lg shrink-0">
+                                {getFileIcon(selectedTask.screenshotName || "")}
+                              </div>
+                            )
+                          })()}
+                          <div className="flex-1 min-w-0 text-left">
+                            <span className="block truncate font-mono text-slate-200 text-[11px]">{selectedTask.screenshotName}</span>
+                            <span className="text-[9px] text-slate-500 font-semibold uppercase tracking-wider block mt-0.5">Proof of Testing (Legacy)</span>
+                          </div>
+                          <div className="flex items-center gap-1 shrink-0">
+                            <button
+                              type="button"
+                              onClick={() => setDownloadTarget({ base64Data: selectedTask.screenshotUrl!, defaultFileName: selectedTask.screenshotName || "proof_of_testing.png" })}
+                              className="p-1.5 rounded-lg hover:bg-white/10 text-slate-400 hover:text-sky-400 transition-colors"
+                              title="Download"
+                            >
+                              <Download className="h-4 w-4" />
+                            </button>
+                            {selectedTask.status !== "TESTING_COMPLETED" && (
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  updateTask(selectedTask.id, { screenshotUrl: undefined, screenshotName: undefined }, "Removed proof of testing attachment", user!)
+                                    .then((updated: any) => {
+                                      setSelectedTask(updated)
+                                      addToast("Attachment removed successfully!", "info")
+                                    })
+                                }}
+                                className="p-1.5 rounded-lg hover:bg-rose-500/10 text-slate-500 hover:text-rose-400 transition-colors"
+                                title="Delete"
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </button>
+                            )}
+                          </div>
+                        </div>
+                      )}
+
+                    </div>
+                  )}
+
+                  {/* Approval Controls */}
+                  <div className="space-y-4 border-t border-white/[0.08] pt-4 text-xs">
+                    <span className="text-slate-400 block font-bold uppercase tracking-wider text-[10px]">
+                      Verification Verdict
+                    </span>
+
+                    {(() => {
+                      const taskBugs = bugs.filter(b => b.crTaskId === selectedTask.id);
+                      const hasActiveUnresolvedBug = taskBugs.some(b => b.status === "OPEN" || b.status === "IN_PROGRESS");
+
+                      if (hasActiveUnresolvedBug) {
+                        return (
+                          <div className="p-4 rounded-xl border border-rose-200 dark:border-rose-500/20 bg-rose-50 dark:bg-rose-500/10 space-y-1.5 shadow-sm text-left">
+                            <span className="font-bold uppercase tracking-wider text-[10px] block text-rose-800 dark:text-rose-400">Testing Blocked</span>
+                            <p className="text-[11px] leading-relaxed text-rose-600 dark:text-rose-200/80">
+                              This CR is currently blocked because a bug has been raised. Verification cannot proceed until the linked bug(s) are resolved by the developer.
+                            </p>
+                          </div>
+                        )
+                      }
+
+                      if (selectedTask.status === "TESTING_COMPLETED") {
+                        return (
+                          <div className="p-4 rounded-xl border border-emerald-200 dark:border-emerald-500/20 bg-emerald-50 dark:bg-emerald-500/10 space-y-1.5 shadow-sm text-left">
+                            <span className="font-bold uppercase tracking-wider text-[10px] block text-emerald-800 dark:text-emerald-400">
+                              {taskBugs.length > 0 ? "Bug Resolved" : "Testing Completed"}
+                            </span>
+                            <p className="text-[11px] leading-relaxed text-emerald-600 dark:text-emerald-200/80">
+                              This CR has successfully passed testing.
+                            </p>
+                            {selectedTask.testingComments && (
+                              <div className="mt-2 pt-2 border-t border-emerald-200 dark:border-emerald-500/10">
+                                <span className="text-[9px] uppercase tracking-wider text-slate-500 dark:text-slate-400 block font-bold">Verification Comments</span>
+                                <p className="text-slate-700 dark:text-slate-200 leading-relaxed text-[10.5px] mt-0.5 whitespace-pre-wrap">{selectedTask.testingComments}</p>
+                              </div>
+                            )}
+                          </div>
+                        )
+                      }
+
+                      return (
+                        <>
+                          <div className="space-y-1.5">
+                            <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Auditor remarks</label>
+                            <input
+                              placeholder="Detail verification results..."
+                              value={remarks}
+                              onChange={(e) => setRemarks(e.target.value)}
+                              className="h-10 w-full bg-white/[0.04] border border-white/[0.10] focus:ring-2 focus:ring-violet-500/30 focus:border-violet-500/50 rounded-xl px-3 py-2 text-xs text-slate-200 focus:outline-none transition-all placeholder:text-slate-500"
+                            />
+                          </div>
+
+                          <div className="flex gap-2">
+                            <Button
+                              className="w-full text-xs h-10 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 border border-emerald-500/20 text-white shadow-lg cursor-pointer font-bold"
+                              variant="glow"
+                              onClick={() => handlePass(selectedTask)}
+                            >
+                              <FileCheck className="mr-1 h-4 w-4" />
+                              UAT Testing Done
+                            </Button>
+                          </div>
+                        </>
+                      )
                     })()}
                   </div>
 
-                  {/* Unit Testing Document Field */}
-                  <div className="space-y-2 text-xs">
-                    <span className="text-slate-400 block font-bold uppercase tracking-wider text-[10px]">
-                      Unit Testing Document
-                    </span>
-                    {selectedTask.unitTestDocUrl ? (
-                      <div className="p-3 rounded-xl border border-white/[0.06] bg-white/[0.01] flex justify-between items-center text-[11px] hover:border-cyan-500/30 transition-colors">
-                        <div className="flex flex-col min-w-0 flex-1 mr-3">
-                          <span className="text-slate-200 truncate font-mono text-[10px] font-bold">{selectedTask.unitTestDocName || 'unit_testing_results.pdf'}</span>
-                          <span className="text-[9px] text-slate-500 mt-0.5">Developer verified</span>
-                        </div>
-                        <Button
-                          variant="link"
-                          size="sm"
-                          className="text-cyan-400 hover:text-cyan-300 font-bold hover:underline shrink-0 p-0 h-auto"
-                          onClick={() => setDownloadTarget({ base64Data: selectedTask.unitTestDocUrl!, defaultFileName: selectedTask.unitTestDocName || 'unit_testing_results.pdf' })}
-                        >
-                          Download
-                        </Button>
-                      </div>
-                    ) : (
-                      <div className="p-3 rounded-xl border border-white/[0.04] bg-white/[0.005] text-slate-500 text-[10.5px] italic text-center">
-                        No Unit Testing document attached.
-                      </div>
-                    )}
-                  </div>
-                </div>
+                  {/* Raise Bug Button — Tester only, disabled once an open/in-progress bug exists or CR is completed */}
+                  {selectedTask.status !== "TESTING_COMPLETED" && selectedTask.status !== "COMPLETED" && (
+                    <div className="border-t border-white/[0.08] pt-4">
+                      {(() => {
+                        const hasActiveBug = bugs.some(b => b.crTaskId === selectedTask.id && (b.status === "OPEN" || b.status === "IN_PROGRESS"))
+                        const hasPendingReview = (bugReviews || []).some(r => r.crTaskId === selectedTask.id && ["PENDING_DEV_REVIEW", "CHALLENGED", "BUG_REVIEW_PENDING"].includes(r.status))
+                        const isBugRaised = hasActiveBug || hasPendingReview
 
+                        return isBugRaised ? (
+                          <div className="w-full text-xs text-slate-500 border border-white/[0.06] rounded-xl flex items-center gap-2 justify-center py-2 px-3 bg-white/[0.01] cursor-not-allowed select-none">
+                            <BugIcon className="h-3.5 w-3.5" />
+                            Bug Already Raised
+                          </div>
+                        ) : (
+                          <Button
+                            variant="ghost"
+                            className="w-full text-xs text-rose-400 hover:text-rose-300 hover:bg-rose-500/10 border border-rose-500/20 rounded-xl flex items-center gap-2 justify-center"
+                            onClick={() => setIsRaiseBugOpen(true)}
+                          >
+                            <BugIcon className="h-3.5 w-3.5" />
+                            Raise Bug Against This CR
+                          </Button>
+                        )
+                      })()}
+                    </div>
+                  )}
+                </>
+              )}
 
-                {/* Attachments Section */}
-                {(selectedTask.status !== "TESTING_COMPLETED" || taskDocs.filter(d => d.docType === 'SUPPORT').length > 0 || selectedTask.screenshotUrl) && (
+              {/* Related Bugs Section */}
+              {(() => {
+                const relatedBugs = bugs.filter(b => b.crTaskId === selectedTask.id)
+                return (
                   <div className="space-y-3 border-t border-white/[0.08] pt-4">
-                    <span className="text-slate-400 block text-[10px] font-bold uppercase tracking-wider">
-                      Proof of testing
+                    <span className="text-slate-400 block text-[10px] font-bold uppercase tracking-wider flex items-center gap-1.5">
+                      <BugIcon className="h-3 w-3 text-rose-400" />
+                      Related Bugs ({relatedBugs.length})
                     </span>
-                    
-                    <input
-                      type="file"
-                      accept="*"
-                      onChange={handleMultipleFilesChange}
-                      id="screenshot-file-input"
-                      multiple
-                      className="hidden"
-                    />
-
-                    {selectedTask.status !== "TESTING_COMPLETED" && (
-                      <button
-                        onClick={() => document.getElementById("screenshot-file-input")?.click()}
-                        className="w-full p-2.5 border border-dashed border-white/[0.10] rounded-xl bg-white/[0.01] hover:bg-white/[0.04] hover:border-violet-500/40 flex flex-col items-center justify-center text-center transition-colors cursor-pointer"
-                      >
-                        <ImageIcon className="h-4.5 w-4.5 text-violet-400 mb-1" />
-                        <span className="text-[9px] font-bold text-slate-300">Upload Proof of Testing</span>
-                      </button>
-                    )}
-
-                    {/* Uploading Files Progress */}
-                    {Object.entries(uploadingFiles).map(([fileName, pct]) => (
-                      <div key={fileName} className="p-2.5 rounded-xl border border-violet-500/20 bg-violet-500/5 space-y-1.5 text-left">
-                        <div className="flex justify-between items-center text-[10px] font-semibold text-violet-300">
-                          <span className="truncate max-w-[180px]">{fileName}</span>
-                          <span>{pct}%</span>
-                        </div>
-                        <div className="w-full bg-white/10 h-1 rounded-full overflow-hidden">
-                          <div className="bg-violet-500 h-full transition-all duration-300" style={{ width: `${pct}%` }} />
-                        </div>
-                      </div>
-                    ))}
-
-                    {/* Uploaded Supporting Documents (Proof of Testing) */}
-                    {taskDocs.filter(d => d.docType === 'SUPPORT').length > 0 && (
-                      <div className="space-y-2 max-h-48 overflow-y-auto pr-1">
-                        {taskDocs.filter(d => d.docType === 'SUPPORT').map(doc => (
-                          <div key={doc.id} className="flex items-center gap-2.5 p-2.5 rounded-xl border border-white/[0.06] bg-white/[0.02]">
-                            <div className="w-8 h-8 rounded-lg flex items-center justify-center border border-white/10 bg-black/40 text-sm shrink-0">
-                              {getFileIcon(doc.filename)}
-                            </div>
-                            <div className="flex-1 min-w-0 text-left">
-                              <span className="block truncate font-mono text-slate-200 text-[10px] font-bold">{doc.filename}</span>
-                              <span className="text-[8px] text-slate-500 font-semibold block mt-0.5">
-                                {doc.uploadedByName ? `By ${doc.uploadedByName}` : 'Attached'}
-                              </span>
-                            </div>
-                            <div className="flex items-center gap-1 shrink-0">
+                    {relatedBugs.length === 0 ? (
+                      <p className="text-[10px] text-slate-500 italic text-center py-2">No bugs raised against this CR.</p>
+                    ) : (
+                      <div className="space-y-2">
+                        {relatedBugs.map(bug => (
+                          <div key={bug.id} className="p-3 rounded-xl border border-white/[0.06] bg-[#0f0f12] space-y-1.5 text-left">
+                            <div className="flex items-center justify-between gap-2">
                               <button
                                 type="button"
-                                onClick={() => downloadDocument(doc.id, doc.filename)}
-                                className="p-1.5 rounded-lg hover:bg-white/10 text-slate-400 hover:text-sky-400 transition-colors"
-                                title="Download"
+                                onClick={() => setSelectedBugDetailId(bug.id)}
+                                className="font-mono text-[10px] font-bold text-rose-400 hover:text-rose-300 hover:underline flex items-center gap-1 transition-all cursor-pointer"
+                                title="Click to view bug details"
                               >
-                                <Download className="h-3.5 w-3.5" />
+                                {bug.jtrackId}
                               </button>
-                              {selectedTask.status !== "TESTING_COMPLETED" && (
-                                <button
-                                  type="button"
-                                  onClick={() => handleDeleteDoc(doc.id, doc.filename)}
-                                  className="p-1.5 rounded-lg hover:bg-rose-500/10 text-slate-500 hover:text-rose-400 transition-colors"
-                                  title="Delete"
-                                >
-                                  <Trash2 className="h-3.5 w-3.5" />
-                                </button>
-                              )}
+                              <div className="flex items-center gap-1.5">
+                                <span className={`px-2 py-0.5 rounded-lg text-[9px] font-bold border ${bug.status === 'OPEN' ? 'text-sky-400 bg-sky-500/10 border-sky-500/20' :
+                                  bug.status === 'RESOLVED' ? 'text-emerald-400 bg-emerald-500/10 border-emerald-500/20' :
+                                    bug.status === 'CLOSED' ? 'text-slate-400 bg-slate-500/10 border-slate-500/20' :
+                                      'text-amber-400 bg-amber-500/10 border-amber-500/20'
+                                  }`}>{bug.status}</span>
+                              </div>
+                            </div>
+                            <p className="text-[10px] text-slate-300 font-semibold truncate">{bug.title}</p>
+                            <div className="flex justify-between text-[9px] text-slate-500">
+                              <span>By {bug.raisedBy?.fullName || "—"}</span>
+                              <span>{bug.createdDate ? fmtDate(bug.createdDate) : "—"}</span>
                             </div>
                           </div>
                         ))}
                       </div>
                     )}
-
-                    {/* Legacy screenshot preview */}
-                    {selectedTask.screenshotUrl && (
-                      <div className="mt-2 flex items-center gap-2.5 p-2.5 rounded-xl border border-white/[0.06] bg-white/[0.02]">
-                        {(() => {
-                          const isImg = selectedTask.screenshotUrl?.startsWith("data:image/") || /\.(png|jpe?g|gif|webp)$/i.test(selectedTask.screenshotName || "")
-                          return isImg ? (
-                            <div className="w-12 h-12 rounded-lg overflow-hidden border border-white/10 shrink-0 bg-black/40">
-                              <img src={selectedTask.screenshotUrl} alt={selectedTask.screenshotName} className="w-full h-full object-cover" />
-                            </div>
-                          ) : (
-                            <div className="w-12 h-12 rounded-lg flex items-center justify-center border border-white/10 bg-black/40 text-lg shrink-0">
-                              {getFileIcon(selectedTask.screenshotName || "")}
-                            </div>
-                          )
-                        })()}
-                        <div className="flex-1 min-w-0 text-left">
-                          <span className="block truncate font-mono text-slate-200 text-[11px]">{selectedTask.screenshotName}</span>
-                          <span className="text-[9px] text-slate-500 font-semibold uppercase tracking-wider block mt-0.5">Proof of Testing (Legacy)</span>
-                        </div>
-                        <div className="flex items-center gap-1 shrink-0">
-                          <button
-                            type="button"
-                            onClick={() => setDownloadTarget({ base64Data: selectedTask.screenshotUrl!, defaultFileName: selectedTask.screenshotName || "proof_of_testing.png" })}
-                            className="p-1.5 rounded-lg hover:bg-white/10 text-slate-400 hover:text-sky-400 transition-colors"
-                            title="Download"
-                          >
-                            <Download className="h-4 w-4" />
-                          </button>
-                          {selectedTask.status !== "TESTING_COMPLETED" && (
-                            <button
-                              type="button"
-                              onClick={() => {
-                                updateTask(selectedTask.id, { screenshotUrl: undefined, screenshotName: undefined }, "Removed proof of testing attachment", user!)
-                                  .then((updated: any) => {
-                                    setSelectedTask(updated)
-                                    addToast("Attachment removed successfully!", "info")
-                                  })
-                              }}
-                              className="p-1.5 rounded-lg hover:bg-rose-500/10 text-slate-500 hover:text-rose-400 transition-colors"
-                              title="Delete"
-                            >
-                              <Trash2 className="h-4 w-4" />
-                            </button>
-                          )}
-                        </div>
-                      </div>
-                    )}
-
                   </div>
-                )}
-
-                {/* Approval Controls */}
-                <div className="space-y-4 border-t border-white/[0.08] pt-4 text-xs">
-                  <span className="text-slate-400 block font-bold uppercase tracking-wider text-[10px]">
-                    Verification Verdict
-                  </span>
-
-                  {(() => {
-                    const taskBugs = bugs.filter(b => b.crTaskId === selectedTask.id);
-                    const hasActiveUnresolvedBug = taskBugs.some(b => b.status === "OPEN" || b.status === "IN_PROGRESS");
-                    
-                    if (hasActiveUnresolvedBug) {
-                      return (
-                        <div className="p-4 rounded-xl border border-rose-200 dark:border-rose-500/20 bg-rose-50 dark:bg-rose-500/10 space-y-1.5 shadow-sm text-left">
-                          <span className="font-bold uppercase tracking-wider text-[10px] block text-rose-800 dark:text-rose-400">Testing Blocked</span>
-                          <p className="text-[11px] leading-relaxed text-rose-600 dark:text-rose-200/80">
-                            This CR is currently blocked because a bug has been raised. Verification cannot proceed until the linked bug(s) are resolved by the developer.
-                          </p>
-                        </div>
-                      )
-                    }
-
-                    if (selectedTask.status === "TESTING_COMPLETED") {
-                      return (
-                        <div className="p-4 rounded-xl border border-emerald-200 dark:border-emerald-500/20 bg-emerald-50 dark:bg-emerald-500/10 space-y-1.5 shadow-sm text-left">
-                          <span className="font-bold uppercase tracking-wider text-[10px] block text-emerald-800 dark:text-emerald-400">
-                            {taskBugs.length > 0 ? "Bug Resolved" : "Testing Completed"}
-                          </span>
-                          <p className="text-[11px] leading-relaxed text-emerald-600 dark:text-emerald-200/80">
-                            This CR has successfully passed testing.
-                          </p>
-                          {selectedTask.testingComments && (
-                            <div className="mt-2 pt-2 border-t border-emerald-200 dark:border-emerald-500/10">
-                              <span className="text-[9px] uppercase tracking-wider text-slate-500 dark:text-slate-400 block font-bold">Verification Comments</span>
-                              <p className="text-slate-700 dark:text-slate-200 leading-relaxed text-[10.5px] mt-0.5 whitespace-pre-wrap">{selectedTask.testingComments}</p>
-                            </div>
-                          )}
-                        </div>
-                      )
-                    }
-
-                    return (
-                      <>
-                        <div className="space-y-1.5">
-                          <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Auditor remarks</label>
-                          <input
-                            placeholder="Detail verification results..."
-                            value={remarks}
-                            onChange={(e) => setRemarks(e.target.value)}
-                            className="h-10 w-full bg-white/[0.04] border border-white/[0.10] focus:ring-2 focus:ring-violet-500/30 focus:border-violet-500/50 rounded-xl px-3 py-2 text-xs text-slate-200 focus:outline-none transition-all placeholder:text-slate-500"
-                          />
-                        </div>
-
-                        <div className="flex gap-2">
-                          <Button
-                            className="w-full text-xs h-10 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 border border-emerald-500/20 text-white shadow-lg cursor-pointer font-bold"
-                            variant="glow"
-                            onClick={() => handlePass(selectedTask)}
-                          >
-                            <FileCheck className="mr-1 h-4 w-4" />
-                            UAT Testing Done
-                          </Button>
-                        </div>
-                      </>
-                    )
-                  })()}
-                </div>
-
-                {/* Raise Bug Button — Tester only, disabled once an open/in-progress bug exists or CR is completed */}
-                {selectedTask.status !== "TESTING_COMPLETED" && selectedTask.status !== "COMPLETED" && (
-                  <div className="border-t border-white/[0.08] pt-4">
-                    {(() => {
-                      const hasActiveBug = bugs.some(b => b.crTaskId === selectedTask.id && (b.status === "OPEN" || b.status === "IN_PROGRESS"))
-                      const hasPendingReview = (bugReviews || []).some(r => r.crTaskId === selectedTask.id && ["PENDING_DEV_REVIEW", "CHALLENGED", "BUG_REVIEW_PENDING"].includes(r.status))
-                      const isBugRaised = hasActiveBug || hasPendingReview
-
-                      return isBugRaised ? (
-                        <div className="w-full text-xs text-slate-500 border border-white/[0.06] rounded-xl flex items-center gap-2 justify-center py-2 px-3 bg-white/[0.01] cursor-not-allowed select-none">
-                          <BugIcon className="h-3.5 w-3.5" />
-                          Bug Already Raised
-                        </div>
-                      ) : (
-                        <Button
-                          variant="ghost"
-                          className="w-full text-xs text-rose-400 hover:text-rose-300 hover:bg-rose-500/10 border border-rose-500/20 rounded-xl flex items-center gap-2 justify-center"
-                          onClick={() => setIsRaiseBugOpen(true)}
-                        >
-                          <BugIcon className="h-3.5 w-3.5" />
-                          Raise Bug Against This CR
-                        </Button>
-                      )
-                    })()}
-                  </div>
-                )}
-              </>
-            )}
-
-            {/* Related Bugs Section */}
-            {(() => {
-              const relatedBugs = bugs.filter(b => b.crTaskId === selectedTask.id)
-              return (
-                <div className="space-y-3 border-t border-white/[0.08] pt-4">
-                  <span className="text-slate-400 block text-[10px] font-bold uppercase tracking-wider flex items-center gap-1.5">
-                    <BugIcon className="h-3 w-3 text-rose-400" />
-                    Related Bugs ({relatedBugs.length})
-                  </span>
-                  {relatedBugs.length === 0 ? (
-                    <p className="text-[10px] text-slate-500 italic text-center py-2">No bugs raised against this CR.</p>
-                  ) : (
-                    <div className="space-y-2">
-                      {relatedBugs.map(bug => (
-                        <div key={bug.id} className="p-3 rounded-xl border border-white/[0.06] bg-[#0f0f12] space-y-1.5 text-left">
-                          <div className="flex items-center justify-between gap-2">
-                            <button
-                              type="button"
-                              onClick={() => setSelectedBugDetailId(bug.id)}
-                              className="font-mono text-[10px] font-bold text-rose-400 hover:text-rose-300 hover:underline flex items-center gap-1 transition-all cursor-pointer"
-                              title="Click to view bug details"
-                            >
-                              {bug.jtrackId}
-                            </button>
-                            <div className="flex items-center gap-1.5">
-                              <span className={`px-2 py-0.5 rounded-lg text-[9px] font-bold border ${
-                                bug.status === 'OPEN' ? 'text-sky-400 bg-sky-500/10 border-sky-500/20' :
-                                bug.status === 'RESOLVED' ? 'text-emerald-400 bg-emerald-500/10 border-emerald-500/20' :
-                                bug.status === 'CLOSED' ? 'text-slate-400 bg-slate-500/10 border-slate-500/20' :
-                                'text-amber-400 bg-amber-500/10 border-amber-500/20'
-                              }`}>{bug.status}</span>
-                            </div>
-                          </div>
-                          <p className="text-[10px] text-slate-300 font-semibold truncate">{bug.title}</p>
-                          <div className="flex justify-between text-[9px] text-slate-500">
-                            <span>By {bug.raisedBy?.fullName || "—"}</span>
-                            <span>{bug.createdDate ? fmtDate(bug.createdDate) : "—"}</span>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              )
-            })()}
+                )
+              })()}
             </motion.div>
           </div>
         )}
@@ -1156,119 +1145,119 @@ export default function TesterDashboard() {
               exit={{ opacity: 0, scale: 0.95 }}
               className="bg-[#161619] border border-white/[0.08] w-full max-w-lg rounded-3xl p-6 space-y-5 text-xs text-zinc-300 shadow-2xl relative max-h-[90vh] overflow-y-auto"
             >
-            <div className="flex items-center justify-between border-b border-white/[0.08] pb-3.5">
-              <div>
-                <span className="font-mono text-xs font-bold text-rose-400 tracking-wider">
-                  {selectedReview.crJtrackId || "CR"}
-                </span>
-                <h3 className="font-black text-slate-100 text-sm tracking-tight truncate max-w-[200px] mt-0.5">
-                  {selectedReview.title}
-                </h3>
+              <div className="flex items-center justify-between border-b border-white/[0.08] pb-3.5">
+                <div>
+                  <span className="font-mono text-xs font-bold text-rose-400 tracking-wider">
+                    {selectedReview.crJtrackId || "CR"}
+                  </span>
+                  <h3 className="font-black text-slate-100 text-sm tracking-tight truncate max-w-[200px] mt-0.5">
+                    {selectedReview.title}
+                  </h3>
+                </div>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-8 w-8 rounded-xl hover:bg-white/[0.06] text-slate-400 hover:text-slate-200 transition-colors"
+                  onClick={() => setSelectedReview(null)}
+                >
+                  <X className="h-4 w-4" />
+                </Button>
               </div>
-              <Button
-                variant="ghost"
-                size="icon"
-                className="h-8 w-8 rounded-xl hover:bg-white/[0.06] text-slate-400 hover:text-slate-200 transition-colors"
-                onClick={() => setSelectedReview(null)}
-              >
-                <X className="h-4 w-4" />
-              </Button>
-            </div>
 
-            <div className="space-y-2 text-xs">
-              <span className="text-slate-400 block font-bold uppercase tracking-wider text-[10px]">
-                Proposed Bug Description
-              </span>
-              <p className="p-3.5 rounded-xl border border-white/[0.06] bg-white/[0.01] leading-relaxed text-[11px] text-slate-300">
-                {selectedReview.description}
-              </p>
-            </div>
+              <div className="space-y-2 text-xs">
+                <span className="text-slate-400 block font-bold uppercase tracking-wider text-[10px]">
+                  Proposed Bug Description
+                </span>
+                <p className="p-3.5 rounded-xl border border-white/[0.06] bg-white/[0.01] leading-relaxed text-[11px] text-slate-300">
+                  {selectedReview.description}
+                </p>
+              </div>
 
-            {/* Developer Rejection Details */}
-            <div className="space-y-3 border-t border-white/[0.08] pt-4 text-xs">
-              <span className="text-rose-400 block font-bold uppercase tracking-wider text-[10px]">
-                Developer Rejection Details
-              </span>
-              
-              <div className="p-3.5 rounded-xl border border-rose-500/20 bg-rose-500/5 space-y-2">
-                <div>
-                  <span className="text-slate-400 block text-[9px] uppercase tracking-wider font-bold">Reason</span>
-                  <span className="text-rose-300 font-semibold">{selectedReview.rejectionReason || "Not specified"}</span>
-                </div>
-                <div>
-                  <span className="text-slate-400 block text-[9px] uppercase tracking-wider font-bold">Justification / Explanation</span>
-                  <p className="text-slate-200 leading-relaxed text-[11px] mt-0.5">
-                    {selectedReview.justification || "No explanation provided."}
-                  </p>
-                </div>
-                {selectedReview.evidenceNote && (
+              {/* Developer Rejection Details */}
+              <div className="space-y-3 border-t border-white/[0.08] pt-4 text-xs">
+                <span className="text-rose-400 block font-bold uppercase tracking-wider text-[10px]">
+                  Developer Rejection Details
+                </span>
+
+                <div className="p-3.5 rounded-xl border border-rose-500/20 bg-rose-500/5 space-y-2">
                   <div>
-                    <span className="text-slate-400 block text-[9px] uppercase tracking-wider font-bold">Evidence Note</span>
+                    <span className="text-slate-400 block text-[9px] uppercase tracking-wider font-bold">Reason</span>
+                    <span className="text-rose-300 font-semibold">{selectedReview.rejectionReason || "Not specified"}</span>
+                  </div>
+                  <div>
+                    <span className="text-slate-400 block text-[9px] uppercase tracking-wider font-bold">Justification / Explanation</span>
                     <p className="text-slate-200 leading-relaxed text-[11px] mt-0.5">
-                      {selectedReview.evidenceNote}
+                      {selectedReview.justification || "No explanation provided."}
                     </p>
                   </div>
-                )}
+                  {selectedReview.evidenceNote && (
+                    <div>
+                      <span className="text-slate-400 block text-[9px] uppercase tracking-wider font-bold">Evidence Note</span>
+                      <p className="text-slate-200 leading-relaxed text-[11px] mt-0.5">
+                        {selectedReview.evidenceNote}
+                      </p>
+                    </div>
+                  )}
+                </div>
               </div>
-            </div>
 
-            {/* Rejection Actions */}
-            <div className="space-y-3 border-t border-white/[0.08] pt-4 text-xs">
-              <span className="text-slate-400 block font-bold uppercase tracking-wider text-[10px]">
-                Rejection Action Verdict
-              </span>
-              
-              <div className="flex flex-col gap-2.5">
-                <Button
-                  className="w-full text-xs h-9 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 border border-emerald-500/20 text-white font-bold"
-                  onClick={() => {
-                    testerAcceptExplanation(selectedReview.id)
-                      .then(() => {
-                        addToast("Developer explanation accepted. Review closed.", "success");
-                        setSelectedReview(null);
-                        fetchData();
-                      })
-                      .catch(err => addToast(err?.message || "Failed to accept explanation", "error"));
-                  }}
-                >
-                  Accept Explanation
-                </Button>
+              {/* Rejection Actions */}
+              <div className="space-y-3 border-t border-white/[0.08] pt-4 text-xs">
+                <span className="text-slate-400 block font-bold uppercase tracking-wider text-[10px]">
+                  Rejection Action Verdict
+                </span>
 
-                <Button
-                  className="w-full text-xs h-9 rounded-xl bg-gradient-to-r from-amber-600 to-orange-600 hover:from-amber-500 hover:to-orange-500 border border-amber-500/20 text-white font-bold"
-                  onClick={() => {
-                    testerRaiseAgain(selectedReview.id)
-                      .then(() => {
-                        addToast("Bug raised again for Developer Review.", "success");
-                        setSelectedReview(null);
-                        fetchData();
-                      })
-                      .catch(err => addToast(err?.message || "Failed to raise bug again", "error"));
-                  }}
-                >
-                  Raise Again
-                </Button>
+                <div className="flex flex-col gap-2.5">
+                  <Button
+                    className="w-full text-xs h-9 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 border border-emerald-500/20 text-white font-bold"
+                    onClick={() => {
+                      testerAcceptExplanation(selectedReview.id)
+                        .then(() => {
+                          addToast("Developer explanation accepted. Review closed.", "success");
+                          setSelectedReview(null);
+                          fetchData();
+                        })
+                        .catch(err => addToast(err?.message || "Failed to accept explanation", "error"));
+                    }}
+                  >
+                    Accept Explanation
+                  </Button>
 
-                <Button
-                  className="w-full text-xs h-9 rounded-xl bg-gradient-to-r from-rose-600 to-indigo-600 hover:from-rose-500 hover:to-indigo-500 border border-rose-500/20 text-white font-bold animate-pulse"
-                  onClick={() => {
-                    testerChallenge(selectedReview.id)
-                      .then(() => {
-                        addToast("Rejection challenged. Sent to Admin Review.", "info");
-                        setSelectedReview(null);
-                        fetchData();
-                      })
-                      .catch(err => addToast(err?.message || "Failed to challenge rejection", "error"));
-                  }}
-                >
-                  Challenge Rejection
-                </Button>
+                  <Button
+                    className="w-full text-xs h-9 rounded-xl bg-gradient-to-r from-amber-600 to-orange-600 hover:from-amber-500 hover:to-orange-500 border border-amber-500/20 text-white font-bold"
+                    onClick={() => {
+                      testerRaiseAgain(selectedReview.id)
+                        .then(() => {
+                          addToast("Bug raised again for Developer Review.", "success");
+                          setSelectedReview(null);
+                          fetchData();
+                        })
+                        .catch(err => addToast(err?.message || "Failed to raise bug again", "error"));
+                    }}
+                  >
+                    Raise Again
+                  </Button>
+
+                  <Button
+                    className="w-full text-xs h-9 rounded-xl bg-gradient-to-r from-rose-600 to-indigo-600 hover:from-rose-500 hover:to-indigo-500 border border-rose-500/20 text-white font-bold animate-pulse"
+                    onClick={() => {
+                      testerChallenge(selectedReview.id)
+                        .then(() => {
+                          addToast("Rejection challenged. Sent to Admin Review.", "info");
+                          setSelectedReview(null);
+                          fetchData();
+                        })
+                        .catch(err => addToast(err?.message || "Failed to challenge rejection", "error"));
+                    }}
+                  >
+                    Challenge Rejection
+                  </Button>
+                </div>
               </div>
-            </div>
-          </motion.div>
-        </div>
-      )}
-    </AnimatePresence>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
 
       {/* Bug Logger Dialog Form */}
       <AnimatePresence>
@@ -1431,7 +1420,7 @@ export default function TesterDashboard() {
               <p className="text-xs text-slate-300">
                 Testing completed successfully for <span className="font-mono text-sky-400">{taskToPass.jtrackId}</span>. Please choose the completion rules for its linked open Sprint Tasks:
               </p>
-              
+
               <div className="space-y-4 max-h-60 overflow-y-auto pr-1">
                 {((taskToPass as any).sprintTasks || []).filter((st: any) => st.status !== "COMPLETED").map((st: any) => (
                   <div key={st.id} className="p-3.5 rounded-xl bg-white/[0.02] border border-white/5 space-y-2">

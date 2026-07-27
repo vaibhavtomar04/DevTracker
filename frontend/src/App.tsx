@@ -2,7 +2,6 @@ import React, { Component, lazy, Suspense, useEffect } from "react"
 import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom"
 import { useAuthStore } from "@/store/authStore"
 import { useThemeStore } from "@/store/themeStore"
-import DashboardLayout from "@/layouts/DashboardLayout"
 import DownloadPromptModal from "@/components/shared/DownloadPromptModal"
 import { APP_CONFIG } from "@/config/appConfig"
 
@@ -28,6 +27,7 @@ const TestedCrsPage = lazy(() => import("@/pages/testedCrs"))
 const MissedDeadlinesPage = lazy(() => import("@/pages/missedDeadlines"))
 const RecognitionPage = lazy(() => import("@/pages/recognition"))
 const LeaderboardPage = lazy(() => import("@/pages/leaderboard"))
+const DashboardLayout = lazy(() => import("@/layouts/DashboardLayout"))
 
 // Dynamic main workspace redirect depending on user roles
 function RoleBasedWorkspace() {
@@ -39,7 +39,7 @@ function RoleBasedWorkspace() {
   if (user.roles.includes("DEVADMIN") || user.roles.includes("CODEREVIEWER")) {
     return <AdminDashboard />
   }
-  
+
   // DEVELOPER landing
   if (user.roles.includes("DEVELOPER")) {
     return <DeveloperDashboard />
@@ -77,7 +77,7 @@ function ProtectedRoute({ children, allowedRoles }: ProtectedRouteProps) {
   if (allowedRoles && !allowedRoles.some(role => user.roles.includes(role))) {
     return <Navigate to="/dashboard" replace />
   }
-  
+
   return <DashboardLayout>{children}</DashboardLayout>
 }
 
@@ -90,7 +90,7 @@ function LoadingSpinner() {
     <div className="min-h-screen bg-background flex flex-col items-center justify-center text-foreground overflow-hidden relative">
       {/* Background ambient orbs */}
       <div className="absolute w-72 h-72 bg-primary/10 rounded-full blur-[100px]" />
-      
+
       <div className="relative flex flex-col items-center z-10">
         {/* Pulsing rings and icon */}
         <div className="relative h-16 w-16 mb-6 flex items-center justify-center">
@@ -255,7 +255,7 @@ function App() {
                 )
               }
             />
-            
+
             {/* Set New Password — forced first-login password reset */}
             <Route path="/set-new-password" element={<SetNewPasswordPage />} />
 
@@ -271,7 +271,7 @@ function App() {
                 </ProtectedRoute>
               }
             />
-            
+
             <Route
               path="/dashboard/crs"
               element={
@@ -280,7 +280,7 @@ function App() {
                 </ProtectedRoute>
               }
             />
-            
+
             <Route
               path="/dashboard/code-review"
               element={

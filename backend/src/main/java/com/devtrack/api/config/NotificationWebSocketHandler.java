@@ -5,7 +5,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 import org.springframework.web.socket.*;
 import org.springframework.web.socket.handler.TextWebSocketHandler;
-
+import java.util.ArrayList;
 import java.io.IOException;
 import java.util.List;
 import java.util.Map;
@@ -73,27 +73,44 @@ public class NotificationWebSocketHandler extends TextWebSocketHandler {
      * Silently skips closed sessions and removes them.
      */
     public void sendToUser(Long userId, Object payload) {
-        List<WebSocketSession> sessions = userSessions.get(userId);
-        if (sessions == null || sessions.isEmpty()) {
-            log.debug("WS: No active sessions for userId={}, notification will be fetched on next poll", userId);
-            return;
+    List<WebSocketSession> sessions = userSessions.get(userId);
+    if (sessions == null || sessions.isEmpty()) {
+        log.debug("WS: No active sessions for userId={}, notification will be fetched on next poll", userId);
+        return;
+    }
+    final String json;
+    try {
+        json = objectMapper.writeValueAsString(payload);
+    } catch (Exception e) {
+        log.error("WS serialization error for userId={}: {}", userId, e.getMessage());
+        return;
+    }
+    TextMessage message = new TextMessage(json);
+    List<WebSocketSession> dead = new ArrayList<>();
+    for (WebSocketSession session : sessions) {
+        if (!session.isOpen()) {
+            dead.add(session);
+            continue;
         }
         try {
-            String json = objectMapper.writeValueAsString(payload);
-            TextMessage message = new TextMessage(json);
-            for (WebSocketSession session : sessions) {
-                if (session.isOpen()) {
-                    try {
-                        session.sendMessage(message);
-                    } catch (IOException e) {
-                        log.warn("WS send failed: sessionId={} userId={} error={}", session.getId(), userId, e.getMessage());
-                    }
-                }
-            }
-        } catch (Exception e) {
-            log.error("WS serialization error for userId={}: {}", userId, e.getMessage());
+            session.sendMessage(message);
+        } catch (IOException e) {
+            log.warn("WS send failed: sessionId={} userId={} error={}", session.getId(), userId, e.getMessage());
+            dead.add(session);
         }
     }
+    if (!dead.isEmpty()) {
+        sessions.removeAll(dead);
+        for (WebSocketSession s : dead) {
+            try { if (s.isOpen()) s.close(CloseStatus.SERVER_ERROR); } catch (IOException ignored) {}
+        }
+        // Drop the key only if it still maps to this now-empty list (avoids racing a fresh connection).
+        if (sessions.isEmpty()) {
+            userSessions.remove(userId, sessions);
+        }
+        log.debug("WS reaped {} dead session(s) for userId={} remaining={}", dead.size(), userId, sessions.size());
+    }
+}
 
     /** Broadcast a message to all connected users (e.g., system announcements). */
     public void broadcast(Object payload) {
