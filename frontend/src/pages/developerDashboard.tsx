@@ -466,6 +466,7 @@ export default function DeveloperDashboard() {
     if (!user?.id) return false;
     if (t.assignedDeveloper?.id === user.id) return true;
     if (t.tester?.id === user.id) return true;
+    if (t.createdBy?.id === user.id) return true;
     if (t.developers && Array.isArray(t.developers)) {
       return t.developers.some((d: any) => d.developer?.id === user.id);
     }

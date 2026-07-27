@@ -233,14 +233,17 @@ public interface TaskRepository extends JpaRepository<Task, Long>, org.springfra
         SELECT COUNT(DISTINCT t.id) FROM tasks t
         WHERE (t.assigned_developer_id = :userId
                OR t.tester_id = :userId
+               OR t.created_by_id = :userId
                OR EXISTS (SELECT 1 FROM task_developers td WHERE td.task_id = t.id AND td.developer_id = :userId))
-          AND t.status NOT IN ('CLOSED', 'PROD_COMPLETED')
+          AND t.status NOT IN ('CLOSED', 'PROD_COMPLETED', 'PROD_DEPLOYED')
         """, nativeQuery = true)
     long countActiveCrsForUser(@Param("userId") Long userId);
 
     @Query(value = """
         SELECT COUNT(DISTINCT t.id) FROM tasks t
         WHERE (t.assigned_developer_id = :userId
+               OR t.tester_id = :userId
+               OR t.created_by_id = :userId
                OR EXISTS (SELECT 1 FROM task_developers td WHERE td.task_id = t.id AND td.developer_id = :userId))
           AND t.status IN ('PENDING_APPROVAL','CODE_REVIEW')
         """, nativeQuery = true)
@@ -250,6 +253,7 @@ public interface TaskRepository extends JpaRepository<Task, Long>, org.springfra
         SELECT COUNT(DISTINCT t.id) FROM tasks t
         WHERE (t.assigned_developer_id = :userId
                OR t.tester_id = :userId
+               OR t.created_by_id = :userId
                OR EXISTS (SELECT 1 FROM task_developers td WHERE td.task_id = t.id AND td.developer_id = :userId))
           AND t.status IN ('PROD_COMPLETED','CLOSED','PROD_DEPLOYED')
         """, nativeQuery = true)
