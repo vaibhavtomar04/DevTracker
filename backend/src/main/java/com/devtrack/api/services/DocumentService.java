@@ -332,7 +332,15 @@ public class DocumentService {
         audit.setFieldName(action);
         audit.setOldValue(oldValue != null ? oldValue : "");
         audit.setNewValue(newValue != null ? newValue : "");
-        audit.setChangedBy(actor);
+        
+        if (actor != null && actor.getId() != null) {
+            User attachedActor = userRepository.findById(actor.getId()).orElse(actor);
+            audit.setChangedBy(attachedActor);
+        } else {
+            audit.setChangedBy(actor);
+        }
+
+        AuditLogHelper.enrich(audit);
         auditLogRepository.save(audit);
     }
 }
