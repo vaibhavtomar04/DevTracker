@@ -92,6 +92,11 @@ interface TaskState {
   // Fetching
   fetchData: (force?: boolean) => Promise<void>
   fetchUsers: () => Promise<void>
+  // Phase A — event-driven single-entity sync (no collection refetch)
+  syncTaskById: (id: number) => Promise<void>
+  removeTaskById: (id: number) => void
+  syncBugById: (id: number) => Promise<void>
+  removeBugById: (id: number) => void
   fetchSprintTasks: (sprintId?: number) => Promise<void>
   createSprintTask: (sprintTaskData: any) => Promise<SprintTask>
   updateSprintTask: (id: number, sprintTaskData: any) => Promise<SprintTask>
@@ -310,6 +315,65 @@ export const useTaskStore = create<TaskState>((set, get) => ({
       console.error("Failed to fetch users:", err)
     }
   },
+
+  // ── Phase A: surgical per-entity sync driven by ENTITY_EVENT frames ──────
+  // Fetches ONLY the affected row and upserts it. Never refetches a collection.
+  syncTaskById: async (id: number) => {
+    const TERMINAL = ["CLOSED", "PROD_COMPLETED"]
+    try {
+      const fresh: Task = await apiClient(`/api/tasks/${id}`)
+      if (fresh && fresh.id) {
+        set(state => {
+          // Match the default list query, which excludes terminal statuses.
+          if (fresh.status && TERMINAL.includes(fresh.status)) {
+            return { tasks: state.tasks.filter(t => t.id !== fresh.id) }
+          }
+          const exists = state.tasks.some(t => t.id === fresh.id)
+          return {
+            tasks: exists
+              ? state.tasks.map(t => (t.id === fresh.id ? fresh : t))
+              : [fresh, ...state.tasks],
+          }
+        })
+      }
+    } catch (err: any) {
+      const status = err?.status || err?.response?.status || 0
+      if (status === 404) {
+        set(state => ({ tasks: state.tasks.filter(t => t.id !== id) }))
+      } else {
+        console.error(`Failed to sync task ${id}:`, err)
+      }
+    }
+  },
+
+  removeTaskById: (id: number) =>
+    set(state => ({ tasks: state.tasks.filter(t => t.id !== id) })),
+
+  syncBugById: async (id: number) => {
+    try {
+      const fresh: Bug = await apiClient(`/api/bugs/${id}`)
+      if (fresh && fresh.id) {
+        set(state => {
+          const exists = state.bugs.some(b => b.id === fresh.id)
+          return {
+            bugs: exists
+              ? state.bugs.map(b => (b.id === fresh.id ? fresh : b))
+              : [fresh, ...state.bugs],
+          }
+        })
+      }
+    } catch (err: any) {
+      const status = err?.status || err?.response?.status || 0
+      if (status === 404) {
+        set(state => ({ bugs: state.bugs.filter(b => b.id !== id) }))
+      } else {
+        console.error(`Failed to sync bug ${id}:`, err)
+      }
+    }
+  },
+
+  removeBugById: (id: number) =>
+    set(state => ({ bugs: state.bugs.filter(b => b.id !== id) })),
 
   createTask: async (taskData) => {
     const newTask: Task = await apiClient("/api/tasks", {

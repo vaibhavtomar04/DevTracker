@@ -78,6 +78,7 @@ public class Document {
         BRD,       // Business Requirement Document
         API_DOC,   // API Specification Document
         DESIGN,    // Design Document
-        SUPPORT    // Supporting / miscellaneous file
+        SUPPORT,   // Supporting / miscellaneous file
+        UNIT_TEST  // Unit Test Evidence / Coverage Document
     }
 }

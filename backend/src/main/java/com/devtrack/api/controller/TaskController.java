@@ -111,6 +111,9 @@ public class TaskController {
     @Autowired
     private com.devtrack.api.event.DomainEventPublisher domainEventPublisher;
 
+    @Autowired
+    private com.devtrack.api.services.DocumentService documentService;
+
     TaskController(EmailNotificationService emailNotificationService) {
         this.emailNotificationService = emailNotificationService;
     }
@@ -163,12 +166,19 @@ public Page<TaskListDto> downloadTasks(@RequestParam(required = false) String st
 }
 
     @GetMapping("/{id}")
-public ResponseEntity<TaskListDto> getTaskById(@PathVariable Long id) {
-    return taskRepository.findByIdOptimized(id)
-            .map(TaskMapper::toListDto)
-            .map(ResponseEntity::ok)
-            .orElse(ResponseEntity.notFound().build());
-}
+    public ResponseEntity<TaskListDto> getTaskById(@PathVariable Long id) {
+        return taskRepository.findByIdOptimized(id)
+                .map(TaskMapper::toListDto)
+                .map(ResponseEntity::ok)
+                .orElse(ResponseEntity.notFound().build());
+    }
+
+    @GetMapping("/{id}/detail")
+    public ResponseEntity<com.devtrack.api.dto.TaskDetailDto> getTaskDetail(@PathVariable Long id) {
+        Task t = taskRepository.findByIdOptimized(id)
+            .orElseThrow(() -> new org.springframework.web.server.ResponseStatusException(org.springframework.http.HttpStatus.NOT_FOUND, "Task not found: " + id));
+        return ResponseEntity.ok(TaskMapper.toDetailDto(t)); 
+    }
 
 
     @PostMapping("/batch-details")
@@ -482,16 +492,11 @@ if (currentTargetStatus.equals("UAT_COMPLETED") && task.getUatCompletedDate() ==
                         task.setCodeReviewComments(taskDetails.getCodeReviewComments());
                     }
                     // Persist unit testing document if provided
-                    if (taskDetails.getUnitTestDocUrl() != null) {
-                        task.setUnitTestDocUrl(taskDetails.getUnitTestDocUrl());
+                    if (taskDetails.getUnitTestDocId() != null) {
+                        task.setUnitTestDocId(taskDetails.getUnitTestDocId());
                     }
                     if (taskDetails.getUnitTestDocName() != null) {
                         task.setUnitTestDocName(taskDetails.getUnitTestDocName());
-                    }
-                    // Allow clearing the unit test document (e.g. empty string to remove)
-                    if ("".equals(taskDetails.getUnitTestDocUrl())) {
-                        task.setUnitTestDocUrl(null);
-                        task.setUnitTestDocName(null);
                     }
 
                     if (taskDetails.getDeploymentNote() != null) {
@@ -642,7 +647,7 @@ if (currentTargetStatus.equals("UAT_COMPLETED") && task.getUatCompletedDate() ==
                                 }
                             }
 
-                            if (("TESTING_POOL".equalsIgnoreCase(savedFinal.getStatus()) || "UAT_TESTING".equalsIgnoreCase(savedFinal.getStatus())) && savedFinal.getUnitTestDocUrl() != null) {
+                            if (("TESTING_POOL".equalsIgnoreCase(savedFinal.getStatus()) || "UAT_TESTING".equalsIgnoreCase(savedFinal.getStatus())) && savedFinal.getUnitTestDocId() != null) {
                                 try {
                                     emailNotificationService.sendMailForUatTesting(savedFinal, remarksForNotif != null ? remarksForNotif : "CR Pushed to UAT", currentUserFinal);
                                 } catch (Exception e) {
@@ -1052,25 +1057,12 @@ if (task.getUatCompletedDate() == null) {
     public ResponseEntity<byte[]> downloadUnitTestDoc(@PathVariable Long id) {
         return taskRepository.findById(id)
                 .map(task -> {
-                    String dataUrl = task.getUnitTestDocUrl();
-                    if (dataUrl != null && dataUrl.startsWith("data:")) {
-                        int commaIndex = dataUrl.indexOf(",");
-                        if (commaIndex != -1) {
-                            String metadata = dataUrl.substring(0, commaIndex);
-                            String mimeType = "application/pdf";
-                            if (metadata.contains(";") && metadata.startsWith("data:")) {
-                                mimeType = metadata.substring(5, metadata.indexOf(";"));
-                            }
-                            String base64Bytes = dataUrl.substring(commaIndex + 1);
-                            byte[] bytes = java.util.Base64.getDecoder().decode(base64Bytes.trim());
-                            
-                            String filename = task.getUnitTestDocName() != null ? task.getUnitTestDocName() : "unit-test-document.pdf";
-                            
-                            return ResponseEntity.ok()
-                                    .header(org.springframework.http.HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + filename + "\"")
-                                    .contentType(org.springframework.http.MediaType.parseMediaType(mimeType))
-                                    .body(bytes);
-                        }
+                    if (task.getUnitTestDocId() != null) {
+                        com.devtrack.api.services.DocumentService.DocumentPayload p = documentService.loadForRender(task.getUnitTestDocId());
+                        return ResponseEntity.ok()
+                                .header(org.springframework.http.HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + p.meta().getFilename() + "\"")
+                                .contentType(org.springframework.http.MediaType.parseMediaType(p.meta().getContentType()))
+                                .body(p.data());
                     }
                     return ResponseEntity.notFound().<byte[]>build();
                 })
@@ -1447,7 +1439,7 @@ public List<TaskListDto> getTasksByStepType(@RequestParam String type) {
             	emailNotificationService.sendMailOnCodeReviewUpdate(task, taskDetails != null ? taskDetails.getRemarks() : "Approved", oldStatus, currentUser);
             }
             
-            if(nextStage!=null && nextStage.equalsIgnoreCase("UAT_TESTING") && task.getUnitTestDocUrl() != null) {
+            if(nextStage!=null && nextStage.equalsIgnoreCase("UAT_TESTING") && task.getUnitTestDocId() != null) {
             	emailNotificationService.sendMailForUatTesting(task, taskDetails != null ? taskDetails.getRemarks() : "Sent to UAT", currentUser);
             }
 

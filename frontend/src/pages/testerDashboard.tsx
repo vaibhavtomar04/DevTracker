@@ -20,7 +20,7 @@ import type { Task } from "@/services/mockData"
 import RaiseBugModal from "@/components/shared/RaiseBugModal"
 import BugDetailModal from "@/components/shared/BugDetailModal"
 import { CRTimelinePopup } from "@/components/shared/CRTimelinePopup"
-import { listDocuments, downloadDocument, uploadDocument, deleteDocument } from "@/services/document.service"
+import { listDocuments, downloadDocument, uploadDocument, deleteDocument, documentPreviewUrl } from "@/services/document.service"
 const getFileIcon = (fileName: string) => {
   const ext = fileName.split('.').pop()?.toLowerCase()
   if (['zip', 'rar', '7z', 'tar', 'gz'].includes(ext || '')) return "🗜️"
@@ -836,7 +836,7 @@ export default function TesterDashboard() {
                       <span className="text-slate-400 block font-bold uppercase tracking-wider text-[10px]">
                         Unit Testing Document
                       </span>
-                      {selectedTask.unitTestDocUrl ? (
+                      {selectedTask.unitTestDocId ? (
                         <div className="p-3 rounded-xl border border-white/[0.06] bg-white/[0.01] flex justify-between items-center text-[11px] hover:border-cyan-500/30 transition-colors">
                           <div className="flex flex-col min-w-0 flex-1 mr-3">
                             <span className="text-slate-200 truncate font-mono text-[10px] font-bold">{selectedTask.unitTestDocName || 'unit_testing_results.pdf'}</span>
@@ -846,7 +846,7 @@ export default function TesterDashboard() {
                             variant="link"
                             size="sm"
                             className="text-cyan-400 hover:text-cyan-300 font-bold hover:underline shrink-0 p-0 h-auto"
-                            onClick={() => setDownloadTarget({ base64Data: selectedTask.unitTestDocUrl!, defaultFileName: selectedTask.unitTestDocName || 'unit_testing_results.pdf' })}
+                            onClick={() => downloadDocument(selectedTask.unitTestDocId!, selectedTask.unitTestDocName || 'unit_testing_results.pdf')}
                           >
                             Download
                           </Button>

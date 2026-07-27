@@ -95,7 +95,7 @@ public class DashboardController {
             activeBugsFuture = CompletableFuture.supplyAsync(
                     () -> bugRepository.countActiveBugs(), dashboardExecutor);
             completedUatFuture = CompletableFuture.supplyAsync(
-                    () -> taskRepository.countByStatusIn(List.of("PROD_COMPLETED", "CLOSED")), dashboardExecutor);
+                    () -> taskRepository.countByStatusIn(List.of("PROD_COMPLETED", "CLOSED", "PROD_DEPLOYED")), dashboardExecutor);
         } else {
             // MINE scope: counts scoped to authenticated user's assignments
             final Long uid = userId;

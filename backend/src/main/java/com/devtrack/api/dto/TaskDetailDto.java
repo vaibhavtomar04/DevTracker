@@ -7,7 +7,8 @@ import java.time.LocalDateTime;
 import java.util.List;
 
 @Data
-public class TaskListDto {
+public class TaskDetailDto {
+    // all lean fields …
     private Long id;
     private String jtrackId;
     private String title;
@@ -26,10 +27,30 @@ public class TaskListDto {
     private Boolean inPool;
     private Integer totalBugsRaised;
     private Integer totalRetests;
-    // unit-test doc metadata ONLY (no base64)
     private Long unitTestDocId;
     private String unitTestDocName;
-    // list/board dates
+    // detail-only scalars
+    private String labels;
+    private String pds;
+    private String codeReviewComments;
+    private String remarks;
+    private String deploymentNote;
+    private String serverPath;
+    private String itemsToDeploy;
+    private String testingDuration;
+    private String testingComments;
+    private String reassignmentReason;
+    private Integer rollbackCount;
+    // detail-only dates
+    private LocalDate branchCreationDate;
+    private LocalDate branchMergeDate;
+    private LocalDate dueDate;
+    private LocalDateTime testingStartedDate;
+    private LocalDateTime testingCompletedDate;
+    private LocalDateTime uatCompletedDate;
+    private LocalDate preprodDate;
+    private LocalDateTime reassignmentDate;
+    private LocalDateTime inPoolDate;
     private LocalDate devStartDate;
     private LocalDate sitDate;
     private LocalDateTime sitCompletedDate;
@@ -39,12 +60,17 @@ public class TaskListDto {
     private LocalDate expectedSitDeploymentDate;
     private LocalDate expectedUatDeploymentDate;
     private LocalDateTime createdDate;
-    // slim relations
+    private LocalDateTime updatedDate;
+    // slim/full relations
     private TaskTypeSlimDto type;
     private UserSlimDto assignedDeveloper;
     private UserSlimDto createdBy;
     private UserSlimDto tester;
-    private WorkflowSlimDto workflow;
+    private UserSlimDto approver;
+    private UserSlimDto deploymentOwner;
+    private UserSlimDto reassignedBy;
+    private UserSlimDto previousTester;
+    private WorkflowDetailDto workflow;
     private List<TaskDeveloperSlimDto> developers;
     private List<SprintTaskSlimDto> sprintTasks;
 }

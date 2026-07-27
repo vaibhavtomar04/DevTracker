@@ -202,15 +202,20 @@ public class DocumentService {
                 "attachment; filename*=UTF-8''" + encodedFilename);
         response.setContentLengthLong(doc.getSizeBytes());
 
+        // Audit download prior to stream flush to prevent post-commit exception handling crashes
+        try {
+            writeAudit("DOCUMENT_DOWNLOAD", documentId, null, "filename=" + doc.getFilename(), currentUser);
+        } catch (Exception ex) {
+            log.warn("Failed to write download audit log: {}", ex.getMessage());
+        }
+
         // Stream bytes
         try (OutputStream out = response.getOutputStream()) {
             out.write(content.getData());
             out.flush();
         }
 
-        // Audit download
-        writeAudit("DOCUMENT_DOWNLOAD", documentId, null, "filename=" + doc.getFilename(), currentUser);
-        log.info("Document downloaded: id={} by={}", documentId, currentUser.getUsername());
+        log.info("Document downloaded: id={} by={}", documentId, currentUser != null ? currentUser.getUsername() : "anonymous");
     }
 
     // ─────────────────────────────────────────────────────────────────
@@ -245,6 +250,17 @@ public class DocumentService {
 
         writeAudit("DOCUMENT_DELETE", documentId, null, "filename=" + doc.getFilename(), currentUser);
         log.info("Document soft-deleted: id={} by={}", documentId, currentUser.getUsername());
+    }
+
+    public record DocumentPayload(Document meta, byte[] data) {}
+
+    @Transactional(readOnly = true)
+    public DocumentPayload loadForRender(Long id) {
+        Document meta = documentRepository.findById(id).filter(d -> !d.isDeleted())
+            .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Document not found: " + id));
+        DocumentContent c = documentContentRepository.findById(id)
+            .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Document content missing: " + id));
+        return new DocumentPayload(meta, c.getData());
     }
 
     // ─────────────────────────────────────────────────────────────────

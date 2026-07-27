@@ -7,7 +7,7 @@ import { useAuthStore } from "@/store/authStore"
 import { useSprintStore } from "@/store/sprintStore"
 import { useThemeStore } from "@/store/themeStore"
 import { Button } from "@/components/ui/button"
-import { listDocuments, downloadDocument, uploadDocument } from "@/services/document.service"
+import { listDocuments, downloadDocument, uploadDocument, documentPreviewUrl } from "@/services/document.service"
 import BugDetailModal from "@/components/shared/BugDetailModal"
 import DevOpsDeploymentModal from "@/components/shared/DevOpsDeploymentModal"
 import type { DevOpsDeploymentFields } from "@/components/shared/DevOpsDeploymentModal"
@@ -437,6 +437,7 @@ export default function DeveloperDashboard() {
   const isAssignedToMe = useCallback((t: Task) => {
     if (!user?.id) return false;
     if (t.assignedDeveloper?.id === user.id) return true;
+    if (t.tester?.id === user.id) return true;
     if (t.developers && Array.isArray(t.developers)) {
       return t.developers.some((d: any) => d.developer?.id === user.id);
     }
@@ -551,7 +552,7 @@ export default function DeveloperDashboard() {
     if (log.fieldName === "workflow_reject") {
       return `requested changes on ${entityName}`
     }
-    if (log.fieldName === "screenshotUrl" || log.fieldName === "unitTestDocUrl") {
+    if (log.fieldName === "screenshotUrl" || log.fieldName === "unitTestDocUrl" || log.fieldName === "unitTestDocId") {
       return `uploaded document proof for ${entityName}`
     }
     if (log.remarks) {
@@ -617,12 +618,12 @@ export default function DeveloperDashboard() {
 
 
 
-  const handlePushToUATTesting = (task: Task) => {
+  const handlePushToUATTesting = async (task: Task) => {
     if (!remarks) {
       addToast("Remarks are mandatory for promoting to UAT testing pool!", "error")
       return
     }
-    const hasDoc = selectedDocFiles.length > 0 || !!task.unitTestDocUrl
+    const hasDoc = selectedDocFiles.length > 0 || !!task.unitTestDocId
     if (!hasDoc) {
       addToast("Please select at least one unit testing document first.", "error")
       return
@@ -630,15 +631,25 @@ export default function DeveloperDashboard() {
 
     const payload: Partial<Task> = { status: "TESTING_POOL" }
     if (selectedDocFiles.length > 0) {
-      payload.unitTestDocUrl = selectedDocFiles[0].url
-      payload.unitTestDocName = selectedDocFiles.map(f => f.name).join(", ")
-
-      // Async upload documents if fileObject present
-      selectedDocFiles.forEach(async (f) => {
-        if (f.fileObject) {
-          try { await uploadDocument(task.id, "SUPPORT", f.fileObject); } catch (e) { console.error("Upload error:", e); }
+      // Upload each attachment as a UNIT_TEST document (binary multipart — no base64).
+      // The first uploaded document becomes the CR's unit-test doc; its documentId is
+      // persisted on the task and rendered on demand via /api/documents/{id}.
+      try {
+        const uploaded = []
+        for (const f of selectedDocFiles) {
+          if (f.fileObject) {
+            const dto = await uploadDocument(task.id, "UNIT_TEST", f.fileObject)
+            uploaded.push(dto)
+          }
         }
-      })
+        if (uploaded.length > 0) {
+          payload.unitTestDocId = uploaded[0].id
+          payload.unitTestDocName = uploaded.map(d => d.filename).join(", ")
+        }
+      } catch (e: any) {
+        addToast(e?.message || "Failed to upload unit testing document", "error")
+        return
+      }
     }
 
     // Close modal immediately (optimistic) — independent of API/WebSocket notifications.
@@ -712,14 +723,9 @@ export default function DeveloperDashboard() {
     if (!files || files.length === 0) return
 
     const newFiles = Array.from(files)
-    newFiles.forEach((file) => {
-      const reader = new FileReader()
-      reader.onloadend = () => {
-        const base64String = reader.result as string
-        setSelectedDocFiles(prev => [...prev, { name: file.name, url: base64String, fileObject: file }])
-      }
-      reader.readAsDataURL(file)
-    })
+    // No base64 — keep the raw File objects. They are uploaded as UNIT_TEST
+    // documents (binary multipart) on push and referenced only by documentId.
+    setSelectedDocFiles(prev => [...prev, ...newFiles.map(file => ({ name: file.name, url: "", fileObject: file }))])
     addToast(`Attached ${newFiles.length} unit testing document(s).`, "info")
     if (e.target) e.target.value = ''
   }
@@ -957,7 +963,7 @@ export default function DeveloperDashboard() {
                         {
                           id: "closed_crs",
                           label: "Closed CRs",
-                          value: dashSummary ? dashSummary.stats.completedUat : tasks.filter(t => isAssignedToMe(t) && (t.status === "CLOSED" || t.status === "PROD_COMPLETED")).length,
+                          value: dashSummary ? dashSummary.stats.completedUat : tasks.filter(t => isAssignedToMe(t) && (t.status === "CLOSED" || t.status === "PROD_COMPLETED" || t.status === "PROD_DEPLOYED")).length,
                           loading: dashLoading && !dashSummary,
                           type: "emerald",
                           icon: "✅"
@@ -1965,11 +1971,11 @@ export default function DeveloperDashboard() {
                     {(() => {
                       const brdDoc = taskDocs.find(d => d.docType === "BRD")
                       const screenshotUrl = selectedTask.screenshotUrl
-                      const unitTestDocUrl = selectedTask.unitTestDocUrl
+                      const unitTestDocId = selectedTask.unitTestDocId
                       const showBranch = selectedTask.branchName && selectedTask.branchName !== "—"
                       const showBrd = !!brdDoc
                       const showScreenshot = !!screenshotUrl
-                      const showUnitTest = !!unitTestDocUrl
+                      const showUnitTest = !!unitTestDocId
 
                       const hasAnyMetadata = showBranch || showBrd || showScreenshot || showUnitTest
 
@@ -2039,12 +2045,12 @@ export default function DeveloperDashboard() {
                               </div>
                             )}
 
-                            {/* Unit Testing Document */}
-                            {showUnitTest && unitTestDocUrl && (
+                            {/* Unit Testing Document — served from Documents subsystem (no base64) */}
+                            {showUnitTest && unitTestDocId && (
                               <div className="mt-2 flex items-center gap-2.5 p-2.5 rounded-xl border border-white/[0.06] bg-white/[0.02] sm:col-span-2">
-                                {unitTestDocUrl.startsWith("data:image/") ? (
+                                {/\.(png|jpe?g|gif|webp)$/i.test(selectedTask.unitTestDocName || "") ? (
                                   <div className="w-12 h-12 rounded-lg overflow-hidden border border-white/10 shrink-0 bg-black/40">
-                                    <img src={unitTestDocUrl} alt={selectedTask.unitTestDocName} className="w-full h-full object-cover" />
+                                    <img src={documentPreviewUrl(unitTestDocId)} alt={selectedTask.unitTestDocName || "Unit test document"} className="w-full h-full object-cover" loading="lazy" />
                                   </div>
                                 ) : (
                                   <div className="w-12 h-12 rounded-lg flex items-center justify-center border border-white/10 bg-black/40 text-lg shrink-0">
@@ -2058,7 +2064,7 @@ export default function DeveloperDashboard() {
                                 <div className="flex items-center gap-1 shrink-0">
                                   <button
                                     type="button"
-                                    onClick={() => setDownloadTarget({ base64Data: unitTestDocUrl, defaultFileName: selectedTask.unitTestDocName! })}
+                                    onClick={() => downloadDocument(unitTestDocId, selectedTask.unitTestDocName || "unit_test_document")}
                                     className="p-1.5 rounded-lg hover:bg-white/10 text-slate-400 hover:text-sky-400 transition-colors"
                                     title="Download"
                                   >
@@ -2067,7 +2073,7 @@ export default function DeveloperDashboard() {
                                   <button
                                     type="button"
                                     onClick={() => {
-                                      updateTask(selectedTask.id, { unitTestDocUrl: undefined, unitTestDocName: undefined }, "Removed unit testing document", user!)
+                                      updateTask(selectedTask.id, { unitTestDocId: null, unitTestDocName: null }, "Removed unit testing document", user!)
                                         .then(updated => {
                                           setSelectedTask(updated)
                                           addToast("Unit testing document removed successfully!", "info")
@@ -2253,7 +2259,7 @@ export default function DeveloperDashboard() {
                       </Button>
                     )}
                     {selectedTask.status === "MOVE_TO_UAT" && (() => {
-                      const hasDoc = selectedDocFiles.length > 0 || !!selectedTask.unitTestDocName
+                      const hasDoc = selectedDocFiles.length > 0 || !!selectedTask.unitTestDocId
                       return (
                         <div className={`space-y-3 p-3.5 rounded-xl text-left border ${hasDoc ? "border-emerald-500/30 bg-emerald-500/5" : "border-amber-500/40 bg-amber-500/5"}`}>
                           {/* Header */}
@@ -2324,7 +2330,7 @@ export default function DeveloperDashboard() {
                                 📎 Attach More Files
                               </button>
                             </div>
-                          ) : selectedTask.unitTestDocName ? (
+                          ) : selectedTask.unitTestDocId ? (
                             <div className="space-y-2">
                               <div className="flex items-center gap-2.5 p-2.5 rounded-xl border border-border bg-muted/50">
                                 <div className="w-10 h-10 rounded-lg flex items-center justify-center border border-border bg-muted text-base shrink-0">📄</div>
@@ -2355,7 +2361,7 @@ export default function DeveloperDashboard() {
 
                           <Button
                             className="w-full text-xs h-10 rounded-xl bg-gradient-to-r from-cyan-600 to-teal-600 hover:from-cyan-500 hover:to-teal-500 text-white font-bold disabled:opacity-40 disabled:cursor-not-allowed mt-2"
-                            disabled={selectedDocFiles.length === 0 && !selectedTask.unitTestDocName}
+                            disabled={selectedDocFiles.length === 0 && !selectedTask.unitTestDocId}
                             onClick={() => handlePushToUATTesting(selectedTask)}
                           >
                             <Send className="mr-1.5 h-4 w-4" />

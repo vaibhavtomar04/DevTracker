@@ -299,8 +299,6 @@ export const useNotificationStore = create<NotificationState>((set, get) => ({
     let ws: WebSocket;
     let reconnectAttempts = 0;
     const maxReconnectAttempts = 5;
-    // Debounce timer: collapses rapid WS notifications into a single data refresh
-    let fetchDataDebounceTimer: ReturnType<typeof setTimeout> | null = null;
 
     const doConnect = () => {
       try {
@@ -319,15 +317,8 @@ export const useNotificationStore = create<NotificationState>((set, get) => ({
             const data = JSON.parse(event.data) as { type: string; notification?: AppNotification };
             if (data.type === 'NOTIFICATION' && data.notification) {
               get().addNotification(data.notification);
-              // Debounced fetchData: batch rapid WS messages into one data refresh
-              // (prevents connection pool exhaustion from 9 parallel requests per message)
-              if (fetchDataDebounceTimer) clearTimeout(fetchDataDebounceTimer);
-              fetchDataDebounceTimer = setTimeout(() => {
-                useTaskStore.getState().fetchData(true);
-                fetchDataDebounceTimer = null;
-              }, 500);
+              // Phase A: no data refresh on notifications (see v2 handler).
             } else if (data.type === 'ENTITY_EVENT') {
-              // Phase 3: typed domain event router (shared module-level helper).
               routeEntityEvent(data as unknown as EntityEventPayload);
             }
           } catch { /* malformed message */ }
@@ -417,14 +408,16 @@ const MAX_RECONNECT_ATTEMPTS = 5;
 const RECONNECT_BASE_MS = 1000;
 const RECONNECT_MAX_MS = 30000;
 const STABILITY_RESET_MS = 10000;
-const FETCH_DEBOUNCE_MS = 500;
+const ENTITY_SYNC_DEBOUNCE_MS = 250;
 const POLL_INTERVAL_MS = 15000;
 const TEARDOWN_GRACE_MS = 2000;
 
 let activeSocket: WebSocket | null = null;
 let reconnectTimer: ReturnType<typeof setTimeout> | null = null;
 let stabilityTimer: ReturnType<typeof setTimeout> | null = null;
-let debounceTimer: ReturnType<typeof setTimeout> | null = null;
+let entitySyncTimer: ReturnType<typeof setTimeout> | null = null;
+const pendingTaskIds = new Set<number>();
+const pendingBugIds = new Set<number>();
 let pollTimer: ReturnType<typeof setInterval> | null = null;
 let pendingTeardownTimer: ReturnType<typeof setTimeout> | null = null;
 let reconnectAttempts = 0;
@@ -435,7 +428,9 @@ let activeUserId: number | null = null;
 function clearManagerTimers(): void {
   if (reconnectTimer) { clearTimeout(reconnectTimer); reconnectTimer = null; }
   if (stabilityTimer) { clearTimeout(stabilityTimer); stabilityTimer = null; }
-  if (debounceTimer) { clearTimeout(debounceTimer); debounceTimer = null; }
+  if (entitySyncTimer) { clearTimeout(entitySyncTimer); entitySyncTimer = null; }
+  pendingTaskIds.clear();
+  pendingBugIds.clear();
   if (pollTimer) { clearInterval(pollTimer); pollTimer = null; }
 }
 
@@ -457,30 +452,44 @@ interface EntityEventPayload {
   ts: number;
 }
 
-// Shared debounce: collapses a burst of refresh triggers (notifications and/or
-// typed events, including cross-entity ripples like a bug create flipping its
-// parent CR) into a single fetchData(true). A mutation that emits BOTH a
-// NOTIFICATION and an ENTITY_EVENT therefore refetches only once.
-function scheduleManagedRefresh(): void {
-  if (debounceTimer) clearTimeout(debounceTimer);
-  debounceTimer = setTimeout(() => {
-    debounceTimer = null;
-    useTaskStore.getState().fetchData(true);
-  }, FETCH_DEBOUNCE_MS);
+// ── Phase A: surgical, event-driven refresh (no full fetchData batch) ──────
+// A TASK/BUG domain event fetches ONLY the affected row and upserts it into
+// the task store. Same-id and mixed TASK/BUG events inside one short window
+// coalesce into a single flush. DELETED is applied locally with no GET.
+function flushEntitySync(): void {
+  entitySyncTimer = null;
+  const store = useTaskStore.getState();
+  const taskIds = Array.from(pendingTaskIds); pendingTaskIds.clear();
+  const bugIds = Array.from(pendingBugIds); pendingBugIds.clear();
+  taskIds.forEach((id) => { void store.syncTaskById(id); });
+  bugIds.forEach((id) => { void store.syncBugById(id); });
+}
+
+function scheduleEntitySync(): void {
+  if (entitySyncTimer) return; // already scheduled — accumulate ids, flush once
+  entitySyncTimer = setTimeout(flushEntitySync, ENTITY_SYNC_DEBOUNCE_MS);
 }
 
 function routeEntityEvent(payload: EntityEventPayload): void {
-  // Surgical local removal on delete keeps the list correct even if the row is
-  // already gone server-side; the coalesced refresh below still runs to catch
-  // any server-side cascade (e.g. a CR delete removing its child bugs).
-  if (payload.action === 'DELETED' && typeof payload.id === 'number') {
-    if (payload.entity === 'TASK') {
-      useTaskStore.setState((s) => ({ tasks: s.tasks.filter((t) => t.id !== payload.id) }));
-    } else if (payload.entity === 'BUG') {
-      useTaskStore.setState((s) => ({ bugs: s.bugs.filter((b) => b.id !== payload.id) }));
-    }
+  if (typeof payload.id !== 'number') return;
+  const store = useTaskStore.getState();
+  switch (payload.entity) {
+    case 'TASK':
+      if (payload.action === 'DELETED') { store.removeTaskById(payload.id); return; }
+      pendingTaskIds.add(payload.id);
+      scheduleEntitySync();
+      return;
+    case 'BUG':
+      if (payload.action === 'DELETED') { store.removeBugById(payload.id); return; }
+      pendingBugIds.add(payload.id);
+      scheduleEntitySync();
+      return;
+    default:
+      // BUG_REVIEW / USER / CONFIG / SPRINT / SPRINT_TASK / TEST_CASE /
+      // RECOGNITION are not emitted by the backend yet — surgical handlers
+      // land in Phase F with the payload contract. NO collection refetch here.
+      return;
   }
-  scheduleManagedRefresh();
 }
 
 function teardownSocket(): void {
@@ -565,12 +574,9 @@ function openManagedSocket(userId: number, myGen: number): void {
       const data = JSON.parse(event.data) as { type: string; notification?: AppNotification };
       if (data.type === 'NOTIFICATION' && data.notification) {
         useNotificationStore.getState().addNotification(data.notification);
-        // Notification frames still trigger a refresh. Shares the SAME debounce
-        // timer as the Phase 3 typed-event router, so a mutation that emits both
-        // a NOTIFICATION and an ENTITY_EVENT collapses into ONE refetch.
-        scheduleManagedRefresh();
+        // Phase A: notifications no longer trigger a data refresh. Freshness
+        // comes exclusively from ENTITY_EVENT frames (routed below).
       } else if (data.type === 'ENTITY_EVENT') {
-        // Phase 3: typed domain event → targeted store refresh (no poll needed).
         routeEntityEvent(data as unknown as EntityEventPayload);
       }
     } catch { /* malformed message */ }

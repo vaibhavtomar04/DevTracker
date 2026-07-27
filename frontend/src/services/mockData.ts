@@ -80,8 +80,8 @@ export interface Task {
   sprintId?: number | null
   screenshotUrl?: string
   screenshotName?: string
-  unitTestDocUrl?: string
-  unitTestDocName?: string
+  unitTestDocId?: number | null
+  unitTestDocName?: string | null
   testingStartedDate?: string
   testingCompletedDate?: string
   testingDuration?: string

@@ -170,7 +170,7 @@ export function buildCrAuditPayload(args: CrAuditExportArgs): AnyRec {
 			rollbackCount: t.rollbackCount ?? 0,
 			totalRetests: t.totalRetests ?? 0,
 			codeReviewed: !!(t.codeReviewComments && String(t.codeReviewComments).trim()),
-			testEvidenceAttached: !!t.unitTestDocUrl,
+			testEvidenceAttached: !!(t.unitTestDocId || t.unitTestDocUrl),
 			efforts: t.efforts ?? null,
 		};
 	});

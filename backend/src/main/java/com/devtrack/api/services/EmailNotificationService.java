@@ -367,8 +367,8 @@ public class EmailNotificationService {
 			testMap.put("developer", devName);
 			testMap.put("url", baseUrl + "/dashboard/testing");
 			testMap.put("remarks", remarks);
-			if (task.getUnitTestDocUrl() != null) {
-				testMap.put("unitTestDocUrl", buildBackendUrl("/api/tasks/" + task.getId() + "/download-unit-test-doc"));
+			if (task.getUnitTestDocId() != null) {
+				testMap.put("unitTestDocUrl", buildBackendUrl("/api/auth/documents/" + task.getUnitTestDocId() + "/download"));
 			} else {
 				testMap.put("unitTestDocUrl", null);
 			}
@@ -389,9 +389,8 @@ public class EmailNotificationService {
 
 			EmailRequestVo requestMap = createEmailRequestMap(renderedHtml, subject, testingSender, null, developersMail, testingCc);
 
-			if (requestMap != null && task.getUnitTestDocUrl() != null) {
-				requestMap.setAttachmentData(task.getUnitTestDocUrl());
-				requestMap.setAttachmentName(task.getUnitTestDocName() != null ? task.getUnitTestDocName() : "unit-test-document");
+			if (requestMap != null && task.getUnitTestDocId() != null) {
+				documentRepository.findById(task.getUnitTestDocId()).ifPresent(doc -> processDocumentAttachment(requestMap, doc));
 			}
 
 			if(requestMap!=null) {

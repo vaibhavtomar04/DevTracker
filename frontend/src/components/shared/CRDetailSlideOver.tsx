@@ -14,6 +14,7 @@ import { type Task, type User } from '../../services/mockData';
 import { QualityRiskBadge } from './QualityRiskBadge';
 import { DocumentList } from './DocumentList';
 import { DocumentUpload } from './DocumentUpload';
+import { documentPreviewUrl, downloadDocument } from '../../services/document.service';
 import { useTaskStore } from '../../store/taskStore';
 import BugDetailModal from './BugDetailModal';
 import { APP_CONFIG } from '@/config/appConfig';
@@ -103,6 +104,7 @@ export const CRDetailSlideOver: React.FC<CRDetailSlideOverProps> = ({
   const [newComment, setNewComment] = useState('');
   const [docRefreshTrigger, setDocRefreshTrigger] = useState(0);
   const [showUpload, setShowUpload] = useState(false);
+  const [detail, setDetail] = useState<Task | null>(null);
   const panelRef = useRef<HTMLDivElement>(null);
 
   // Fetch grouped timeline logs when Activity tab is opened or filters change
@@ -133,6 +135,21 @@ export const CRDetailSlideOver: React.FC<CRDetailSlideOverProps> = ({
         .catch(() => setComments([]));
     }
   }, [activeTab, crId]);
+
+  // Fetch full detail (TaskDetailDto) when the panel opens. The injected `task`
+  // is the lean list DTO; detail-only fields (remarks, codeReviewer, unit-test
+  // document, etc.) are loaded on demand from GET /api/tasks/{id}/detail.
+  useEffect(() => {
+    if (open && crId) {
+      setDetail(null);
+      fetch(`${APP_CONFIG.apiUrl}/api/tasks/${crId}/detail`, {
+        headers: { Authorization: `Bearer ${localStorage.getItem('token')}` },
+      })
+        .then((r) => (r.ok ? r.json() : null))
+        .then((data) => setDetail(data))
+        .catch(() => setDetail(null));
+    }
+  }, [open, crId]);
 
   // Close on Escape
   useEffect(() => {
@@ -257,7 +274,7 @@ export const CRDetailSlideOver: React.FC<CRDetailSlideOverProps> = ({
                   transition={{ duration: 0.15 }}
                   className="p-6"
                 >
-                  {activeTab === 'overview' && <OverviewTab task={task} currentUser={currentUser} />}
+                  {activeTab === 'overview' && <OverviewTab task={detail ?? task} currentUser={currentUser} />}
                   {activeTab === 'timeline' && (
                     <TimelineTab task={task} stages={WORKFLOW_STAGES} currentStageIndex={currentStageIndex} />
                   )}
@@ -633,26 +650,23 @@ function OverviewTab({ task, currentUser }: { task: Task; currentUser?: User | n
         </div>
       )}
 
-      {/* Unit Testing Document */}
-      {task.unitTestDocUrl && (
+      {/* Unit Testing Document — served from the Documents subsystem (no base64) */}
+      {task.unitTestDocId && (
         <div>
           <h3 className="text-xs font-semibold text-zinc-500 uppercase tracking-wider mb-2">Unit Testing Document</h3>
           <div className="flex items-center justify-between p-3.5 rounded-xl border border-teal-500/20 bg-teal-500/5">
             <div className="flex items-center gap-2.5 min-w-0">
-              <span className="text-teal-400 shrink-0">📄</span>
+              {/\.(png|jpe?g|gif|webp)$/i.test(task.unitTestDocName || '') ? (
+                <div className="w-10 h-10 rounded-lg overflow-hidden border border-teal-500/20 shrink-0 bg-black/30">
+                  <img src={documentPreviewUrl(task.unitTestDocId)} alt={task.unitTestDocName || 'Unit test document'} className="w-full h-full object-cover" loading="lazy" />
+                </div>
+              ) : (
+                <span className="text-teal-400 shrink-0">📄</span>
+              )}
               <span className="text-sm text-teal-300 font-mono truncate">{task.unitTestDocName || 'Unit Test Document'}</span>
             </div>
             <button
-              onClick={() => {
-                if (!task.unitTestDocUrl) return;
-                // Decode base64 and trigger download
-                const link = document.createElement('a');
-                link.href = task.unitTestDocUrl;
-                link.download = task.unitTestDocName || 'unit_test_document';
-                document.body.appendChild(link);
-                link.click();
-                document.body.removeChild(link);
-              }}
+              onClick={() => task.unitTestDocId && downloadDocument(task.unitTestDocId, task.unitTestDocName || 'unit_test_document')}
               className="shrink-0 ml-3 px-3 py-1.5 text-xs font-bold text-teal-400 hover:text-teal-300 border border-teal-500/30 hover:border-teal-400/50 hover:bg-teal-500/10 rounded-lg transition-all"
             >
               Download

@@ -8,7 +8,7 @@
  *  - All API errors (413, 415, etc.) are surfaced as typed errors
  */
 
-export type DocType = 'BRD' | 'API_DOC' | 'DESIGN' | 'SUPPORT';
+export type DocType = 'BRD' | 'API_DOC' | 'DESIGN' | 'SUPPORT' | 'UNIT_TEST';
 
 export interface DocumentDto {
   id: number;
@@ -125,6 +125,23 @@ export async function getDocumentMetadata(documentId: number): Promise<DocumentD
   return res.json() as Promise<DocumentDto>;
 }
 
+// ── INLINE RENDITIONS (no base64; browser-cacheable via ETag/Cache-Control) ──
+
+/**
+ * Public inline-preview URL for a document. Safe to use directly as an <img>/<embed>
+ * `src` because it needs no Authorization header — it maps to the public
+ * `/api/auth/documents/{id}/preview` endpoint (same exposure as the existing
+ * public download). The browser caches the bytes via ETag + Cache-Control.
+ */
+export function documentPreviewUrl(documentId: number): string {
+  return `${API_BASE}/auth/documents/${documentId}/preview`;
+}
+
+/** Public thumbnail URL — same contract as documentPreviewUrl. */
+export function documentThumbnailUrl(documentId: number): string {
+  return `${API_BASE}/auth/documents/${documentId}/thumbnail`;
+}
+
 // ── DOWNLOAD ───────────────────────────────────────────────────────────────
 
 /**
@@ -132,30 +149,37 @@ export async function getDocumentMetadata(documentId: number): Promise<DocumentD
  * Fetches bytes from the server and creates a temporary <a> element.
  * No bytes stored in state — blob URL is immediately revoked after click.
  */
-export async function downloadDocument(documentId: number, filename: string): Promise<void> {
-  const res = await fetch(`${API_BASE}/documents/${documentId}/download`, {
-    headers: getAuthHeaders(),
+export function downloadDocument(documentId: number, filename: string): Promise<void> {
+  return new Promise(async (resolve, reject) => {
+    try {
+      const res = await fetch(`${API_BASE}/documents/${documentId}/download`, {
+        headers: getAuthHeaders(),
+      });
+
+      if (!res.ok) {
+        throw new Error(`Download failed: HTTP ${res.status}`);
+      }
+
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+
+      const anchor = document.createElement('a');
+      anchor.href = url;
+      anchor.download = filename;
+      anchor.style.display = 'none';
+      document.body.appendChild(anchor);
+      anchor.click();
+
+      // Clean up immediately — don't hold blob in memory
+      setTimeout(() => {
+        URL.revokeObjectURL(url);
+        document.body.removeChild(anchor);
+        resolve();
+      }, 100);
+    } catch (e) {
+      reject(e);
+    }
   });
-
-  if (!res.ok) {
-    throw new Error(`Download failed: HTTP ${res.status}`);
-  }
-
-  const blob = await res.blob();
-  const url = URL.createObjectURL(blob);
-
-  const anchor = document.createElement('a');
-  anchor.href = url;
-  anchor.download = filename;
-  anchor.style.display = 'none';
-  document.body.appendChild(anchor);
-  anchor.click();
-
-  // Clean up immediately — don't hold blob in memory
-  setTimeout(() => {
-    URL.revokeObjectURL(url);
-    document.body.removeChild(anchor);
-  }, 100);
 }
 
 // ── DELETE ─────────────────────────────────────────────────────────────────
@@ -183,6 +207,7 @@ export const DOC_TYPE_LABELS: Record<DocType, string> = {
   API_DOC: 'API Doc',
   DESIGN: 'Design Doc',
   SUPPORT: 'Supporting File',
+  UNIT_TEST: 'Unit Test Doc',
 };
 
 export const DOC_TYPE_COLORS: Record<DocType, string> = {
@@ -190,6 +215,7 @@ export const DOC_TYPE_COLORS: Record<DocType, string> = {
   API_DOC: 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30',
   DESIGN: 'bg-purple-500/20 text-purple-400 border-purple-500/30',
   SUPPORT: 'bg-zinc-500/20 text-zinc-400 border-zinc-500/30',
+  UNIT_TEST: 'bg-teal-500/20 text-teal-400 border-teal-500/30',
 };
 
 export const ALLOWED_EXTENSIONS = ['.pdf', '.docx', '.doc', '.xlsx', '.xls', '.csv', '.md', '.txt', '.log', '.png', '.jpg', '.jpeg', '.gif', '.webp', '.mp4', '.mov', '.zip', '.rar', '.7z', '.ppt', '.pptx'];

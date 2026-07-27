@@ -28,6 +28,7 @@ import RaiseBugModal from "@/components/shared/RaiseBugModal"
 import BugDetailModal from "@/components/shared/BugDetailModal"
 import { CreateCRModal } from "@/components/shared/CreateCRModal"
 import { Pagination, paginate } from "@/components/shared/Pagination"
+import { downloadDocument, documentPreviewUrl } from "@/services/document.service"
 import { exportCrAuditReport } from "@/services/crAuditReport.service";
 import { APP_CONFIG } from "@/config/appConfig";
 
@@ -953,13 +954,13 @@ export default function CrManagement() {
               </div>
 
               {/* Unit Testing Document */}
-              {selectedTask.unitTestDocUrl && (
+              {selectedTask.unitTestDocId && (
                 <div className="space-y-2 text-xs border-t border-border pt-4">
                   <span className="text-muted-foreground block font-bold uppercase tracking-wider text-[10px]">Unit Testing Document</span>
                   <div className="flex items-center gap-2.5 p-2.5 rounded-xl border border-border bg-muted/40">
-                    {selectedTask.unitTestDocUrl.startsWith("data:image/") ? (
+                    {/\.(png|jpe?g|gif|webp)$/i.test(selectedTask.unitTestDocName || "") ? (
                       <div className="w-12 h-12 rounded-lg overflow-hidden border border-border shrink-0 bg-background">
-                        <img src={selectedTask.unitTestDocUrl} alt={selectedTask.unitTestDocName || "Unit Test"} className="w-full h-full object-cover" />
+                        <img src={documentPreviewUrl(selectedTask.unitTestDocId)} alt={selectedTask.unitTestDocName || "Unit Test"} className="w-full h-full object-cover" />
                       </div>
                     ) : (
                       <div className="w-12 h-12 rounded-lg flex items-center justify-center border border-border bg-background text-lg shrink-0">
@@ -973,7 +974,7 @@ export default function CrManagement() {
                     <div className="flex items-center gap-1 shrink-0">
                       <button
                         type="button"
-                        onClick={() => setDownloadTarget({ base64Data: selectedTask.unitTestDocUrl!, defaultFileName: selectedTask.unitTestDocName! })}
+                        onClick={() => downloadDocument(selectedTask.unitTestDocId!, selectedTask.unitTestDocName || "unit_test_document")}
                         className="p-1.5 rounded-lg hover:bg-muted text-muted-foreground hover:text-sky-500 transition-colors"
                         title="Download"
                       >
