@@ -697,6 +697,7 @@ public class BugController {
     }
 
     @DeleteMapping("/{id}")
+    @Transactional
     public ResponseEntity<?> deleteBug(@PathVariable Long id) {
         return bugRepository.findById(id)
                 .map(bug -> {
@@ -782,6 +783,7 @@ public class BugController {
 
     @PostMapping("/{id}/approve-sit")
     @PreAuthorize("hasAnyRole('TESTER', 'TESTADMIN')")
+    @Transactional
     public ResponseEntity<?> approveSit(@PathVariable Long id, @RequestBody Bug bugDetails) {
         String username = SecurityContextHolder.getContext().getAuthentication().getName();
         User currentUser = userRepository.findByUsername(username).orElseThrow();
@@ -829,6 +831,7 @@ public class BugController {
 
     @PostMapping("/{id}/reject-sit")
     @PreAuthorize("hasAnyRole('TESTER', 'TESTADMIN')")
+    @Transactional
     public ResponseEntity<?> rejectSit(@PathVariable Long id, @RequestBody Bug bugDetails) {
         String username = SecurityContextHolder.getContext().getAuthentication().getName();
         User currentUser = userRepository.findByUsername(username).orElseThrow();
@@ -889,6 +892,7 @@ public class BugController {
 
     @PostMapping("/{id}/approve-uat")
     @PreAuthorize("hasAnyRole('TESTER', 'TESTADMIN')")
+    @Transactional
     public ResponseEntity<?> approveUat(@PathVariable Long id, @RequestBody Bug bugDetails) {
         String username = SecurityContextHolder.getContext().getAuthentication().getName();
         User currentUser = userRepository.findByUsername(username).orElseThrow();
@@ -936,6 +940,7 @@ public class BugController {
 
     @PostMapping("/{id}/reject-uat")
     @PreAuthorize("hasAnyRole('TESTER', 'TESTADMIN')")
+    @Transactional
     public ResponseEntity<?> rejectUat(@PathVariable Long id, @RequestBody Bug bugDetails) {
         String username = SecurityContextHolder.getContext().getAuthentication().getName();
         User currentUser = userRepository.findByUsername(username).orElseThrow();
@@ -983,6 +988,7 @@ public class BugController {
 
     @PostMapping("/{id}/approve-invalid")
     @PreAuthorize("hasAnyRole('TESTER', 'TESTADMIN')")
+    @Transactional
     public ResponseEntity<?> approveInvalidBug(@PathVariable Long id, @RequestBody Bug bugDetails) {
         String username = SecurityContextHolder.getContext().getAuthentication().getName();
         User currentUser = userRepository.findByUsername(username).orElseThrow();
@@ -1022,6 +1028,7 @@ public class BugController {
 
     @PostMapping("/{id}/reject-invalid")
     @PreAuthorize("hasAnyRole('TESTER', 'TESTADMIN')")
+    @Transactional
     public ResponseEntity<?> rejectInvalidBug(@PathVariable Long id, @RequestBody Bug bugDetails) {
         String username = SecurityContextHolder.getContext().getAuthentication().getName();
         User currentUser = userRepository.findByUsername(username).orElseThrow();
@@ -1219,6 +1226,7 @@ public class BugController {
 
     @PostMapping("/{id}/fix-summary")
     @PreAuthorize("hasAnyRole('DEVELOPER', 'DEVADMIN', 'ADMIN')")
+    @Transactional
     public ResponseEntity<?> submitFixSummary(@PathVariable Long id, @RequestBody BugDeveloperFixSummaryDto dto) {
         if (dto.getRootCauseAnalysis() == null || dto.getRootCauseAnalysis().trim().isEmpty()) {
             return ResponseEntity.badRequest().body("Root Cause Analysis is mandatory.");
