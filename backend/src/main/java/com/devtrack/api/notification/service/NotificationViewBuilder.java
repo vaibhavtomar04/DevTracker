@@ -5,6 +5,7 @@ import com.devtrack.api.model.User;
 import com.devtrack.api.notification.model.NotificationPriority;
 import com.devtrack.api.notification.model.NotificationType;
 import com.devtrack.api.notification.model.NotificationView;
+import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
@@ -17,7 +18,10 @@ import java.util.Map;
  * Builds a normalized, data-driven NotificationView model consumed by the master Thymeleaf template.
  */
 @Service
+@RequiredArgsConstructor
 public class NotificationViewBuilder {
+
+    private final com.devtrack.api.repository.ConfigRepository configRepository;
 
     @Value("${devtrack.mail.app-name:DevTrack 2.0}")
     private String appName;
@@ -34,8 +38,21 @@ public class NotificationViewBuilder {
     @Value("${devtrack.mail.support-url:https://devtrack.com/support}")
     private String supportUrl;
 
-    @Value("${devtrack.mail.base-url:http://localhost:8080}")
+    @Value("${devtrack.mail.base-url:http://localhost:5173}")
     private String baseUrl;
+
+    public String getEffectiveBaseUrl() {
+        if (configRepository != null) {
+            var cfg = configRepository.findByConfigKey("FRONTEND_BASE_URL");
+            if (cfg.isEmpty()) {
+                cfg = configRepository.findByConfigKey("DEVTRACK_MAIL_BASE_URL");
+            }
+            if (cfg.isPresent() && cfg.get().getConfigValue() != null && !cfg.get().getConfigValue().isBlank()) {
+                return cfg.get().getConfigValue().trim().replaceAll("/+$", "");
+            }
+        }
+        return (baseUrl != null ? baseUrl : "http://localhost:5173").trim().replaceAll("/+$", "");
+    }
 
     public NotificationView buildView(NotificationType type, NotificationPriority priority, Map<String, Object> data, String locale) {
         // 1. Subject formatting: [DevTrack][<PRIORITY>] <Title>
@@ -105,7 +122,7 @@ public class NotificationViewBuilder {
         }
 
         // 8. Action URL
-        String actionUrl = baseUrl;
+        String actionUrl = getEffectiveBaseUrl();
         if (task != null) actionUrl += "/dashboard/crs";
 
         String fullName = (String) data.getOrDefault("fullName", "DevTrack Engineer");

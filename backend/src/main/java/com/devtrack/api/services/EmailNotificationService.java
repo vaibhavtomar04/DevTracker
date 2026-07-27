@@ -8,6 +8,7 @@ import java.util.HashMap;
 import java.util.ArrayList;
 import java.util.Base64;
 
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
@@ -69,8 +70,24 @@ public class EmailNotificationService {
 	@Value("${devtrack.mail.logo-url:https://raw.githubusercontent.com/devtrack/assets/main/logo.png}")
 	private String appLogoUrl;
 
+	@Autowired
+	private com.devtrack.api.repository.ConfigRepository configRepository;
+
 	@Value("${devtrack.mail.base-url:http://localhost:5173}")
 	private String baseUrl;
+
+	public String getEffectiveBaseUrl() {
+		if (configRepository != null) {
+			var cfg = configRepository.findByConfigKey("FRONTEND_BASE_URL");
+			if (cfg.isEmpty()) {
+				cfg = configRepository.findByConfigKey("DEVTRACK_MAIL_BASE_URL");
+			}
+			if (cfg.isPresent() && cfg.get().getConfigValue() != null && !cfg.get().getConfigValue().isBlank()) {
+				return cfg.get().getConfigValue().trim().replaceAll("/+$", "");
+			}
+		}
+		return (baseUrl != null ? baseUrl : "http://localhost:5173").trim().replaceAll("/+$", "");
+	}
 
 	@Value("${devtrack.backend.base-url:http://localhost:8080}")
 	private String backendBaseUrl;
@@ -160,7 +177,7 @@ public class EmailNotificationService {
 			bugMap.put("environment",  "PRODUCTION");
 			bugMap.put("priority", bug.getPriority() != null ? bug.getPriority() : "MEDIUM");
 			bugMap.put("assignedTo", user.getFullName());
-			bugMap.put("url", baseUrl + "/dashboard");
+			bugMap.put("url", getEffectiveBaseUrl() + "/dashboard");
 			context.setVariable("bug", bugMap);
 			context.setVariable("currentUser", bug.getRaisedBy().getFullName());
 			context.setVariable("appLogoUrl", appLogoUrl);
@@ -228,7 +245,7 @@ public class EmailNotificationService {
 				bugMap.put("assignedTo", user.getFullName());
 				bugMap.put("raisedBy", bug.getRaisedBy().getFullName());
 				bugMap.put("updateRemarks", remarks);
-				bugMap.put("url", baseUrl + "/dashboard");
+				bugMap.put("url", getEffectiveBaseUrl() + "/dashboard");
 				context.setVariable("bug", bugMap);
 				context.setVariable("currentUser", bug.getRaisedBy().getFullName());
 				context.setVariable("appLogoUrl", appLogoUrl);
@@ -262,7 +279,7 @@ public class EmailNotificationService {
 			crMap.put("developerName", user.getFullName());
 			crMap.put("gitLinks", task.getGitLinks() != null && !task.getGitLinks().isBlank() ? task.getGitLinks() : "NA");
 			crMap.put("summaryOfChanges", task.getCodeReviewComments() != null && !task.getCodeReviewComments().isBlank() ? task.getCodeReviewComments() : (remarks != null ? remarks : "NA"));
-			crMap.put("reviewUrl", baseUrl + "/dashboard/code-review");
+			crMap.put("reviewUrl", getEffectiveBaseUrl() + "/dashboard/code-review");
 			
 			context.setVariable("cr", crMap);
 			context.setVariable("reviewerNames", "Nilesh Sir / Suresh");
@@ -315,7 +332,7 @@ public class EmailNotificationService {
 				
 				Context context = new Context();
 				Map<String, Object> crMap = new HashMap<>();
-				crMap.put("reviewUrl", baseUrl + "/dashboard/crs");
+				crMap.put("reviewUrl", getEffectiveBaseUrl() + "/dashboard/crs");
 				
 				// Generate review checklist
 				List<Map<String, Object>> checklist = List.of(
@@ -365,7 +382,7 @@ public class EmailNotificationService {
 			testMap.put("modulesAffected", task.getModule() != null ? task.getModule() : "All Modules");
 			testMap.put("deployedOn", task.getUatDate() != null ? task.getUatDate().toString() : LocalDate.now().toString());
 			testMap.put("developer", devName);
-			testMap.put("url", baseUrl + "/dashboard/testing");
+			testMap.put("url", getEffectiveBaseUrl() + "/dashboard/testing");
 			testMap.put("remarks", remarks);
 			if (task.getUnitTestDocId() != null) {
 				testMap.put("unitTestDocUrl", buildBackendUrl("/api/auth/documents/" + task.getUnitTestDocId() + "/download"));
@@ -531,7 +548,7 @@ public class EmailNotificationService {
 			deployMap.put("deploymentNote", deploymentNote != null && !deploymentNote.isBlank() ? deploymentNote : "—");
 			deployMap.put("serverPath",     serverPath != null && !serverPath.isBlank() ? serverPath : "—");
 			deployMap.put("itemsToDeploy",  itemsToDeploy != null && !itemsToDeploy.isBlank() ? itemsToDeploy : "—");
-			deployMap.put("url",            baseUrl + "/dashboard/crs");
+			deployMap.put("url",            getEffectiveBaseUrl() + "/dashboard/crs");
 			context.setVariable("deploy", deployMap);
 			context.setVariable("appLogoUrl", appLogoUrl);
 
