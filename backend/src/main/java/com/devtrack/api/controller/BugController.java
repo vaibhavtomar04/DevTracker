@@ -533,11 +533,16 @@ public class BugController {
                                     || "VERIFIED".equals(bugDetails.getStatus())
                                     || "VERIFIED&CLOSED".equals(bugDetails.getStatus())) {
                                 if (!"INVALID_BUG".equals(bugDetails.getRemarks())) {
-                                    return ResponseEntity.status(403).body("Developers cannot verify/close bugs. Only the creator tester can do this.");
+                                    // Throw (not return): this check runs AFTER the transition block above may have
+                                    // already flushed BugWorkflowMap changes. A plain return would let the
+                                    // @Transactional method commit that partial state; throwing forces a full
+                                    // rollback. GlobalExceptionHandler maps ResponseStatusException to HTTP 403.
+                                    throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Developers cannot verify/close bugs. Only the creator tester can do this.");
                                 }
                             }
                         } else {
-                            return ResponseEntity.status(403).body("You do not have permission to update this bug.");
+                            // Throw (not return) for the same rollback-safety reason as above.
+                            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "You do not have permission to update this bug.");
                         }
                     } else {
                         if (bugDetails.getTitle() != null) {
