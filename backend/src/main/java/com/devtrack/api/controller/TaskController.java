@@ -22,6 +22,7 @@ import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.CrossOrigin;
@@ -748,6 +749,7 @@ if (currentTargetStatus.equals("UAT_COMPLETED") && task.getUatCompletedDate() ==
                 .orElse(ResponseEntity.notFound().build());
     }
 
+    @CacheEvict(value = "dashboardSummary", allEntries = true)
     @PutMapping("/{id}/sprint")
     public ResponseEntity<?> assignTaskToSprint(@PathVariable Long id, @RequestBody java.util.Map<String, Object> payload) {
         return taskRepository.findById(id)
@@ -774,11 +776,14 @@ if (currentTargetStatus.equals("UAT_COMPLETED") && task.getUatCompletedDate() ==
                     com.devtrack.api.services.AuditLogHelper.enrich(log);
                     auditLogRepository.save(log);
 
-                    return ResponseEntity.ok(taskRepository.save(task));
+                    Task savedSprint = taskRepository.save(task);
+                    emitTaskEvent(savedSprint, "UPDATED", currentUser.getId());
+                    return ResponseEntity.ok(savedSprint);
                 })
                 .orElse(ResponseEntity.notFound().build());
     }
 
+    @CacheEvict(value = "dashboardSummary", allEntries = true)
     @PostMapping("/{id}/assign-tester")
     public ResponseEntity<?> assignTester(@PathVariable Long id) {
         String username = SecurityContextHolder.getContext().getAuthentication().getName();
@@ -818,9 +823,11 @@ if (currentTargetStatus.equals("UAT_COMPLETED") && task.getUatCompletedDate() ==
         notifyAllDevelopersAndTester(task, "Tester Assigned to " + task.getJtrackId(),
             "Tester " + currentUser.getFullName() + " has self-assigned and started testing for " + task.getJtrackId() + ".");
 
+        emitTaskEvent(task, "UPDATED", currentUser.getId());
         return ResponseEntity.ok(task);
     }
 
+    @CacheEvict(value = "dashboardSummary", allEntries = true)
     @PostMapping("/{id}/reassign-tester")
     @PreAuthorize("hasAnyRole('ROLE_DEVADMIN', 'ROLE_TESTADMIN')")
     public ResponseEntity<?> reassignTester(@PathVariable Long id, @RequestBody java.util.Map<String, String> payload) {
@@ -876,11 +883,13 @@ if (currentTargetStatus.equals("UAT_COMPLETED") && task.getUatCompletedDate() ==
                     createAndPushNotification(newTester.getId(), "Tester Assigned to " + saved.getJtrackId(),
                         "You have been assigned to " + saved.getJtrackId() + " by Admin " + adminUser.getFullName() + ". Reason: " + reason);
 
+                    emitTaskEvent(saved, "UPDATED", adminUser.getId());
                     return ResponseEntity.ok(saved);
                 })
                 .orElse(ResponseEntity.notFound().build());
     }
 
+    @CacheEvict(value = "dashboardSummary", allEntries = true)
     @PostMapping("/{id}/complete-testing")
     public ResponseEntity<?> completeTesting(@PathVariable Long id, @RequestBody java.util.Map<String, String> payload) {
         String comments = payload.get("comments");
@@ -935,6 +944,7 @@ if (task.getUatCompletedDate() == null) {
                         System.err.println("Failed to send test complete mail: " + e.getMessage());
                     }
                     
+                    emitTaskEvent(saved, "UPDATED", currentUser.getId());
                     return ResponseEntity.ok(TaskMapper.toListDto(saved));
                 })
                 .orElse(ResponseEntity.notFound().build());
@@ -999,6 +1009,7 @@ if (task.getUatCompletedDate() == null) {
         }
     }
 
+    @CacheEvict(value = "dashboardSummary", allEntries = true)
     @DeleteMapping("/{id}")
     @PreAuthorize("hasAnyRole('DEVADMIN', 'DEVELOPER')")
     public ResponseEntity<?> deleteTask(@PathVariable Long id, @RequestParam(value = "remarks", required = false) String remarks) {
@@ -1074,6 +1085,7 @@ if (task.getUatCompletedDate() == null) {
     }
 
     // UAT and Pool Endpoints
+    @CacheEvict(value = "dashboardSummary", allEntries = true)
     @PostMapping("/{id}/push-to-pool")
     @PreAuthorize("hasRole('DEVADMIN')")
     public ResponseEntity<?> pushToPool(@PathVariable Long id) {
@@ -1084,11 +1096,14 @@ if (task.getUatCompletedDate() == null) {
                     }
                     task.setInPool(true);
                     task.setInPoolDate(java.time.LocalDateTime.now());
-                    return ResponseEntity.ok(taskRepository.save(task));
+                    Task savedPool = taskRepository.save(task);
+                    emitTaskEvent(savedPool, "UPDATED", currentActorId());
+                    return ResponseEntity.ok(savedPool);
                 })
                 .orElse(ResponseEntity.notFound().build());
     }
 
+    @CacheEvict(value = "dashboardSummary", allEntries = true)
     @PostMapping("/{id}/pick-from-pool")
     @PreAuthorize("hasAnyRole('DEVELOPER', 'DEVADMIN')")
     public ResponseEntity<?> pickFromPool(@PathVariable Long id) {
@@ -1111,11 +1126,14 @@ if (task.getUatCompletedDate() == null) {
                          poolRow.setDeveloper(currentUser);
                         task.getDevelopers().add(poolRow);
                     }
-                    return ResponseEntity.ok(taskRepository.save(task));
+                    Task savedPick = taskRepository.save(task);
+                    emitTaskEvent(savedPick, "UPDATED", currentUser.getId());
+                    return ResponseEntity.ok(savedPick);
                 })
                 .orElse(ResponseEntity.notFound().build());
     }
 
+    @CacheEvict(value = "dashboardSummary", allEntries = true)
     @PostMapping("/{id}/pick-for-sit")
     @PreAuthorize("hasAnyRole('TESTER', 'TESTADMIN')")
     public ResponseEntity<?> pickForSit(@PathVariable Long id) {
@@ -1127,11 +1145,14 @@ if (task.getUatCompletedDate() == null) {
                         return ResponseEntity.badRequest().body("Task is already being tested.");
                     }
                     task.setTester(currentUser);
-                    return ResponseEntity.ok(taskRepository.save(task));
+                    Task savedSit = taskRepository.save(task);
+                    emitTaskEvent(savedSit, "UPDATED", currentUser.getId());
+                    return ResponseEntity.ok(savedSit);
                 })
                 .orElse(ResponseEntity.notFound().build());
     }
 
+    @CacheEvict(value = "dashboardSummary", allEntries = true)
     @PostMapping("/{id}/approve-sit")
     @PreAuthorize("hasAnyRole('TESTER', 'TESTADMIN')")
     public ResponseEntity<?> approveSit(@PathVariable Long id, @RequestBody Task taskDetails) {
@@ -1164,10 +1185,13 @@ if (task.getUatCompletedDate() == null) {
             log.setChangedBy(userRepository.findByUsername(SecurityContextHolder.getContext().getAuthentication().getName()).orElseThrow());
             auditLogRepository.save(log);
             
-            return ResponseEntity.ok(taskRepository.save(task));
+            Task savedApproveSit = taskRepository.save(task);
+            emitTaskEvent(savedApproveSit, "UPDATED", currentActorId());
+            return ResponseEntity.ok(savedApproveSit);
         }).orElse(ResponseEntity.notFound().build());
     }
 
+    @CacheEvict(value = "dashboardSummary", allEntries = true)
     @PostMapping("/{id}/reject-sit")
     @PreAuthorize("hasAnyRole('TESTER', 'TESTADMIN')")
     public ResponseEntity<?> rejectSit(@PathVariable Long id, @RequestBody Task taskDetails) {
@@ -1201,10 +1225,12 @@ if (task.getUatCompletedDate() == null) {
             } catch (Exception e) {
                 TaskController.log.error("Failed to evaluate CR risk in rejectSit", e);
             }
+            emitTaskEvent(saved, "UPDATED", currentActorId());
             return ResponseEntity.ok(saved);
         }).orElse(ResponseEntity.notFound().build());
     }
 
+    @CacheEvict(value = "dashboardSummary", allEntries = true)
     @PostMapping("/{id}/pick-for-uat")
     @PreAuthorize("hasAnyRole('TESTER', 'TESTADMIN')")
     public ResponseEntity<?> pickForUat(@PathVariable Long id) {
@@ -1216,11 +1242,14 @@ if (task.getUatCompletedDate() == null) {
                         return ResponseEntity.badRequest().body("Task is already being tested.");
                     }
                     task.setTester(currentUser);
-                    return ResponseEntity.ok(taskRepository.save(task));
+                    Task savedUatPick = taskRepository.save(task);
+                    emitTaskEvent(savedUatPick, "UPDATED", currentUser.getId());
+                    return ResponseEntity.ok(savedUatPick);
                 })
                 .orElse(ResponseEntity.notFound().build());
     }
 
+    @CacheEvict(value = "dashboardSummary", allEntries = true)
     @PostMapping("/{id}/approve-uat")
     @PreAuthorize("hasAnyRole('TESTER', 'TESTADMIN')")
     public ResponseEntity<?> approveUat(@PathVariable Long id, @RequestBody Task taskDetails) {
@@ -1261,10 +1290,13 @@ if (task.getUatCompletedDate() == null) {
             
             emailNotificationService.sendMailOnUATTestingComplete(task, taskDetails.getRemarks(), currentUser);
             
-            return ResponseEntity.ok(TaskMapper.toListDto(taskRepository.save(task)));  
+            Task savedApproveUat = taskRepository.save(task);
+            emitTaskEvent(savedApproveUat, "UPDATED", currentUser.getId());
+            return ResponseEntity.ok(TaskMapper.toListDto(savedApproveUat));  
         }).orElse(ResponseEntity.notFound().build());
     }
 
+    @CacheEvict(value = "dashboardSummary", allEntries = true)
     @PostMapping("/{id}/reject-uat")
     @PreAuthorize("hasAnyRole('TESTER', 'TESTADMIN')")
     public ResponseEntity<?> rejectUat(@PathVariable Long id, @RequestBody Task taskDetails) {
@@ -1300,6 +1332,7 @@ if (task.getUatCompletedDate() == null) {
             } catch (Exception e) {
                 TaskController.log.error("Failed to evaluate CR risk in rejectUat", e);
             }
+            emitTaskEvent(saved, "UPDATED", currentActorId());
             return ResponseEntity.ok(saved);
         }).orElse(ResponseEntity.notFound().build());
     }
@@ -1329,6 +1362,7 @@ public List<TaskListDto> getTasksByStepType(@RequestParam String type) {
     return taskWorkflowMapRepository.findTasksByStepType(type).stream().map(TaskMapper::toListDto).toList();
 }
 
+    @CacheEvict(value = "dashboardSummary", allEntries = true)
     @PostMapping("/{id}/approve")
     public ResponseEntity<?> approveWorkflowStep(@PathVariable Long id, @RequestBody(required = false) Task taskDetails) {
     	log.info("Inside approveWorkflowStep");
@@ -1470,10 +1504,12 @@ public List<TaskListDto> getTasksByStepType(@RequestParam String type) {
             notifyAllDevelopersAndTester(updatedTask, updatedTask.getJtrackId() + " Step Approved",
                 "Code Review Step approved. Status is now " + updatedTask.getStatus() + ". Remarks: " + (taskDetails != null ? taskDetails.getRemarks() : "Approved"));
             
+            emitTaskEvent(updatedTask, "UPDATED", currentUser.getId());
             return ResponseEntity.ok().build();
         }).orElse(ResponseEntity.notFound().build());
     }
 
+    @CacheEvict(value = "dashboardSummary", allEntries = true)
     @PostMapping("/{id}/reject")
     public ResponseEntity<?> rejectWorkflowStep(@PathVariable Long id, @RequestBody(required = false) Task taskDetails) {
         return taskRepository.findById(id).map(task -> {
@@ -1507,6 +1543,7 @@ public List<TaskListDto> getTasksByStepType(@RequestParam String type) {
             notifyAllDevelopersAndTester(updatedTask, updatedTask.getJtrackId() + " Sent Back by Admin",
                 "CR has been sent back by Admin/Reviewer: " + currentUser.getFullName() + ". Remarks: " + (taskDetails != null ? taskDetails.getRemarks() : "Step Rejected"));
             
+            emitTaskEvent(updatedTask, "UPDATED", currentUser.getId());
             return ResponseEntity.ok().build();
         }).orElse(ResponseEntity.notFound().build());
     }
@@ -1550,6 +1587,16 @@ public List<TaskListDto> getTasksByStepType(@RequestParam String type) {
         log.warn("Failed to emit typed TASK event ({}) for id={}: {}", action, task.getId(), e.getMessage());
     }
 }
+
+    private Long currentActorId() {
+        try {
+            String username = SecurityContextHolder.getContext().getAuthentication().getName();
+            return userRepository.findByUsername(username).map(User::getId).orElse(null);
+        } catch (Exception e) {
+            return null;
+        }
+    }
+
     private void notifyAllDevelopersAndTester(Task task, String title, String desc) {
         if (task == null) return;
         if (task.getAssignedDeveloper() != null) {
