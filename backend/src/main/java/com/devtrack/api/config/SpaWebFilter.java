@@ -58,14 +58,36 @@ public class SpaWebFilter implements WebMvcConfigurer {
                         if (requestedResource.exists() && requestedResource.isReadable()) {
                             return requestedResource;
                         }
-                        
-                        if (resourcePath.startsWith("api/")) {
-                            return null; // Let the API controllers handle it
+
+                        // Do not return index.html for API requests or static asset files (.js, .css, images, fonts)
+                        if (resourcePath.startsWith("api/") || 
+                            resourcePath.startsWith("assets/") || 
+                            resourcePath.startsWith("static/") ||
+                            isStaticAssetPath(resourcePath)) {
+                            Resource superResource = super.getResource(resourcePath, location);
+                            if (superResource != null && superResource.exists() && superResource.isReadable()) {
+                                return superResource;
+                            }
+                            return null; // Let Spring try next resource location or return 404
                         }
                         
-                        // Route all other unknown requests (like React Router paths) to index.html
-                        return new ClassPathResource("/static/index.html");
+                        // Only fallback to index.html for non-asset SPA route navigations when checking classpath location
+                        if (location.getURL().getProtocol().equals("jar") || location.getURL().getPath().contains("static")) {
+                            return new ClassPathResource("/static/index.html");
+                        }
+                        
+                        return super.getResource(resourcePath, location);
                     }
                 });
+    }
+
+    private static boolean isStaticAssetPath(String path) {
+        if (path == null) return false;
+        String lower = path.toLowerCase();
+        return lower.endsWith(".js") || lower.endsWith(".css") || lower.endsWith(".png") ||
+               lower.endsWith(".jpg") || lower.endsWith(".jpeg") || lower.endsWith(".gif") ||
+               lower.endsWith(".svg") || lower.endsWith(".ico") || lower.endsWith(".woff") ||
+               lower.endsWith(".woff2") || lower.endsWith(".ttf") || lower.endsWith(".map") ||
+               lower.endsWith(".json");
     }
 }

@@ -85,7 +85,15 @@ public class WebSecurityConfig {
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .headers(headers -> headers
                     .frameOptions(frame -> frame.deny())
-                    .contentSecurityPolicy(csp -> csp.policyDirectives("default-src 'self'; img-src 'self' data:; connect-src 'self' ws: wss:; frame-ancestors 'none';"))
+                    .contentSecurityPolicy(csp -> csp.policyDirectives(
+                        "default-src 'self'; " +
+                        "script-src 'self' 'unsafe-inline' 'unsafe-eval'; " +
+                        "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; " +
+                        "font-src 'self' https://fonts.gstatic.com data:; " +
+                        "img-src 'self' data: blob: https:; " +
+                        "connect-src 'self' ws: wss: http: https:; " +
+                        "frame-ancestors 'none';"
+                    ))
                     .referrerPolicy(referrer -> referrer.policy(org.springframework.security.web.header.writers.ReferrerPolicyHeaderWriter.ReferrerPolicy.STRICT_ORIGIN_WHEN_CROSS_ORIGIN))
                     .permissionsPolicy(permissions -> permissions.policy("geolocation=(), microphone=(), camera=()"))
                 )
