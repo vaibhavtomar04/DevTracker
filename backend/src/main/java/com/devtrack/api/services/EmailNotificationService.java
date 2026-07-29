@@ -88,18 +88,20 @@ public class EmailNotificationService {
 			}
 			if (cfg.isPresent() && cfg.get().getConfigValue() != null && !cfg.get().getConfigValue().isBlank()) {
 				url = cfg.get().getConfigValue().trim().replaceAll("/+$", "");
-				// DB-configured URL is assumed to already include any subpath — do not append.
-				return url;
+				// DB-stored URL: still apply frontendContextPath so it works even if stored without subpath.
+				return appendFrontendContextPath(url);
 			}
 		}
 		url = (baseUrl != null ? baseUrl : "http://localhost:5173").trim().replaceAll("/+$", "");
-		// Append frontend context path (e.g. /devtrack) when set, normalising away bare "/".
+		return appendFrontendContextPath(url);
+	}
+
+	/** Appends the frontend context path (e.g. /devtrack) to {@code url} if not already present. */
+	private String appendFrontendContextPath(String url) {
 		String fcp = (frontendContextPath != null ? frontendContextPath : "").trim().replaceAll("/+$", "");
-		if (!fcp.isEmpty() && !"/".equals(fcp)) {
-			if (!fcp.startsWith("/")) fcp = "/" + fcp;
-			if (!url.endsWith(fcp)) url = url + fcp;
-		}
-		return url;
+		if (fcp.isEmpty() || "/".equals(fcp)) return url;
+		if (!fcp.startsWith("/")) fcp = "/" + fcp;
+		return url.endsWith(fcp) ? url : url + fcp;
 	}
 
 	@Value("${devtrack.backend.base-url:http://localhost:8080}")
