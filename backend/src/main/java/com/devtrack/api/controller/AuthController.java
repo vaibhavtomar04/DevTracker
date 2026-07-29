@@ -96,17 +96,29 @@ public class AuthController {
     @Value("${devtrack.mail.base-url:http://localhost:5173}")
     private String baseUrl;
 
+    @Value("${devtrack.mail.frontend-context-path:}")
+    private String frontendContextPath;
+
     private String getEffectiveBaseUrl() {
+        String url;
         if (configRepository != null) {
             Optional<AppConfig> cfg = configRepository.findByConfigKey("FRONTEND_BASE_URL");
             if (cfg.isEmpty()) {
                 cfg = configRepository.findByConfigKey("DEVTRACK_MAIL_BASE_URL");
             }
             if (cfg.isPresent() && cfg.get().getConfigValue() != null && !cfg.get().getConfigValue().isBlank()) {
+                // DB-configured URL is assumed to already include any subpath — do not append.
                 return cfg.get().getConfigValue().trim().replaceAll("/+$", "");
             }
         }
-        return (baseUrl != null ? baseUrl : "http://localhost:5173").trim().replaceAll("/+$", "");
+        url = (baseUrl != null ? baseUrl : "http://localhost:5173").trim().replaceAll("/+$", "");
+        // Append frontend context path (e.g. /devtrack) when set, normalising away bare "/".
+        String fcp = (frontendContextPath != null ? frontendContextPath : "").trim().replaceAll("/+$", "");
+        if (!fcp.isEmpty() && !"/".equals(fcp)) {
+            if (!fcp.startsWith("/")) fcp = "/" + fcp;
+            if (!url.endsWith(fcp)) url = url + fcp;
+        }
+        return url;
     }
 
     private String decryptHex(String hex) {

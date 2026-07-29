@@ -76,17 +76,30 @@ public class EmailNotificationService {
 	@Value("${devtrack.mail.base-url:http://localhost:5173}")
 	private String baseUrl;
 
+	@Value("${devtrack.mail.frontend-context-path:}")
+	private String frontendContextPath;
+
 	public String getEffectiveBaseUrl() {
+		String url;
 		if (configRepository != null) {
 			var cfg = configRepository.findByConfigKey("FRONTEND_BASE_URL");
 			if (cfg.isEmpty()) {
 				cfg = configRepository.findByConfigKey("DEVTRACK_MAIL_BASE_URL");
 			}
 			if (cfg.isPresent() && cfg.get().getConfigValue() != null && !cfg.get().getConfigValue().isBlank()) {
-				return cfg.get().getConfigValue().trim().replaceAll("/+$", "");
+				url = cfg.get().getConfigValue().trim().replaceAll("/+$", "");
+				// DB-configured URL is assumed to already include any subpath — do not append.
+				return url;
 			}
 		}
-		return (baseUrl != null ? baseUrl : "http://localhost:5173").trim().replaceAll("/+$", "");
+		url = (baseUrl != null ? baseUrl : "http://localhost:5173").trim().replaceAll("/+$", "");
+		// Append frontend context path (e.g. /devtrack) when set, normalising away bare "/".
+		String fcp = (frontendContextPath != null ? frontendContextPath : "").trim().replaceAll("/+$", "");
+		if (!fcp.isEmpty() && !"/".equals(fcp)) {
+			if (!fcp.startsWith("/")) fcp = "/" + fcp;
+			if (!url.endsWith(fcp)) url = url + fcp;
+		}
+		return url;
 	}
 
 	@Value("${devtrack.backend.base-url:http://localhost:8080}")
