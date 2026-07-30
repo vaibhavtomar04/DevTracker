@@ -737,9 +737,13 @@ export default function DeveloperDashboard() {
       deploymentNote: fields.deploymentNote,
       serverPath: fields.serverPath,
       itemsToDeploy: fields.itemsToDeploy,
+      sendDevOpsMail: fields.sendDevOpsMail,
     }, savedRemarks, user)
       .then(() => {
-        addToast("Submitted for Code Review approval. DevOps team notified.", "success")
+        const msg = fields.sendDevOpsMail
+          ? "Submitted for Code Review approval. DevOps team notified."
+          : "Submitted for Code Review approval. DevOps notification skipped."
+        addToast(msg, "success")
         fetchData()
       })
       .catch(err => {
@@ -2552,14 +2556,15 @@ export default function DeveloperDashboard() {
 
               <form onSubmit={handleSubmitForReview} className="space-y-4">
                 <div className="space-y-1.5">
-                  <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider">Git Repo URL</label>
-                  <input
-                    placeholder="https://github.com/enterprise/project"
+                  <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider">GitLab Link(s)</label>
+                  <textarea
+                    placeholder={"https://gitlab.com/org/repo/-/merge_requests/1\nhttps://gitlab.com/org/repo/-/merge_requests/2"}
                     value={gitRepo}
                     onChange={e => setGitRepo(e.target.value)}
-                    required
-                    className="h-10 w-full bg-[#0f0f11] border border-white/[0.08] focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20 rounded-xl px-3 py-2 text-xs text-zinc-200 focus:outline-none"
+                    rows={3}
+                    className="w-full bg-[#0f0f11] border border-white/[0.08] focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20 rounded-xl px-3 py-2 text-xs text-zinc-200 focus:outline-none resize-none font-mono leading-relaxed"
                   />
+                  <p className="text-[10px] text-zinc-500 pl-0.5">Enter one URL per line, or separate multiple URLs with a comma</p>
                 </div>
 
                 <div className="grid grid-cols-2 gap-4">

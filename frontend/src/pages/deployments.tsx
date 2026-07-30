@@ -396,21 +396,31 @@ export default function Deployments() {
 
                 {/* Git PR */}
                 <div className="space-y-1 bg-white/[0.02] p-3 rounded-xl border border-white/[0.06]">
-                  <span className="text-muted-foreground text-[10px] font-semibold uppercase tracking-wider block">Git PR Reference / Link</span>
-                  {selectedTaskForDetails.gitLinks || selectedTaskForDetails.developers?.[0]?.prLink ? (
-                    <a 
-                      href={selectedTaskForDetails.gitLinks || selectedTaskForDetails.developers?.[0]?.prLink} 
-                      target="_blank" 
-                      rel="noreferrer" 
-                      className="text-cyan-400 hover:text-cyan-300 font-mono break-all text-xs flex items-center space-x-1 hover:underline mt-0.5"
-                    >
-                      <ExternalLink className="h-3.5 w-3.5 shrink-0 text-cyan-400" />
-                      <span>{selectedTaskForDetails.gitLinks || selectedTaskForDetails.developers?.[0]?.prLink}</span>
-                    </a>
-                  ) : (
+                  <span className="text-muted-foreground text-[10px] font-semibold uppercase tracking-wider block">Git PR / GitLab Link(s)</span>
+                  {(selectedTaskForDetails.gitLinks || selectedTaskForDetails.developers?.[0]?.prLink) ? (() => {
+                    const raw = selectedTaskForDetails.gitLinks || selectedTaskForDetails.developers?.[0]?.prLink || ''
+                    const links = raw.split(/[\n,]+/).map((l: string) => l.trim()).filter(Boolean)
+                    return (
+                      <div className="space-y-1 mt-0.5">
+                        {links.map((link: string, i: number) => (
+                          <a
+                            key={i}
+                            href={link}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="text-cyan-400 hover:text-cyan-300 font-mono break-all text-xs flex items-center space-x-1 hover:underline"
+                          >
+                            <ExternalLink className="h-3.5 w-3.5 shrink-0 text-cyan-400" />
+                            <span>{link}</span>
+                          </a>
+                        ))}
+                      </div>
+                    )
+                  })() : (
                     <span className="text-muted-foreground italic text-xs block mt-0.5">No Git link available</span>
                   )}
                 </div>
+
 
                 {/* Deployment Dates */}
                 <div className="space-y-1.5">

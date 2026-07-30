@@ -204,19 +204,27 @@ export default function CodeReviewPage() {
                         </div>
                       </td>
 
-                      {/* Git PR Link */}
+                      {/* Git PR Link(s) */}
                       <td className="p-4">
-                        {task.gitLinks ? (
-                          <a 
-                            href={task.gitLinks.split(",")[0]} 
-                            target="_blank" 
-                            rel="noreferrer" 
-                            className="inline-flex items-center space-x-1 font-semibold text-cyan-400 hover:text-cyan-300 transition-colors group/link"
-                          >
-                            <span>Open PR</span>
-                            <ExternalLink className="h-3 w-3 transition-transform group-hover/link:translate-x-0.5 group-hover/link:-translate-y-0.5" />
-                          </a>
-                        ) : (
+                        {task.gitLinks ? (() => {
+                          const links = task.gitLinks.split(/[\n,]+/).map((l: string) => l.trim()).filter(Boolean)
+                          return (
+                            <div className="space-y-0.5">
+                              <a
+                                href={links[0]}
+                                target="_blank"
+                                rel="noreferrer"
+                                className="inline-flex items-center space-x-1 font-semibold text-cyan-400 hover:text-cyan-300 transition-colors group/link"
+                              >
+                                <span>Open PR</span>
+                                <ExternalLink className="h-3 w-3 transition-transform group-hover/link:translate-x-0.5 group-hover/link:-translate-y-0.5" />
+                              </a>
+                              {links.length > 1 && (
+                                <span className="block text-[9px] text-muted-foreground">+{links.length - 1} more link(s)</span>
+                              )}
+                            </div>
+                          )
+                        })() : (
                           <span className="text-muted-foreground/60 italic font-mono">NA</span>
                         )}
                       </td>
@@ -311,17 +319,22 @@ export default function CodeReviewPage() {
                     </span>
                   </div>
                   <div className="col-span-2 border-t border-white/[0.04] pt-2.5 mt-1">
-                    <span className="text-muted-foreground block text-[10px] font-semibold uppercase tracking-wider">Git Repo URL</span>
+                    <span className="text-muted-foreground block text-[10px] font-semibold uppercase tracking-wider">GitLab Link(s)</span>
                     {selectedTask.gitLinks ? (
-                      <a 
-                        href={selectedTask.gitLinks} 
-                        target="_blank" 
-                        rel="noreferrer" 
-                        className="text-cyan-400 hover:text-cyan-300 font-mono text-[11px] break-all flex items-center space-x-1 hover:underline mt-0.5"
-                      >
-                        <ExternalLink className="h-3 w-3 shrink-0" />
-                        <span>{selectedTask.gitLinks}</span>
-                      </a>
+                      <div className="space-y-1 mt-0.5">
+                        {selectedTask.gitLinks.split(/[\n,]+/).map((link: string, i: number) => link.trim()).filter(Boolean).map((link: string, i: number) => (
+                          <a
+                            key={i}
+                            href={link}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="text-cyan-400 hover:text-cyan-300 font-mono text-[11px] break-all flex items-center space-x-1 hover:underline"
+                          >
+                            <ExternalLink className="h-3 w-3 shrink-0" />
+                            <span>{link}</span>
+                          </a>
+                        ))}
+                      </div>
                     ) : (
                       <span className="text-muted-foreground italic text-xs">No link available</span>
                     )}

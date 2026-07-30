@@ -35,14 +35,20 @@ function RoleBasedWorkspace() {
 
   if (!user) return <Navigate to="/login" replace />
 
-  // DEVADMIN / CODEREVIEWER landing
-  if (user.roles.includes("DEVADMIN") || user.roles.includes("CODEREVIEWER")) {
+  // DEVADMIN always gets admin view
+  if (user.roles.includes("DEVADMIN")) {
     return <AdminDashboard />
   }
 
-  // DEVELOPER landing
+  // DEVELOPER (even if also CODEREVIEWER) → developer workspace
+  // so dual-role users can see their assigned CRs and use Start Development
   if (user.roles.includes("DEVELOPER")) {
     return <DeveloperDashboard />
+  }
+
+  // CODEREVIEWER-only → admin/review dashboard
+  if (user.roles.includes("CODEREVIEWER")) {
+    return <AdminDashboard />
   }
 
   // TESTER / TESTADMIN landing

@@ -6,16 +6,18 @@
  *   - deploymentNote   : general notes for deployment
  *   - serverPath       : server + path (Server-1.42 is hardcoded, dev enters path only)
  *   - itemsToDeploy    : list of artifacts / items to deploy
+ *   - sendDevOpsMail   : whether to actually send the DevOps notification email (default true)
  */
 
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Server, FileText, Package, Send, X, AlertCircle } from 'lucide-react';
+import { Server, FileText, Package, Send, X, AlertCircle, Bell, BellOff } from 'lucide-react';
 
 export interface DevOpsDeploymentFields {
   deploymentNote: string;
   serverPath: string;
   itemsToDeploy: string;
+  sendDevOpsMail: boolean;
 }
 
 interface DevOpsDeploymentModalProps {
@@ -50,21 +52,27 @@ export const DevOpsDeploymentModal: React.FC<DevOpsDeploymentModalProps> = ({
   const [deploymentNote, setDeploymentNote] = useState('');
   const [pathSuffix, setPathSuffix] = useState('');
   const [itemsToDeploy, setItemsToDeploy] = useState('');
+  const [sendDevOpsMail, setSendDevOpsMail] = useState(true);
   const [error, setError] = useState('');
 
   const handleConfirm = () => {
-    if (!deploymentNote.trim() || !pathSuffix.trim() || !itemsToDeploy.trim()) {
-      setError('All three fields are required before sending to Code Review.');
+    if (sendDevOpsMail && (!deploymentNote.trim() || !pathSuffix.trim() || !itemsToDeploy.trim())) {
+      setError('All three fields are required when sending to DevOps.');
       return;
     }
     setError('');
-    onConfirm({ deploymentNote, serverPath: `${SERVER_PREFIX}${pathSuffix.trim()}`, itemsToDeploy });
-    setDeploymentNote(''); setPathSuffix(''); setItemsToDeploy('');
+    onConfirm({
+      deploymentNote,
+      serverPath: pathSuffix.trim() ? `${SERVER_PREFIX}${pathSuffix.trim()}` : '',
+      itemsToDeploy,
+      sendDevOpsMail,
+    });
+    setDeploymentNote(''); setPathSuffix(''); setItemsToDeploy(''); setSendDevOpsMail(true);
   };
 
   const handleCancel = () => {
     setError('');
-    setDeploymentNote(''); setPathSuffix(''); setItemsToDeploy('');
+    setDeploymentNote(''); setPathSuffix(''); setItemsToDeploy(''); setSendDevOpsMail(true);
     onCancel();
   };
 
@@ -105,7 +113,9 @@ export const DevOpsDeploymentModal: React.FC<DevOpsDeploymentModalProps> = ({
                     </div>
                     <div>
                       <h3 className="text-base font-bold text-white leading-tight">UAT Deployment Details</h3>
-                      <p className="text-[11px] text-violet-200 mt-0.5">DevOps team will be notified via email</p>
+                      <p className="text-[11px] text-violet-200 mt-0.5">
+                        {sendDevOpsMail ? 'DevOps team will be notified via email' : 'DevOps notification is disabled'}
+                      </p>
                     </div>
                   </div>
                   <button
@@ -120,7 +130,7 @@ export const DevOpsDeploymentModal: React.FC<DevOpsDeploymentModalProps> = ({
               {/* ── Scrollable body ── */}
               <div className="overflow-y-auto flex-1 min-h-0 px-6 py-5 space-y-5 bg-slate-50/50">
 
-                {/* CR Info card */}
+                {/* CR Info card + DevOps toggle */}
                 <div className="flex items-center gap-3 bg-white border border-slate-200 rounded-xl px-4 py-3 shadow-sm">
                   <div className="shrink-0 w-9 h-9 rounded-lg bg-gradient-to-br from-violet-500 to-indigo-500 flex items-center justify-center text-white text-sm font-bold shadow">
                     {jtrackId?.charAt(0) ?? 'C'}
@@ -132,54 +142,89 @@ export const DevOpsDeploymentModal: React.FC<DevOpsDeploymentModalProps> = ({
                       Developer: <span className="text-slate-700 font-medium">{developerName}</span>
                     </p>
                   </div>
-                  <span className="shrink-0 text-[10px] px-2.5 py-1 rounded-full bg-emerald-600 text-white font-bold uppercase tracking-wide shadow-sm shadow-emerald-500/30">
-                    DevOps Email
-                  </span>
-                </div>
 
-                {/* Deployment Note */}
-                <div>
-                  <FieldLabel icon={<FileText size={13} />} label="Deployment Note" required />
-                  <textarea
-                    rows={3}
-                    value={deploymentNote}
-                    onChange={(e) => setDeploymentNote(e.target.value)}
-                    placeholder="e.g. New column added in users table — run migration script before deployment"
-                    className={`${inputBase} resize-none leading-relaxed`}
-                  />
-                </div>
-
-                {/* Path — Server-1.42 hardcoded */}
-                <div>
-                  <FieldLabel icon={<Server size={13} />} label="Path" required />
-                  <div className="flex items-stretch rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 overflow-hidden focus-within:border-violet-500 focus-within:ring-2 focus-within:ring-violet-500/20 transition-all shadow-sm">
-                    <div className="flex items-center gap-1.5 px-3.5 py-3 bg-slate-100 dark:bg-slate-800 border-r border-slate-300 dark:border-slate-700 shrink-0">
-                      <Server size={14} className="text-violet-600 dark:text-violet-400" />
-                      <span className="text-xs font-mono font-bold text-slate-900 dark:text-slate-100 whitespace-nowrap">Server-1.42:</span>
-                    </div>
-                    <input
-                      type="text"
-                      value={pathSuffix}
-                      onChange={(e) => setPathSuffix(e.target.value)}
-                      placeholder="/opt/tpf/apps/devtrack/lib"
-                      className="flex-1 bg-transparent px-3.5 py-3 text-sm text-slate-900 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-500 font-mono font-medium outline-none min-w-0"
-                    />
+                  {/* ── DevOps Mail Toggle ── */}
+                  <div className="shrink-0 flex flex-col items-center gap-1">
+                    <button
+                      type="button"
+                      onClick={() => { setSendDevOpsMail(v => !v); setError(''); }}
+                      className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-violet-400 focus:ring-offset-1 ${
+                        sendDevOpsMail ? 'bg-emerald-500' : 'bg-slate-300'
+                      }`}
+                      aria-label="Toggle DevOps mail"
+                    >
+                      <span
+                        className={`inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform ${
+                          sendDevOpsMail ? 'translate-x-6' : 'translate-x-1'
+                        }`}
+                      />
+                    </button>
+                    <span className={`text-[9px] font-bold uppercase tracking-wide ${sendDevOpsMail ? 'text-emerald-600' : 'text-slate-400'}`}>
+                      {sendDevOpsMail ? 'Notify DevOps' : 'Skip DevOps'}
+                    </span>
                   </div>
-                  <p className="text-[11px] text-slate-500 dark:text-slate-400 font-medium mt-1.5 pl-1">Enter the full deployment path inside the server</p>
                 </div>
 
-                {/* Items to Deploy */}
-                <div>
-                  <FieldLabel icon={<Package size={13} />} label="Items to Deploy" required />
-                  <textarea
-                    rows={4}
-                    value={itemsToDeploy}
-                    onChange={(e) => setItemsToDeploy(e.target.value)}
-                    placeholder={"devtrack-api.jar\napplication.properties\ndb/migration/V22__new_column.sql"}
-                    className={`${inputBase} resize-none font-mono leading-relaxed`}
-                  />
-                  <p className="text-[11px] text-slate-400 mt-1.5 pl-1">List each artifact on a new line</p>
-                </div>
+                {/* Deployment fields — only required when sendDevOpsMail is true */}
+                {sendDevOpsMail ? (
+                  <>
+                    {/* Deployment Note */}
+                    <div>
+                      <FieldLabel icon={<FileText size={13} />} label="Deployment Note" required />
+                      <textarea
+                        rows={3}
+                        value={deploymentNote}
+                        onChange={(e) => setDeploymentNote(e.target.value)}
+                        placeholder="e.g. New column added in users table — run migration script before deployment"
+                        className={`${inputBase} resize-none leading-relaxed`}
+                      />
+                    </div>
+
+                    {/* Path — Server-1.42 hardcoded */}
+                    <div>
+                      <FieldLabel icon={<Server size={13} />} label="Path" required />
+                      <div className="flex items-stretch rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 overflow-hidden focus-within:border-violet-500 focus-within:ring-2 focus-within:ring-violet-500/20 transition-all shadow-sm">
+                        <div className="flex items-center gap-1.5 px-3.5 py-3 bg-slate-100 dark:bg-slate-800 border-r border-slate-300 dark:border-slate-700 shrink-0">
+                          <Server size={14} className="text-violet-600 dark:text-violet-400" />
+                          <span className="text-xs font-mono font-bold text-slate-900 dark:text-slate-100 whitespace-nowrap">Server-1.42:</span>
+                        </div>
+                        <input
+                          type="text"
+                          value={pathSuffix}
+                          onChange={(e) => setPathSuffix(e.target.value)}
+                          placeholder="/opt/tpf/apps/devtrack/lib"
+                          className="flex-1 bg-transparent px-3.5 py-3 text-sm text-slate-900 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-500 font-mono font-medium outline-none min-w-0"
+                        />
+                      </div>
+                      <p className="text-[11px] text-slate-500 dark:text-slate-400 font-medium mt-1.5 pl-1">Enter the full deployment path inside the server</p>
+                    </div>
+
+                    {/* Items to Deploy */}
+                    <div>
+                      <FieldLabel icon={<Package size={13} />} label="Items to Deploy" required />
+                      <textarea
+                        rows={4}
+                        value={itemsToDeploy}
+                        onChange={(e) => setItemsToDeploy(e.target.value)}
+                        placeholder={"devtrack-api.jar\napplication.properties\ndb/migration/V22__new_column.sql"}
+                        className={`${inputBase} resize-none font-mono leading-relaxed`}
+                      />
+                      <p className="text-[11px] text-slate-400 mt-1.5 pl-1">List each artifact on a new line</p>
+                    </div>
+                  </>
+                ) : (
+                  /* Skipping DevOps — info banner */
+                  <div className="flex items-start gap-3 p-4 rounded-xl bg-amber-50 border border-amber-200">
+                    <BellOff size={16} className="text-amber-500 shrink-0 mt-0.5" />
+                    <div>
+                      <p className="text-sm font-bold text-amber-700">DevOps notification disabled</p>
+                      <p className="text-[11px] text-amber-600 mt-0.5 leading-relaxed">
+                        The CR will move to Code Review but the DevOps team will <strong>not</strong> receive a deployment email.
+                        Toggle the switch above to enable DevOps notification.
+                      </p>
+                    </div>
+                  </div>
+                )}
 
                 {/* Error */}
                 {error && (
@@ -203,10 +248,14 @@ export const DevOpsDeploymentModal: React.FC<DevOpsDeploymentModalProps> = ({
                 </button>
                 <button
                   onClick={handleConfirm}
-                  className="flex-[2] flex items-center justify-center gap-2 py-2.5 rounded-xl bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-500 hover:to-indigo-500 text-white text-sm font-bold shadow-md shadow-violet-200 transition-all active:scale-[0.98]"
+                  className={`flex-[2] flex items-center justify-center gap-2 py-2.5 rounded-xl text-white text-sm font-bold shadow-md transition-all active:scale-[0.98] ${
+                    sendDevOpsMail
+                      ? 'bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-500 hover:to-indigo-500 shadow-violet-200'
+                      : 'bg-gradient-to-r from-slate-600 to-slate-700 hover:from-slate-500 hover:to-slate-600 shadow-slate-200'
+                  }`}
                 >
-                  <Send size={14} />
-                  Send to Code Review &amp; Notify DevOps
+                  {sendDevOpsMail ? <Bell size={14} /> : <Send size={14} />}
+                  {sendDevOpsMail ? 'Send to Code Review & Notify DevOps' : 'Send to Code Review (Skip DevOps)'}
                 </button>
               </div>
             </div>
