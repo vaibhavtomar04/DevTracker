@@ -107,12 +107,18 @@ public class EmailNotificationService {
 	@Value("${devtrack.backend.base-url:http://localhost:8080}")
 	private String backendBaseUrl;
 
-	@Value("${server.servlet.context-path:}")
-	private String contextPath;
+	/**
+	 * Backend context path for building document download URLs in emails.
+	 * Injected from devtrack.mail.backend-context-path (default /devtrack).
+	 * This mirrors devtrack.mail.frontend-context-path to avoid the same
+	 * Spring property chain resolution issue that affected frontend email links.
+	 */
+	@Value("${devtrack.mail.backend-context-path:/devtrack}")
+	private String backendContextPath;
 
 	public String buildBackendUrl(String relativePath) {
 		String base = (backendBaseUrl != null ? backendBaseUrl : "").replaceAll("/+$", "");
-		String cp = (contextPath != null ? contextPath : "").trim().replaceAll("/+$", "");
+		String cp = (backendContextPath != null ? backendContextPath : "").trim().replaceAll("/+$", "");
 		if (!cp.isEmpty() && !cp.startsWith("/")) {
 			cp = "/" + cp;
 		}
