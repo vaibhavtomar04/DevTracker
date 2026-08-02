@@ -404,11 +404,21 @@ export default function DeveloperDashboard() {
     if (approvalDelayDays > 0) predictedDate = addWorkingDays(predictedDate, approvalDelayDays)
     if (blockedDelayDays > 0) predictedDate = addWorkingDays(predictedDate, blockedDelayDays)
 
-    // Sprint deadline matching active sprint
+    // Sprint deadline matching: evaluate sprint deadline ONLY if task is assigned to a sprint
+    const taskSprint = task.sprintId ? sprints?.find(s => s.id === task.sprintId) : null
     const activeSprint = sprints?.find(s => s.status === "ACTIVE")
-    const fallbackDeadlineStr = getConfigValue("deadline.sprint_deadline_fallback", "2026-07-31")
-    const sprintDeadlineStr = activeSprint?.endDate || fallbackDeadlineStr
-    const sprintDeadline = new Date(sprintDeadlineStr)
+    
+    // Effective target deadline string
+    const sprintDeadlineStr = taskSprint?.endDate 
+      ? taskSprint.endDate 
+      : (task.sprintId && activeSprint?.endDate ? activeSprint.endDate : null)
+      
+    const effectiveDeadlineStr = sprintDeadlineStr 
+      || task.expectedUatDeploymentDate 
+      || task.expectedSitDeploymentDate 
+      || null
+
+    const effectiveDeadline = effectiveDeadlineStr ? new Date(effectiveDeadlineStr) : null
 
     // Determine status
     let deadlineStatus: "On Track" | "At Risk" | "Delayed" | "Bug Found" = "On Track"
@@ -418,7 +428,7 @@ export default function DeveloperDashboard() {
       return {
         devStartDate: devStart.toISOString().split("T")[0],
         targetCompletionDate: targetCompletionDate.toISOString().split("T")[0],
-        sprintDeadline: sprintDeadlineStr,
+        sprintDeadline: effectiveDeadlineStr || "Unassigned",
         predictedCompletionDate: (task.productionDate || targetCompletionDate.toISOString()).split("T")[0],
         status: "On Track",
         explanation: "Completed: Change Request has been successfully deployed / closed.",
@@ -434,12 +444,13 @@ export default function DeveloperDashboard() {
     if (task.status === "BUG_FOUND") {
       deadlineStatus = "Bug Found"
       statusExplanation = "Bug Found: Retest is pending on raised UAT bug."
-    } else if (predictedDate.getTime() > sprintDeadline.getTime()) {
+    } else if (effectiveDeadline && predictedDate.getTime() > effectiveDeadline.getTime()) {
       deadlineStatus = "Delayed"
-      statusExplanation = `Delayed: Predicted completion date (${predictedDate.toISOString().split("T")[0]}) exceeds the Active Sprint deadline (${sprintDeadlineStr}).`
-    } else if (sprintDeadline.getTime() - predictedDate.getTime() < 2 * 24 * 60 * 60 * 1000) {
+      const deadlineLabel = sprintDeadlineStr ? "Active Sprint deadline" : "Expected deployment deadline"
+      statusExplanation = `Delayed: Predicted completion date (${predictedDate.toISOString().split("T")[0]}) exceeds the ${deadlineLabel} (${effectiveDeadlineStr}).`
+    } else if (effectiveDeadline && effectiveDeadline.getTime() - predictedDate.getTime() < 2 * 24 * 60 * 60 * 1000) {
       deadlineStatus = "At Risk"
-      statusExplanation = "At Risk: Buffer margin to sprint deadline is less than 48 hours."
+      statusExplanation = "At Risk: Buffer margin to deployment deadline is less than 48 hours."
     }
 
     if (bugDelayDays > 0 && deadlineStatus !== "On Track") {
@@ -449,13 +460,13 @@ export default function DeveloperDashboard() {
       statusExplanation += ` (Added ${approvalDelayDays} days for approval process.)`
     }
 
-    const diffMs = sprintDeadline.getTime() - predictedDate.getTime()
+    const diffMs = effectiveDeadline ? effectiveDeadline.getTime() - predictedDate.getTime() : 999 * 3600 * 1000
     const bufferHours = Math.round(diffMs / (1000 * 60 * 60))
 
     return {
       devStartDate: devStart.toISOString().split("T")[0],
       targetCompletionDate: targetCompletionDate.toISOString().split("T")[0],
-      sprintDeadline: sprintDeadlineStr,
+      sprintDeadline: effectiveDeadlineStr || "Unassigned",
       predictedCompletionDate: predictedDate.toISOString().split("T")[0],
       status: deadlineStatus,
       explanation: statusExplanation,
