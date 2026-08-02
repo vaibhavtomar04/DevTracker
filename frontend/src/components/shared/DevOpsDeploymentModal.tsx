@@ -36,10 +36,10 @@ const FieldLabel: React.FC<{ icon: React.ReactNode; label: string; required?: bo
   icon, label, required,
 }) => (
   <div className="flex items-center gap-2 mb-2">
-    <span className="flex items-center justify-center w-6 h-6 rounded-lg bg-violet-100 text-violet-600 shrink-0">
+    <span className="flex items-center justify-center w-6 h-6 rounded-lg bg-violet-100 dark:bg-violet-950/60 text-violet-600 dark:text-violet-400 shrink-0">
       {icon}
     </span>
-    <span className="text-[11px] font-bold text-slate-500 uppercase tracking-widest">
+    <span className="text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest">
       {label}
     </span>
     {required && <span className="text-rose-500 text-xs font-bold">*</span>}
@@ -77,7 +77,7 @@ export const DevOpsDeploymentModal: React.FC<DevOpsDeploymentModalProps> = ({
   };
 
   const inputBase =
-    'w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm text-slate-800 placeholder:text-slate-400 outline-none focus:border-violet-400 focus:ring-2 focus:ring-violet-100 transition-all';
+    'w-full bg-slate-50 dark:bg-[#1e1e24] border border-slate-200 dark:border-white/10 rounded-xl px-4 py-3 text-sm text-slate-800 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-500 outline-none focus:border-violet-400 dark:focus:border-violet-500 focus:ring-2 focus:ring-violet-100 dark:focus:ring-violet-500/20 transition-all';
 
   return (
     <AnimatePresence>
@@ -86,7 +86,7 @@ export const DevOpsDeploymentModal: React.FC<DevOpsDeploymentModalProps> = ({
           {/* Backdrop */}
           <motion.div
             initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[70]"
+            className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[70]"
             onClick={handleCancel}
           />
 
@@ -99,7 +99,7 @@ export const DevOpsDeploymentModal: React.FC<DevOpsDeploymentModalProps> = ({
             className="fixed inset-0 z-[71] flex items-center justify-center p-4 pointer-events-none"
           >
             <div
-              className="pointer-events-auto w-full max-w-[540px] max-h-[92vh] flex flex-col bg-white rounded-2xl shadow-2xl overflow-hidden border border-slate-200"
+              className="pointer-events-auto w-full max-w-[540px] max-h-[92vh] flex flex-col bg-white dark:bg-[#18181c] rounded-2xl shadow-2xl overflow-hidden border border-slate-200 dark:border-white/10"
               onClick={(e) => e.stopPropagation()}
             >
               {/* ── Header ── */}
@@ -128,18 +128,18 @@ export const DevOpsDeploymentModal: React.FC<DevOpsDeploymentModalProps> = ({
               </div>
 
               {/* ── Scrollable body ── */}
-              <div className="overflow-y-auto flex-1 min-h-0 px-6 py-5 space-y-5 bg-slate-50/50">
+              <div className="overflow-y-auto flex-1 min-h-0 px-6 py-5 space-y-5 bg-slate-50/50 dark:bg-[#121215]">
 
                 {/* CR Info card + DevOps toggle */}
-                <div className="flex items-center gap-3 bg-white border border-slate-200 rounded-xl px-4 py-3 shadow-sm">
+                <div className="flex items-center gap-3 bg-white dark:bg-[#1e1e24] border border-slate-200 dark:border-white/10 rounded-xl px-4 py-3 shadow-sm">
                   <div className="shrink-0 w-9 h-9 rounded-lg bg-gradient-to-br from-violet-500 to-indigo-500 flex items-center justify-center text-white text-sm font-bold shadow">
                     {jtrackId?.charAt(0) ?? 'C'}
                   </div>
                   <div className="min-w-0 flex-1">
-                    <p className="text-[10px] font-mono font-semibold text-violet-500 uppercase">{jtrackId}</p>
-                    <p className="text-sm font-semibold text-slate-800 truncate leading-tight">{crName}</p>
-                    <p className="text-xs text-slate-500 mt-0.5">
-                      Developer: <span className="text-slate-700 font-medium">{developerName}</span>
+                    <p className="text-[10px] font-mono font-semibold text-violet-600 dark:text-violet-400 uppercase">{jtrackId}</p>
+                    <p className="text-sm font-semibold text-slate-800 dark:text-slate-100 truncate leading-tight">{crName}</p>
+                    <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                      Developer: <span className="text-slate-700 dark:text-slate-200 font-medium">{developerName}</span>
                     </p>
                   </div>
 
@@ -149,7 +149,7 @@ export const DevOpsDeploymentModal: React.FC<DevOpsDeploymentModalProps> = ({
                       type="button"
                       onClick={() => { setSendDevOpsMail(v => !v); setError(''); }}
                       className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-violet-400 focus:ring-offset-1 ${
-                        sendDevOpsMail ? 'bg-emerald-500' : 'bg-slate-300'
+                        sendDevOpsMail ? 'bg-emerald-500' : 'bg-slate-300 dark:bg-slate-700'
                       }`}
                       aria-label="Toggle DevOps mail"
                     >
@@ -159,7 +159,7 @@ export const DevOpsDeploymentModal: React.FC<DevOpsDeploymentModalProps> = ({
                         }`}
                       />
                     </button>
-                    <span className={`text-[9px] font-bold uppercase tracking-wide ${sendDevOpsMail ? 'text-emerald-600' : 'text-slate-400'}`}>
+                    <span className={`text-[9px] font-bold uppercase tracking-wide ${sendDevOpsMail ? 'text-emerald-600 dark:text-emerald-400' : 'text-slate-400 dark:text-slate-500'}`}>
                       {sendDevOpsMail ? 'Notify DevOps' : 'Skip DevOps'}
                     </span>
                   </div>
@@ -183,8 +183,8 @@ export const DevOpsDeploymentModal: React.FC<DevOpsDeploymentModalProps> = ({
                     {/* Path — Server-1.42 hardcoded */}
                     <div>
                       <FieldLabel icon={<Server size={13} />} label="Path" required />
-                      <div className="flex items-stretch rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 overflow-hidden focus-within:border-violet-500 focus-within:ring-2 focus-within:ring-violet-500/20 transition-all shadow-sm">
-                        <div className="flex items-center gap-1.5 px-3.5 py-3 bg-slate-100 dark:bg-slate-800 border-r border-slate-300 dark:border-slate-700 shrink-0">
+                      <div className="flex items-stretch rounded-xl border border-slate-300 dark:border-white/10 bg-white dark:bg-[#1e1e24] overflow-hidden focus-within:border-violet-500 focus-within:ring-2 focus-within:ring-violet-500/20 transition-all shadow-sm">
+                        <div className="flex items-center gap-1.5 px-3.5 py-3 bg-slate-100 dark:bg-white/[0.06] border-r border-slate-300 dark:border-white/10 shrink-0">
                           <Server size={14} className="text-violet-600 dark:text-violet-400" />
                           <span className="text-xs font-mono font-bold text-slate-900 dark:text-slate-100 whitespace-nowrap">Server-1.42:</span>
                         </div>
@@ -209,16 +209,16 @@ export const DevOpsDeploymentModal: React.FC<DevOpsDeploymentModalProps> = ({
                         placeholder={"devtrack-api.jar\napplication.properties\ndb/migration/V22__new_column.sql"}
                         className={`${inputBase} resize-none font-mono leading-relaxed`}
                       />
-                      <p className="text-[11px] text-slate-400 mt-1.5 pl-1">List each artifact on a new line</p>
+                      <p className="text-[11px] text-slate-400 dark:text-slate-500 mt-1.5 pl-1">List each artifact on a new line</p>
                     </div>
                   </>
                 ) : (
                   /* Skipping DevOps — info banner */
-                  <div className="flex items-start gap-3 p-4 rounded-xl bg-amber-50 border border-amber-200">
+                  <div className="flex items-start gap-3 p-4 rounded-xl bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-500/30">
                     <BellOff size={16} className="text-amber-500 shrink-0 mt-0.5" />
                     <div>
-                      <p className="text-sm font-bold text-amber-700">DevOps notification disabled</p>
-                      <p className="text-[11px] text-amber-600 mt-0.5 leading-relaxed">
+                      <p className="text-sm font-bold text-amber-700 dark:text-amber-300">DevOps notification disabled</p>
+                      <p className="text-[11px] text-amber-600 dark:text-amber-400 mt-0.5 leading-relaxed">
                         The CR will move to Code Review but the DevOps team will <strong>not</strong> receive a deployment email.
                         Toggle the switch above to enable DevOps notification.
                       </p>
@@ -230,7 +230,7 @@ export const DevOpsDeploymentModal: React.FC<DevOpsDeploymentModalProps> = ({
                 {error && (
                   <motion.div
                     initial={{ opacity: 0, y: -4 }} animate={{ opacity: 1, y: 0 }}
-                    className="flex items-start gap-2.5 p-3.5 rounded-xl bg-rose-50 border border-rose-200 text-rose-600 text-sm"
+                    className="flex items-start gap-2.5 p-3.5 rounded-xl bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-500/30 text-rose-600 dark:text-rose-300 text-sm"
                   >
                     <AlertCircle size={15} className="shrink-0 mt-0.5" />
                     {error}
@@ -239,10 +239,10 @@ export const DevOpsDeploymentModal: React.FC<DevOpsDeploymentModalProps> = ({
               </div>
 
               {/* ── Footer ── */}
-              <div className="shrink-0 px-6 py-4 border-t border-slate-200 bg-white flex items-center gap-3">
+              <div className="shrink-0 px-6 py-4 border-t border-slate-200 dark:border-white/10 bg-white dark:bg-[#18181c] flex items-center gap-3">
                 <button
                   onClick={handleCancel}
-                  className="flex-1 py-2.5 rounded-xl border border-slate-200 text-slate-600 hover:text-slate-900 hover:bg-slate-50 text-sm font-semibold transition-all"
+                  className="flex-1 py-2.5 rounded-xl border border-slate-200 dark:border-white/10 text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white hover:bg-slate-50 dark:hover:bg-white/5 text-sm font-semibold transition-all"
                 >
                   Cancel
                 </button>
@@ -250,8 +250,8 @@ export const DevOpsDeploymentModal: React.FC<DevOpsDeploymentModalProps> = ({
                   onClick={handleConfirm}
                   className={`flex-[2] flex items-center justify-center gap-2 py-2.5 rounded-xl text-white text-sm font-bold shadow-md transition-all active:scale-[0.98] ${
                     sendDevOpsMail
-                      ? 'bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-500 hover:to-indigo-500 shadow-violet-200'
-                      : 'bg-gradient-to-r from-slate-600 to-slate-700 hover:from-slate-500 hover:to-slate-600 shadow-slate-200'
+                      ? 'bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-500 hover:to-indigo-500 shadow-violet-200 dark:shadow-none'
+                      : 'bg-gradient-to-r from-slate-600 to-slate-700 hover:from-slate-500 hover:to-slate-600 shadow-slate-200 dark:shadow-none'
                   }`}
                 >
                   {sendDevOpsMail ? <Bell size={14} /> : <Send size={14} />}
