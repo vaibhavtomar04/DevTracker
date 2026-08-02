@@ -13,7 +13,9 @@ import {
   X,
   Trash2,
   Download,
-  GitBranch
+  GitBranch,
+  PauseCircle,
+  PlayCircle
 } from "lucide-react"
 import { motion, AnimatePresence } from "framer-motion"
 import type { Task } from "@/services/mockData"
@@ -45,6 +47,8 @@ export default function TesterDashboard() {
     setDownloadTarget,
     assignTester,
     completeTesting,
+    holdTesting,
+    resumeTesting,
     bugReviews,
     testerAcceptExplanation,
     testerRaiseAgain,
@@ -74,6 +78,11 @@ export default function TesterDashboard() {
   const [taskToPass, setTaskToPass] = useState<Task | null>(null)
   const [selectedChoices, setSelectedChoices] = useState<Record<number, string>>({})
   const [isConfirmingChoices, setIsConfirmingChoices] = useState(false)
+
+  // Hold testing modal
+  const [showHoldModal, setShowHoldModal] = useState(false)
+  const [holdReason, setHoldReason] = useState("")
+  const [holdLoading, setHoldLoading] = useState(false)
 
   // Removed selectedBug fix summary loading effect
 
@@ -116,7 +125,7 @@ export default function TesterDashboard() {
     if (!t.tester) return false
     if (!filterBySearch(t)) return false
     if (!isAdmin && t.tester.id !== user?.id) return false
-    return ["TESTING_IN_PROGRESS", "SIT_TESTING", "UAT_TESTING", "MOVE_TO_UAT", "TESTING_POOL", "BUG_FOUND"].includes(t.status)
+    return ["TESTING_IN_PROGRESS", "SIT_TESTING", "UAT_TESTING", "MOVE_TO_UAT", "TESTING_POOL", "BUG_FOUND", "TESTING_ON_HOLD"].includes(t.status) || t.testingOnHold === true
   })
   const bugQueue = bugs.filter(b => {
     if (!filterBySearch(b)) return false
@@ -156,6 +165,39 @@ export default function TesterDashboard() {
       .catch((err: any) => {
         addToast(err?.message || "Failed to assign task", "error")
       })
+  }
+
+  const handleHoldTesting = async () => {
+    if (!selectedTask) return
+    if (!holdReason.trim()) {
+      addToast("A reason is required to put testing on hold.", "error")
+      return
+    }
+    setHoldLoading(true)
+    try {
+      const updated = await holdTesting(selectedTask.id, holdReason.trim())
+      setSelectedTask(updated)
+      setShowHoldModal(false)
+      setHoldReason("")
+      addToast("Testing put on hold. SLA has been paused.", "success")
+      fetchData()
+    } catch (err: any) {
+      addToast(err?.message || "Failed to put testing on hold", "error")
+    } finally {
+      setHoldLoading(false)
+    }
+  }
+
+  const handleResumeTesting = async () => {
+    if (!selectedTask) return
+    try {
+      const updated = await resumeTesting(selectedTask.id)
+      setSelectedTask(updated)
+      addToast("Testing resumed. SLA clock has restarted.", "success")
+      fetchData()
+    } catch (err: any) {
+      addToast(err?.message || "Failed to resume testing", "error")
+    }
   }
 
   const handlePass = (task: Task) => {
@@ -518,6 +560,13 @@ export default function TesterDashboard() {
                             return (
                               <span className="text-[10px] font-bold px-2 py-0.5 rounded-lg uppercase tracking-wider bg-rose-500/10 text-rose-400 border border-rose-500/20">
                                 Bug Found
+                              </span>
+                            )
+                          }
+                          if (task.testingOnHold || task.status === "TESTING_ON_HOLD") {
+                            return (
+                              <span className="text-[10px] font-bold px-2 py-0.5 rounded-lg uppercase tracking-wider bg-amber-500/15 text-amber-600 dark:text-amber-400 border border-amber-500/30">
+                                Testing On Hold
                               </span>
                             )
                           }
@@ -1029,6 +1078,42 @@ export default function TesterDashboard() {
                         )
                       }
 
+                      // ── Testing On Hold state ─────────────────────────────────────────
+                      if (selectedTask.testingOnHold || selectedTask.status === "TESTING_ON_HOLD") {
+                        return (
+                          <div className="space-y-3">
+                            <div className="p-4 rounded-xl border border-amber-500/30 bg-amber-500/10 space-y-2 text-left">
+                              <div className="flex items-center gap-2">
+                                <PauseCircle className="h-4 w-4 text-amber-600 dark:text-amber-400 shrink-0" />
+                                <span className="font-bold uppercase tracking-wider text-[10px] text-amber-700 dark:text-amber-400">Testing On Hold — SLA Paused</span>
+                              </div>
+                              <p className="text-[11px] leading-relaxed text-amber-900 dark:text-amber-200/90 font-medium">
+                                Testing has been paused. The SLA clock is not running. Resume testing to continue.
+                              </p>
+                              {selectedTask.testingHoldReason && (
+                                <div className="pt-2 border-t border-amber-500/20">
+                                  <span className="text-[9px] uppercase tracking-wider text-amber-800 dark:text-amber-400 block font-bold mb-0.5">Hold Reason</span>
+                                  <p className="text-[11px] text-slate-900 dark:text-amber-100 leading-relaxed font-semibold whitespace-pre-wrap">{selectedTask.testingHoldReason}</p>
+                                </div>
+                              )}
+                              {selectedTask.testingHoldStartDate && (
+                                <div className="pt-1">
+                                  <span className="text-[9px] text-amber-800 dark:text-amber-400 font-medium">On hold since: </span>
+                                  <span className="text-[9px] text-amber-900 dark:text-amber-300 font-bold">{fmtDate(selectedTask.testingHoldStartDate)}</span>
+                                </div>
+                              )}
+                            </div>
+                            <Button
+                              className="w-full text-xs h-10 rounded-xl bg-cyan-600 hover:bg-cyan-500 dark:bg-gradient-to-r dark:from-cyan-600 dark:to-indigo-600 text-white shadow-lg cursor-pointer font-bold"
+                              onClick={handleResumeTesting}
+                            >
+                              <PlayCircle className="mr-1 h-4 w-4" />
+                              Resume Testing
+                            </Button>
+                          </div>
+                        )
+                      }
+
                       return (
                         <>
                           <div className="space-y-1.5">
@@ -1043,12 +1128,20 @@ export default function TesterDashboard() {
 
                           <div className="flex gap-2">
                             <Button
-                              className="w-full text-xs h-10 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 border border-emerald-500/20 text-white shadow-lg cursor-pointer font-bold"
+                              className="flex-1 text-xs h-10 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 border border-emerald-500/20 text-white shadow-lg cursor-pointer font-bold"
                               variant="glow"
                               onClick={() => handlePass(selectedTask)}
                             >
                               <FileCheck className="mr-1 h-4 w-4" />
                               UAT Testing Done
+                            </Button>
+                            <Button
+                              className="text-xs h-10 rounded-xl bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/30 text-amber-400 hover:text-amber-300 cursor-pointer font-bold px-4"
+                              variant="ghost"
+                              onClick={() => setShowHoldModal(true)}
+                              title="Put testing on hold"
+                            >
+                              <PauseCircle className="h-4 w-4" />
                             </Button>
                           </div>
                         </>
@@ -1469,6 +1562,83 @@ export default function TesterDashboard() {
                   className="h-9 px-5 rounded-xl bg-gradient-to-r from-sky-600 to-teal-500 text-white font-bold"
                 >
                   {isConfirmingChoices ? "Processing..." : "Confirm & Pass CR"}
+                </Button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* ── Hold Testing Reason Modal ─────────────────────────────────── */}
+      <AnimatePresence>
+        {showHoldModal && (
+          <div className="fixed inset-0 z-[150] flex items-center justify-center bg-black/60 dark:bg-black/75 backdrop-blur-md p-4">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 12 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 12 }}
+              transition={{ duration: 0.2 }}
+              className="w-full max-w-md bg-white dark:bg-[#18181c] border border-slate-200 dark:border-white/[0.08] rounded-2xl shadow-2xl p-6 space-y-5 text-slate-900 dark:text-slate-100"
+            >
+              {/* Header */}
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <div className="p-2 bg-amber-500/10 rounded-xl border border-amber-500/20">
+                    <PauseCircle className="h-4 w-4 text-amber-600 dark:text-amber-400" />
+                  </div>
+                  <div>
+                    <h3 className="font-bold text-sm text-slate-900 dark:text-slate-100">Put Testing On Hold</h3>
+                    <p className="text-[10px] text-slate-500 dark:text-slate-400">SLA will be paused until testing is resumed</p>
+                  </div>
+                </div>
+                <button
+                  onClick={() => { setShowHoldModal(false); setHoldReason("") }}
+                  className="p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-white/[0.06] text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              </div>
+
+              {/* CR info */}
+              {selectedTask && (
+                <div className="p-3 bg-slate-50 dark:bg-white/[0.03] border border-slate-200 dark:border-white/[0.06] rounded-xl text-xs text-slate-600 dark:text-slate-400">
+                  <span className="font-mono text-indigo-600 dark:text-indigo-400 font-bold">{selectedTask.jtrackId}</span>
+                  <span className="mx-1.5 text-slate-400 dark:text-slate-600">—</span>
+                  <span className="text-slate-800 dark:text-slate-300 truncate">{selectedTask.title}</span>
+                </div>
+              )}
+
+              {/* Reason input */}
+              <div className="space-y-1.5">
+                <label className="text-[10px] font-bold text-slate-700 dark:text-slate-400 uppercase tracking-wider">
+                  Reason for Hold <span className="text-rose-500 dark:text-rose-400">*</span>
+                </label>
+                <textarea
+                  placeholder="Describe why testing needs to be paused (e.g. awaiting clarification from developer, environment issue, etc.)..."
+                  value={holdReason}
+                  onChange={(e) => setHoldReason(e.target.value)}
+                  rows={4}
+                  className="w-full bg-slate-50 dark:bg-white/[0.04] border border-slate-300 dark:border-white/[0.10] focus:ring-2 focus:ring-amber-500/30 focus:border-amber-500 rounded-xl px-3 py-2.5 text-xs text-slate-900 dark:text-slate-200 focus:outline-none transition-all placeholder:text-slate-400 dark:placeholder:text-slate-500 resize-none"
+                />
+                <p className="text-[10px] text-slate-500">{holdReason.length}/1000 characters</p>
+              </div>
+
+              {/* Buttons */}
+              <div className="flex gap-3 pt-1">
+                <Button
+                  variant="ghost"
+                  className="flex-1 h-10 rounded-xl text-xs text-slate-700 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 border border-slate-300 dark:border-white/[0.08] hover:border-slate-400 dark:hover:border-white/[0.12]"
+                  onClick={() => { setShowHoldModal(false); setHoldReason("") }}
+                  disabled={holdLoading}
+                >
+                  Cancel
+                </Button>
+                <Button
+                  className="flex-1 h-10 rounded-xl text-xs bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold disabled:opacity-50 disabled:cursor-not-allowed"
+                  onClick={handleHoldTesting}
+                  disabled={holdLoading || !holdReason.trim()}
+                >
+                  {holdLoading ? "Putting on Hold..." : "Confirm Hold"}
                 </Button>
               </div>
             </motion.div>

@@ -950,6 +950,142 @@ if (task.getUatCompletedDate() == null) {
                 .orElse(ResponseEntity.notFound().build());
     }
 
+    @CacheEvict(value = "dashboardSummary", allEntries = true)
+    @PostMapping("/{id}/hold-testing")
+    @PreAuthorize("hasAnyRole('TESTER', 'TESTADMIN', 'DEVADMIN', 'ADMIN', 'ROLE_TESTER', 'ROLE_TESTADMIN', 'ROLE_DEVADMIN', 'ROLE_ADMIN')")
+    public ResponseEntity<?> holdTesting(@PathVariable Long id, @RequestBody java.util.Map<String, String> payload) {
+        String reason = payload.get("reason");
+        if (reason == null || reason.trim().isEmpty()) {
+            return ResponseEntity.badRequest().body("A reason is required to put testing on hold.");
+        }
+
+        String username = SecurityContextHolder.getContext().getAuthentication().getName();
+        User currentUser = userRepository.findByUsername(username).orElseThrow();
+
+        return taskRepository.findById(id)
+                .map(task -> {
+                    if (task.isTestingOnHold()) {
+                        return ResponseEntity.badRequest().body("Testing is already on hold for this CR.");
+                    }
+                    String allowedStatus = task.getStatus();
+                    if (!"TESTING_IN_PROGRESS".equalsIgnoreCase(allowedStatus)
+                            && !"UAT_TESTING".equalsIgnoreCase(allowedStatus)
+                            && !"SIT_TESTING".equalsIgnoreCase(allowedStatus)
+                            && !"MOVE_TO_UAT".equalsIgnoreCase(allowedStatus)
+                            && !"SIT_DEPLOYED".equalsIgnoreCase(allowedStatus)
+                            && !"TESTING_POOL".equalsIgnoreCase(allowedStatus)
+                            && !"BUG_FOUND".equalsIgnoreCase(allowedStatus)) {
+                        return ResponseEntity.badRequest()
+                                .body("Testing can only be put on hold when it is in testing.");
+                    }
+                    // Verify the current user is the assigned tester or an admin or task has no assigned tester
+                    boolean isTester = task.getTester() == null || task.getTester().getUsername().equals(username);
+                    boolean isAdmin = currentUser.getRoles().stream()
+                            .anyMatch(r -> {
+                                String n = r.name().toUpperCase().replace("ROLE_", "");
+                                return "ADMIN".equals(n) || "TESTADMIN".equals(n) || "DEVADMIN".equals(n);
+                            });
+                    if (!isTester && !isAdmin) {
+                        return ResponseEntity.status(403)
+                                .body("Only the assigned tester or an admin can put testing on hold.");
+                    }
+
+                    String oldStatus = task.getStatus();
+                    task.setTestingOnHold(true);
+                    task.setTestingHoldReason(reason.trim());
+                    task.setTestingHoldStartDate(LocalDateTime.now());
+                    task.setStatus("TESTING_ON_HOLD");
+                    task.setUpdatedDate(LocalDateTime.now());
+
+                    Task saved = taskRepository.save(task);
+
+                    AuditLog holdLog = new AuditLog();
+                    holdLog.setEntityType("TASK");
+                    holdLog.setEntityId(task.getId());
+                    holdLog.setFieldName("testing_hold");
+                    holdLog.setOldValue(oldStatus);
+                    holdLog.setNewValue("TESTING_ON_HOLD");
+                    holdLog.setRemarks("Testing put on hold. Reason: " + reason.trim());
+                    holdLog.setChangedBy(currentUser);
+                    com.devtrack.api.services.AuditLogHelper.enrich(holdLog);
+                    auditLogRepository.save(holdLog);
+
+                    notifyAllDevelopersAndTester(saved,
+                            "Testing On Hold — " + saved.getJtrackId(),
+                            saved.getJtrackId() + " testing has been put on hold by "
+                                    + currentUser.getFullName() + ". Reason: " + reason.trim());
+
+                    emitTaskEvent(saved, "UPDATED", currentUser.getId());
+                    return ResponseEntity.ok(TaskMapper.toListDto(saved));
+                })
+                .orElse(ResponseEntity.notFound().build());
+    }
+
+    @CacheEvict(value = "dashboardSummary", allEntries = true)
+    @PostMapping("/{id}/resume-testing")
+    @PreAuthorize("hasAnyRole('TESTER', 'TESTADMIN', 'DEVADMIN', 'ADMIN', 'ROLE_TESTER', 'ROLE_TESTADMIN', 'ROLE_DEVADMIN', 'ROLE_ADMIN')")
+    public ResponseEntity<?> resumeTesting(@PathVariable Long id) {
+        String username = SecurityContextHolder.getContext().getAuthentication().getName();
+        User currentUser = userRepository.findByUsername(username).orElseThrow();
+
+        return taskRepository.findById(id)
+                .map(task -> {
+                    if (!task.isTestingOnHold()) {
+                        return ResponseEntity.badRequest().body("Testing is not currently on hold for this CR.");
+                    }
+
+                    boolean isTester = task.getTester() == null || task.getTester().getUsername().equals(username);
+                    boolean isAdmin = currentUser.getRoles().stream()
+                            .anyMatch(r -> {
+                                String n = r.name().toUpperCase().replace("ROLE_", "");
+                                return "ADMIN".equals(n) || "TESTADMIN".equals(n) || "DEVADMIN".equals(n);
+                            });
+                    if (!isTester && !isAdmin) {
+                        return ResponseEntity.status(403)
+                                .body("Only the assigned tester or an admin can resume testing.");
+                    }
+
+                    // Shift the testingStartedDate forward by the hold duration so SLA is accurate
+                    if (task.getTestingHoldStartDate() != null && task.getTestingStartedDate() != null) {
+                        long holdMinutes = java.time.Duration
+                                .between(task.getTestingHoldStartDate(), LocalDateTime.now())
+                                .toMinutes();
+                        task.setTestingStartedDate(
+                                task.getTestingStartedDate().plusMinutes(holdMinutes));
+                    }
+
+                    String holdReason = task.getTestingHoldReason();
+                    task.setTestingOnHold(false);
+                    task.setTestingHoldReason(null);
+                    task.setTestingHoldStartDate(null);
+                    task.setStatus("TESTING_IN_PROGRESS");
+                    task.setUpdatedDate(LocalDateTime.now());
+
+                    Task saved = taskRepository.save(task);
+
+                    AuditLog resumeLog = new AuditLog();
+                    resumeLog.setEntityType("TASK");
+                    resumeLog.setEntityId(task.getId());
+                    resumeLog.setFieldName("testing_hold");
+                    resumeLog.setOldValue("TESTING_ON_HOLD");
+                    resumeLog.setNewValue("TESTING_IN_PROGRESS");
+                    resumeLog.setRemarks("Testing resumed. Previous hold reason: "
+                            + (holdReason != null ? holdReason : "N/A"));
+                    resumeLog.setChangedBy(currentUser);
+                    com.devtrack.api.services.AuditLogHelper.enrich(resumeLog);
+                    auditLogRepository.save(resumeLog);
+
+                    notifyAllDevelopersAndTester(saved,
+                            "Testing Resumed — " + saved.getJtrackId(),
+                            saved.getJtrackId() + " testing has been resumed by "
+                                    + currentUser.getFullName() + ".");
+
+                    emitTaskEvent(saved, "UPDATED", currentUser.getId());
+                    return ResponseEntity.ok(TaskMapper.toListDto(saved));
+                })
+                .orElse(ResponseEntity.notFound().build());
+    }
+
     @GetMapping("/export")
     public ResponseEntity<byte[]> exportTasksToExcel() {
         List<Task> tasks = taskRepository.findAll();

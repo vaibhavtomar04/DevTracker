@@ -113,6 +113,8 @@ interface TaskState {
   assignTester: (taskId: number) => Promise<Task>
   reassignTester: (taskId: number, newTesterUsername: string, reason: string) => Promise<Task>
   completeTesting: (taskId: number, comments: string, remarks: string) => Promise<Task>
+  holdTesting: (taskId: number, reason: string) => Promise<Task>
+  resumeTesting: (taskId: number) => Promise<Task>
 
   // Workflows (Approve / Reject transitions)
   approveTaskStep: (taskId: number, remarks: string, approver: User) => Promise<void>
@@ -549,6 +551,28 @@ export const useTaskStore = create<TaskState>((set, get) => ({
     const updatedTask: Task = await apiClient(`/api/tasks/${taskId}/complete-testing`, {
       method: "POST",
       body: JSON.stringify({ comments, remarks })
+    })
+    set(state => ({
+      tasks: state.tasks.map(t => t.id === taskId ? updatedTask : t)
+    }))
+    return updatedTask
+  },
+
+  holdTesting: async (taskId, reason) => {
+    const updatedTask: Task = await apiClient(`/api/tasks/${taskId}/hold-testing`, {
+      method: "POST",
+      body: JSON.stringify({ reason })
+    })
+    set(state => ({
+      tasks: state.tasks.map(t => t.id === taskId ? updatedTask : t)
+    }))
+    return updatedTask
+  },
+
+  resumeTesting: async (taskId) => {
+    const updatedTask: Task = await apiClient(`/api/tasks/${taskId}/resume-testing`, {
+      method: "POST",
+      body: JSON.stringify({})
     })
     set(state => ({
       tasks: state.tasks.map(t => t.id === taskId ? updatedTask : t)

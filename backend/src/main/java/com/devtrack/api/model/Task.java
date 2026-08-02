@@ -197,6 +197,16 @@ public class Task {
     @Column(name = "reassignment_date")
     private LocalDateTime reassignmentDate;
 
+    // ── Testing On Hold fields ───────────────────────────────────────────────
+    @Column(name = "testing_on_hold")
+    private boolean testingOnHold = false;
+
+    @Column(name = "testing_hold_reason", length = 1000)
+    private String testingHoldReason;
+
+    @Column(name = "testing_hold_start_date")
+    private LocalDateTime testingHoldStartDate;
+
     @ManyToOne
     @JoinColumn(name = "previous_tester_id")
     @ToString.Exclude

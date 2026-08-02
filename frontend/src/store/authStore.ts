@@ -154,7 +154,10 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         credentials: "include"
       })
       if (!res.ok) {
-        throw new Error(await res.text())
+        const text = await res.text()
+        let msg = text
+        try { const parsed = JSON.parse(text); msg = parsed.message || parsed.error || text } catch (_) {}
+        throw new Error(msg)
       }
       set({ loading: false })
     } catch (err: any) {

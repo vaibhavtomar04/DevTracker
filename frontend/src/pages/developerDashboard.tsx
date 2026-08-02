@@ -421,7 +421,13 @@ export default function DeveloperDashboard() {
         sprintDeadline: sprintDeadlineStr,
         predictedCompletionDate: (task.productionDate || targetCompletionDate.toISOString()).split("T")[0],
         status: "On Track",
-        explanation: "Completed: Change Request has been successfully deployed / closed."
+        explanation: "Completed: Change Request has been successfully deployed / closed.",
+        effortDays,
+        bugDelayDays: 0,
+        approvalDelayDays: 0,
+        blockedDelayDays: 0,
+        totalBugsCount: 0,
+        bufferHours: 999
       }
     }
 
@@ -443,13 +449,22 @@ export default function DeveloperDashboard() {
       statusExplanation += ` (Added ${approvalDelayDays} days for approval process.)`
     }
 
+    const diffMs = sprintDeadline.getTime() - predictedDate.getTime()
+    const bufferHours = Math.round(diffMs / (1000 * 60 * 60))
+
     return {
       devStartDate: devStart.toISOString().split("T")[0],
       targetCompletionDate: targetCompletionDate.toISOString().split("T")[0],
       sprintDeadline: sprintDeadlineStr,
       predictedCompletionDate: predictedDate.toISOString().split("T")[0],
       status: deadlineStatus,
-      explanation: statusExplanation
+      explanation: statusExplanation,
+      effortDays,
+      bugDelayDays,
+      approvalDelayDays,
+      blockedDelayDays,
+      totalBugsCount: totalBugsRaisedCount,
+      bufferHours
     }
   }
 
@@ -1887,31 +1902,83 @@ export default function DeveloperDashboard() {
                       ) : null
                     })()}
 
+                    {/* Testing On Hold Banner */}
+                    {(selectedTask.testingOnHold || selectedTask.status === "TESTING_ON_HOLD") && (
+                      <div className="rounded-2xl border border-amber-500/40 bg-amber-500/10 dark:bg-amber-950/40 backdrop-blur-md p-4 space-y-2 text-left">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-2">
+                            <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-amber-500/20 text-amber-500 font-bold">
+                              ⏸
+                            </span>
+                            <div>
+                              <p className="text-xs font-black text-amber-700 dark:text-amber-300 uppercase tracking-wider">Testing On Hold</p>
+                              <p className="text-[10px] text-amber-800 dark:text-amber-400 font-medium">SLA is currently paused</p>
+                            </div>
+                          </div>
+                          {selectedTask.testingHoldStartDate && (
+                            <span className="text-[9.5px] font-mono font-bold text-amber-700 dark:text-amber-300 bg-amber-500/15 px-2.5 py-1 rounded-full border border-amber-500/30">
+                              Paused: {fmtDate(selectedTask.testingHoldStartDate)}
+                            </span>
+                          )}
+                        </div>
+                        <div className="bg-amber-100/60 dark:bg-black/40 border border-amber-500/20 p-3 rounded-xl">
+                          <span className="text-[9.5px] font-extrabold text-amber-800 dark:text-amber-400 uppercase tracking-wider block mb-0.5">Hold Reason:</span>
+                          <p className="text-xs font-semibold text-slate-900 dark:text-amber-100 leading-relaxed">
+                            {selectedTask.testingHoldReason || (selectedTask as any).testing_hold_reason || "Testing paused by assigned tester"}
+                          </p>
+                        </div>
+                      </div>
+                    )}
+
                     {/* Smart Deadline Status Panel */}
                     {(() => {
                       const details = calculateDeadlineDetails(selectedTask)
+                      const isDelayed = details.status === "Delayed"
+                      const isBugFound = details.status === "Bug Found"
+
+                      const statusColor = details.status === "On Track" ? "text-emerald-400" :
+                        isBugFound || isDelayed ? "text-rose-400" : "text-amber-400"
+
+                      const statusBorder = details.status === "On Track" ? "border-emerald-500/20 bg-emerald-500/5" :
+                        isBugFound || isDelayed ? "border-rose-500/20 bg-rose-500/5" : "border-amber-500/20 bg-amber-500/5"
+
                       return (
-                        <div className="p-3.5 rounded-xl border border-white/[0.06] bg-black/40 space-y-2 text-[11px] text-left">
-                          <span className="text-[9px] font-bold text-zinc-500 uppercase tracking-wider block">Smart Deadline Engine</span>
-                          <div className="flex justify-between">
-                            <span className="text-zinc-400">Status:</span>
-                            <span className={`font-bold uppercase ${details.status === "On Track" ? "text-[#10b981]" :
-                              details.status === "Bug Found" ? "text-red-400" : "text-cyan-400"
-                              }`}>
+                        <div className={`p-4 rounded-xl border ${statusBorder} space-y-3 text-[11px] text-left transition-all`}>
+                          <div className="flex items-center justify-between">
+                            <span className="text-[9px] font-black text-zinc-400 uppercase tracking-widest block">Smart Deadline Engine</span>
+                            <span className={`font-black text-xs uppercase px-2.5 py-0.5 rounded-md border border-current/20 ${statusColor}`}>
                               {details.status}
                             </span>
                           </div>
-                          <p className="text-zinc-400 text-[10px] leading-relaxed font-semibold">
+
+                          <p className="text-zinc-300 text-[10.5px] leading-relaxed font-semibold">
                             {details.explanation}
                           </p>
-                          <div className="grid grid-cols-2 gap-2 pt-1 border-t border-white/[0.04] text-[9.5px]">
+
+                          {/* Date metrics grid */}
+                          <div className="grid grid-cols-2 gap-x-3 gap-y-2 pt-2 border-t border-white/[0.08] text-[9.5px]">
                             <div>
-                              <span className="text-zinc-500 block">Target Finish:</span>
-                              <span className="font-bold text-zinc-300">{details.targetCompletionDate}</span>
+                              <span className="text-zinc-500 block font-medium">Dev Start:</span>
+                              <span className="font-bold text-zinc-200">{details.devStartDate}</span>
                             </div>
                             <div>
-                              <span className="text-zinc-500 block">Predicted:</span>
-                              <span className="font-bold text-zinc-300">{details.predictedCompletionDate}</span>
+                              <span className="text-zinc-500 block font-medium">Sprint Deadline:</span>
+                              <span className="font-bold text-zinc-200">{details.sprintDeadline}</span>
+                            </div>
+                            <div>
+                              <span className="text-zinc-500 block font-medium">Target Finish <span className="normal-case text-zinc-600">(base effort)</span>:</span>
+                              <span className="font-bold text-zinc-200">{details.targetCompletionDate}</span>
+                            </div>
+                            <div>
+                              <span className="text-zinc-500 block font-medium">Predicted <span className="normal-case text-zinc-600">(+delays)</span>:</span>
+                              <span className={`font-bold ${details.predictedCompletionDate !== details.targetCompletionDate ? "text-amber-300" : "text-zinc-200"}`}>
+                                {details.predictedCompletionDate}
+                                {details.predictedCompletionDate !== details.targetCompletionDate && (
+                                  <span className="ml-1 text-zinc-500 font-normal">
+                                    (+{details.bugDelayDays + details.approvalDelayDays + details.blockedDelayDays}d delay)
+                                  </span>
+                                )}
+                              </span>
                             </div>
                           </div>
                         </div>
@@ -2189,12 +2256,32 @@ export default function DeveloperDashboard() {
                         <>
                           {/* Tester Details */}
                           {selectedTask.tester && selectedTask.tester.fullName && selectedTask.tester.fullName !== "Unassigned" && (
-                            <div className="p-3 rounded-xl border border-white/[0.06] bg-black/40 space-y-1 text-[11px] text-zinc-300 text-left">
-                              <span className="text-zinc-500 text-[9px] uppercase tracking-wider block font-bold">Assigned Tester</span>
+                            <div className="p-3 rounded-xl border border-white/[0.06] bg-black/40 space-y-1.5 text-[11px] text-zinc-300 text-left">
+                              <div className="flex justify-between items-center">
+                                <span className="text-zinc-500 text-[9px] uppercase tracking-wider font-bold">Assigned Tester</span>
+                                {(selectedTask.testingOnHold || selectedTask.status === "TESTING_ON_HOLD") && (
+                                  <span className="text-[9px] font-bold px-2 py-0.5 rounded bg-amber-500/20 text-amber-300 border border-amber-500/30 uppercase">
+                                    Testing On Hold
+                                  </span>
+                                )}
+                              </div>
+                              {(selectedTask.testingOnHold || selectedTask.status === "TESTING_ON_HOLD") && (
+                                <div className="pt-2 mt-2 border-t border-amber-500/20 text-left">
+                                  <span className="text-[9px] uppercase font-bold text-amber-400 block mb-0.5">Hold Reason:</span>
+                                  <p className="text-[10.5px] text-amber-200 font-semibold leading-relaxed">
+                                    {selectedTask.testingHoldReason || (selectedTask as any).testing_hold_reason || "Testing paused by assigned tester"}
+                                  </p>
+                                </div>
+                              )}
                               <div className="flex justify-between items-center font-semibold">
                                 <span>{selectedTask.tester.fullName}</span>
                                 <span className="text-zinc-500 text-[10px]">{selectedTask.testingStartedDate ? `Started: ${fmtDate(selectedTask.testingStartedDate)}` : ""}</span>
                               </div>
+                              {selectedTask.testingHoldReason && (selectedTask.testingOnHold || selectedTask.status === "TESTING_ON_HOLD") && (
+                                <p className="text-[10px] text-amber-300 italic pt-1 border-t border-white/[0.06]">
+                                  Hold Reason: {selectedTask.testingHoldReason}
+                                </p>
+                              )}
                             </div>
                           )}
 

@@ -777,4 +777,61 @@ public class AuthController {
 
         return ResponseEntity.ok(new MessageResponse("Password has been reset successfully. Please log in with your new password."));
     }
+
+    @PostMapping("/change-password")
+    @PreAuthorize("isAuthenticated()")
+    @Operation(summary = "Change Password (Authenticated)", description = "Allows a logged-in user to change their password by supplying the current password and a new one.")
+    public ResponseEntity<?> changePassword(@RequestBody Map<String, String> body) {
+        String username = SecurityContextHolder.getContext().getAuthentication().getName();
+        if (username == null || username.equals("anonymousUser")) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(new MessageResponse("Unauthorized"));
+        }
+
+        String currentPassword = body.get("currentPassword");
+        String newPassword = body.get("newPassword");
+
+        if (currentPassword == null || currentPassword.isBlank()) {
+            return ResponseEntity.badRequest().body(new MessageResponse("Current password is required"));
+        }
+        if (newPassword == null || newPassword.isBlank()) {
+            return ResponseEntity.badRequest().body(new MessageResponse("New password is required"));
+        }
+
+        User user = userRepository.findByUsername(username)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found"));
+
+        if (!encoder.matches(currentPassword, user.getPassword())) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                    .body(new MessageResponse("Current password is incorrect"));
+        }
+
+        if (encoder.matches(newPassword, user.getPassword())) {
+            return ResponseEntity.badRequest()
+                    .body(new MessageResponse("New password must be different from the current password"));
+        }
+
+        if (!isPasswordValid(newPassword)) {
+            return ResponseEntity.badRequest().body(new MessageResponse(
+                    "Password must be at least 8 characters long and contain uppercase, lowercase, digit, and special character."));
+        }
+
+        user.setPassword(encoder.encode(newPassword));
+        userRepository.save(user);
+
+        try {
+            AuditLog auditLog = new AuditLog();
+            auditLog.setEntityType("USER");
+            auditLog.setEntityId(user.getId());
+            auditLog.setFieldName("password_change");
+            auditLog.setNewValue("PASSWORD_CHANGED");
+            auditLog.setRemarks("User changed password from dashboard settings");
+            auditLog.setChangedBy(user);
+            AuditLogHelper.enrich(auditLog);
+            auditLogRepository.save(auditLog);
+        } catch (Exception e) {
+            log.warn("Failed to save password change audit log: {}", e.getMessage());
+        }
+
+        return ResponseEntity.ok(new MessageResponse("Password updated successfully."));
+    }
 }

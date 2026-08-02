@@ -351,6 +351,26 @@ export const CRTimelinePopup: React.FC<CRTimelinePopupProps> = ({ task, onClose 
             </button>
           </div>
 
+          {/* ── Testing On Hold Banner ── */}
+          {(currentTask.testingOnHold || currentTask.status === 'TESTING_ON_HOLD') && (
+            <div className="px-5 py-3 border-b border-amber-200 dark:border-amber-500/20 bg-amber-50 dark:bg-amber-500/10 flex-shrink-0 space-y-1.5 text-left">
+              <div className="flex items-center justify-between">
+                <span className="px-2.5 py-0.5 rounded-md text-[10px] font-black uppercase tracking-wider bg-amber-500 text-slate-950">
+                  ⏸ Testing On Hold
+                </span>
+                <span className="text-[10px] text-amber-700 dark:text-amber-300 font-semibold font-mono">
+                  SLA Paused {currentTask.testingHoldStartDate ? `since ${fmtDate(currentTask.testingHoldStartDate)}` : ''}
+                </span>
+              </div>
+              <div className="text-xs text-amber-900 dark:text-amber-200 font-medium leading-relaxed bg-amber-100/60 dark:bg-black/30 p-2.5 rounded-xl border border-amber-200 dark:border-amber-500/20 mt-1">
+                <span className="font-extrabold text-[10px] uppercase tracking-wider block text-amber-800 dark:text-amber-400 mb-0.5">Reason for Hold:</span>
+                <p className="font-semibold text-slate-900 dark:text-amber-100">
+                  {currentTask.testingHoldReason || (currentTask as any).testing_hold_reason || "Testing paused by assigned tester"}
+                </p>
+              </div>
+            </div>
+          )}
+
           {/* ── Admin Date Control Banner ── */}
           {isAdmin && (
             <div className="px-5 py-3 border-b border-slate-200 dark:border-white/[0.07] bg-violet-500/[0.06] flex-shrink-0">

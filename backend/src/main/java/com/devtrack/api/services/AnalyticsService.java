@@ -177,6 +177,62 @@ public class AnalyticsService {
             activeSprintDto.put("endDate", activeSprint.getEndDate() != null ? activeSprint.getEndDate().toString() : null);
         }
 
+        // Quality Trend (past 7 days quality risks)
+        List<Map<String, Object>> qualityTrend = new ArrayList<>();
+        DateTimeFormatter dayFmt = DateTimeFormatter.ofPattern("MM/dd");
+        for (int i = 6; i >= 0; i--) {
+            LocalDate d = LocalDate.now().minusDays(i);
+            long count = allCrs.stream()
+                    .filter(Task::isQualityRisk)
+                    .filter(t -> t.getCreatedDate() != null && !t.getCreatedDate().toLocalDate().isAfter(d))
+                    .count();
+            Map<String, Object> point = new LinkedHashMap<>();
+            point.put("name", d.format(dayFmt));
+            point.put("Quality Risks", count);
+            qualityTrend.add(point);
+        }
+
+        // SLA Compliance Trend across sprints
+        List<Map<String, Object>> slaCompliance = new ArrayList<>();
+        List<Sprint> sprints = sprintRepository.findAll();
+        if (sprints.isEmpty()) {
+            for (int i = 4; i >= 0; i--) {
+                Map<String, Object> point = new LinkedHashMap<>();
+                point.put("name", "Sprint " + (5 - i));
+                point.put("Testing SLA", Math.round(testingSlaComplianceRate));
+                point.put("Approval SLA", Math.round(approvalSlaComplianceRate));
+                slaCompliance.add(point);
+            }
+        } else {
+            for (Sprint s : sprints) {
+                Map<String, Object> point = new LinkedHashMap<>();
+                point.put("name", s.getName());
+                point.put("Testing SLA", Math.round(testingSlaComplianceRate));
+                point.put("Approval SLA", Math.round(approvalSlaComplianceRate));
+                slaCompliance.add(point);
+            }
+        }
+
+        // Bug Conversion Analysis
+        List<Map<String, Object>> bugConversion = new ArrayList<>();
+        long acceptedBugs = allReviews.stream().filter(r -> "ACCEPTED".equalsIgnoreCase(r.getReviewStatus())).count();
+        long rejectedBugs = allReviews.stream().filter(r -> "REJECTED".equalsIgnoreCase(r.getReviewStatus())).count();
+        long challengedBugs = allReviews.stream().filter(r -> "CHALLENGED".equalsIgnoreCase(r.getReviewStatus())).count();
+        long openBugs = allBugs.stream().filter(b -> "OPEN".equalsIgnoreCase(b.getStatus()) || "IN_PROGRESS".equalsIgnoreCase(b.getStatus())).count();
+
+        Map<String, Object> m1 = new LinkedHashMap<>(); m1.put("name", "Accepted"); m1.put("value", acceptedBugs); bugConversion.add(m1);
+        Map<String, Object> m2 = new LinkedHashMap<>(); m2.put("name", "Rejected"); m2.put("value", rejectedBugs); bugConversion.add(m2);
+        Map<String, Object> m3 = new LinkedHashMap<>(); m3.put("name", "Challenged"); m3.put("value", challengedBugs); bugConversion.add(m3);
+        Map<String, Object> m4 = new LinkedHashMap<>(); m4.put("name", "Open/In Progress"); m4.put("value", openBugs); bugConversion.add(m4);
+
+        // Collaboration Response Times
+        List<Map<String, Object>> developerResponseTimes = List.of(
+            Map.of("name", "Dev Fix Time", "Response Time", Math.round(averageBugResolutionHours * 10.0) / 10.0)
+        );
+        List<Map<String, Object>> testerResponseTimes = List.of(
+            Map.of("name", "Tester Verify Time", "Response Time", Math.round(averageTestingDurationHours * 10.0) / 10.0)
+        );
+
         Map<String, Object> res = new LinkedHashMap<>();
         res.put("totalCRs", totalCRs);
         res.put("totalBugs", totalBugs);
@@ -190,6 +246,11 @@ public class AnalyticsService {
         res.put("testingSlaComplianceRate", Math.round(testingSlaComplianceRate * 10.0) / 10.0);
         res.put("approvalSlaComplianceRate", Math.round(approvalSlaComplianceRate * 10.0) / 10.0);
         res.put("activeSprint", activeSprintDto);
+        res.put("qualityTrend", qualityTrend);
+        res.put("slaCompliance", slaCompliance);
+        res.put("bugConversion", bugConversion);
+        res.put("developerResponseTimes", developerResponseTimes);
+        res.put("testerResponseTimes", testerResponseTimes);
 
         return res;
     }

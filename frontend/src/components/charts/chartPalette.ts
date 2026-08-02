@@ -87,7 +87,7 @@ export const CATEGORY_COLORS = [
 ]
 
 export const TOOLTIP_CURSORS = {
-  bar: { fill: "rgba(255, 255, 255, 0.04)" },
+  bar: { fill: "transparent" },
   line: { stroke: "rgba(255, 255, 255, 0.15)", strokeWidth: 1 },
   area: { stroke: "rgba(255, 255, 255, 0.15)", strokeWidth: 1 },
 }

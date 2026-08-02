@@ -100,6 +100,10 @@ export interface Task {
   isQualityRisk?: boolean
   changesRequested?: boolean
   previousTester?: User
+  // Testing on-hold fields
+  testingOnHold?: boolean
+  testingHoldReason?: string | null
+  testingHoldStartDate?: string | null
 }
 
 export interface BugArtifact {
