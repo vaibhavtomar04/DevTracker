@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="en" xmlns:v="urn:schemas-microsoft-com:vml" xmlns:o="urn:schemas-microsoft-com:office:office">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <meta http-equiv="X-UA-Compatible" content="IE=edge"/>
+  <meta name="color-scheme" content="light dark"/>
+  <meta name="supported-color-schemes" content="light dark"/>
+  <title>Bug Raised Successfully - DevTrack</title>
+  <!--[if mso]><xml><o:OfficeDocumentSettings><o:PixelsPerInch>96</o:PixelsPerInch></o:OfficeDocumentSettings></xml><![endif]-->
+  <style>
+    body{margin:0;padding:0;}
+    @media only screen and (max-width:620px){
+      .container{width:100%!important;border-radius:0!important;}
+      .px{padding-left:20px!important;padding-right:20px!important;}
+    }
+  </style>
+</head>
+<body style="margin:0; padding:0; width:100%!important; background-color:#F8FAFC; font-family:'Segoe UI', Arial, Helvetica, sans-serif;">
+
+  <!-- Hidden preheader -->
+  <div style="display:none; max-height:0; overflow:hidden; opacity:0; font-size:1px; line-height:1px; color:#F8FAFC;"
+       th:text="'Bug Raised: ' + ${bug.title} + ' has been successfully logged in DevTrack.'">
+    Bug raised successfully in DevTrack.
+  </div>
+
+  <table role="presentation" width="100%" border="0" cellspacing="0" cellpadding="0" style="background-color:#F8FAFC; width:100%; margin:0; padding:28px 0;">
+    <tr>
+      <td align="center" valign="top">
+        <table role="presentation" class="container" width="600" border="0" cellspacing="0" cellpadding="0" style="width:600px; max-width:600px; background-color:#FFFFFF; border:1px solid #E2E8F0; border-radius:12px; overflow:hidden;">
+
+          <!-- Header -->
+          <tr>
+            <td style="background-color:#0F172A; padding:22px 32px;" class="px">
+              <table role="presentation" width="100%" border="0" cellspacing="0" cellpadding="0">
+                <tr>
+                  <td valign="middle">
+                    <div style="font-family:'Segoe UI', Arial, Helvetica, sans-serif; font-size:22px; font-weight:800; color:#FFFFFF; line-height:1;">Dev<span style="color:#5EEAD4;">Track</span></div>
+                    <div style="font-family:'Segoe UI', Arial, Helvetica, sans-serif; font-size:12px; color:#94A3B8; padding-top:5px;">Enterprise Engineering Workflow Platform</div>
+                  </td>
+                  <td valign="middle" align="right">
+                    <span style="display:inline-block; background-color:#1E293B; color:#CBD5E1; font-family:'Segoe UI', Arial, Helvetica, sans-serif; font-size:11px; font-weight:700; letter-spacing:0.5px; padding:5px 10px; border-radius:6px;">DevTrack 2.0</span>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+          <tr><td style="height:3px; background-color:#059669; font-size:0; line-height:0;">&nbsp;</td></tr>
+
+          <!-- Hero -->
+          <tr>
+            <td class="px" style="background-color:#059669; padding:26px 32px;">
+              <div style="font-family:'Segoe UI', Arial, Helvetica, sans-serif; font-size:23px; font-weight:700; color:#FFFFFF; line-height:1.3;">&#10003;&nbsp; Bug Raised Successfully</div>
+              <div style="font-family:'Segoe UI', Arial, Helvetica, sans-serif; font-size:14px; color:#D1FAE5; line-height:1.5; padding-top:6px;">Your bug has been logged and assigned to the developer in DevTrack.</div>
+            </td>
+          </tr>
+
+          <!-- Body -->
+          <tr>
+            <td class="px" valign="top" style="padding:32px 32px 8px 32px; background-color:#FFFFFF;">
+              <p style="margin:0 0 12px 0; font-size:16px; font-weight:700; color:#1E293B; line-height:1.4;">
+                Hello <span th:text="${bug.raisedBy}">Tester</span>,
+              </p>
+              <p style="margin:0 0 24px 0; font-size:15px; color:#334155; line-height:1.6;">
+                Your bug (ID: <strong th:text="${bug.id}" style="color:#059669;">#BUG-101</strong>) has been successfully raised and assigned to
+                <strong th:text="${bug.assignedTo}" style="color:#1E293B;">the developer</strong>. The team has been notified.
+              </p>
+
+              <!-- Details table -->
+              <table role="presentation" width="100%" border="0" cellspacing="0" cellpadding="0" style="width:100%; border:1px solid #E2E8F0; border-radius:10px; border-collapse:separate; overflow:hidden; margin-bottom:28px;">
+                <tr>
+                  <td colspan="2" style="background-color:#F1F5F9; border-bottom:1px solid #E2E8F0; padding:12px 16px; font-size:12px; font-weight:700; color:#334155; text-transform:uppercase; letter-spacing:0.6px;">Bug Summary</td>
+                </tr>
+                <tr>
+                  <td width="32%" valign="top" style="background-color:#F8FAFC; border-bottom:1px solid #E2E8F0; border-right:1px solid #E2E8F0; padding:12px 16px; font-size:13px; font-weight:600; color:#64748B;">Bug ID</td>
+                  <td width="68%" valign="top" th:text="${bug.id}" style="border-bottom:1px solid #E2E8F0; padding:12px 16px; font-size:13px; color:#1E293B; font-weight:700;">101</td>
+                </tr>
+                <tr>
+                  <td valign="top" style="background-color:#F8FAFC; border-bottom:1px solid #E2E8F0; border-right:1px solid #E2E8F0; padding:12px 16px; font-size:13px; font-weight:600; color:#64748B;">Title</td>
+                  <td valign="top" th:text="${bug.title}" style="border-bottom:1px solid #E2E8F0; padding:12px 16px; font-size:13px; color:#1E293B; line-height:1.5;">Bug Title</td>
+                </tr>
+                <tr>
+                  <td valign="top" style="background-color:#F8FAFC; border-bottom:1px solid #E2E8F0; border-right:1px solid #E2E8F0; padding:12px 16px; font-size:13px; font-weight:600; color:#64748B;">Description</td>
+                  <td valign="top" th:text="${bug.description}" style="border-bottom:1px solid #E2E8F0; padding:12px 16px; font-size:13px; color:#334155; line-height:1.6;">Bug description.</td>
+                </tr>
+                <tr>
+                  <td valign="top" style="background-color:#F8FAFC; border-bottom:1px solid #E2E8F0; border-right:1px solid #E2E8F0; padding:12px 16px; font-size:13px; font-weight:600; color:#64748B;">Priority</td>
+                  <td valign="top" style="border-bottom:1px solid #E2E8F0; padding:12px 16px; font-size:13px; color:#1E293B;"
+                      th:with="prioUpper=${#strings.toUpperCase(bug.priority)},
+                               bg=${prioUpper == 'CRITICAL' ? '#fef2f2' : (prioUpper == 'HIGH' ? '#fff7ed' : (prioUpper == 'MEDIUM' ? '#fefce8' : (prioUpper == 'LOW' ? '#ecfdf5' : '#f3f4f6')))},
+                               text=${prioUpper == 'CRITICAL' ? '#b91c1c' : (prioUpper == 'HIGH' ? '#c2410c' : (prioUpper == 'MEDIUM' ? '#a16207' : (prioUpper == 'LOW' ? '#047857' : '#374151')))},
+                               border=${prioUpper == 'CRITICAL' ? '#fecaca' : (prioUpper == 'HIGH' ? '#fed7aa' : (prioUpper == 'MEDIUM' ? '#fde68a' : (prioUpper == 'LOW' ? '#a7f3d0' : '#e5e7eb')))}">
+                    <span th:text="${bug.priority}" th:style="'display:inline-block; background-color:' + ${bg} + '; color:' + ${text} + '; border:1px solid ' + ${border} + '; font-size:11px; font-weight:700; padding:3px 10px; border-radius:999px; line-height:1.2;'" style="display:inline-block; background-color:#fefce8; color:#a16207; border:1px solid #fde68a; font-size:11px; font-weight:700; padding:3px 10px; border-radius:999px; line-height:1.2;">MEDIUM</span>
+                  </td>
+                </tr>
+                <tr>
+                  <td valign="top" style="background-color:#F8FAFC; border-bottom:1px solid #E2E8F0; border-right:1px solid #E2E8F0; padding:12px 16px; font-size:13px; font-weight:600; color:#64748B;">Assigned To</td>
+                  <td valign="top" th:text="${bug.assignedTo}" style="border-bottom:1px solid #E2E8F0; padding:12px 16px; font-size:13px; color:#1E293B;">Developer Name</td>
+                </tr>
+                <tr>
+                  <td valign="top" style="background-color:#F8FAFC; border-bottom:1px solid #E2E8F0; border-right:1px solid #E2E8F0; padding:12px 16px; font-size:13px; font-weight:600; color:#64748B;">Status</td>
+                  <td valign="top" style="border-bottom:1px solid #E2E8F0; padding:12px 16px; font-size:13px; color:#1E293B;">
+                    <span style="display:inline-block; background-color:#ECFDF5; color:#065F46; border:1px solid #A7F3D0; font-size:11px; font-weight:700; padding:3px 10px; border-radius:6px; line-height:1.2;" th:text="${bug.status}">OPEN</span>
+                  </td>
+                </tr>
+                <tr>
+                  <td valign="top" style="background-color:#F8FAFC; border-right:1px solid #E2E8F0; padding:12px 16px; font-size:13px; font-weight:600; color:#64748B;">Parent CR</td>
+                  <td valign="top" th:text="${bug.parentCr != null ? bug.parentCr : 'N/A'}" style="padding:12px 16px; font-size:13px; color:#1E293B;">N/A</td>
+                </tr>
+              </table>
+
+              <!-- CTA button -->
+              <table role="presentation" border="0" cellspacing="0" cellpadding="0" width="100%" style="width:100%; margin-bottom:28px;">
+                <tr>
+                  <td align="center">
+                    <!--[if mso]><v:roundrect xmlns:v="urn:schemas-microsoft-com:vml" xmlns:w="urn:schemas-microsoft-com:office:word" th:attr="href=${bug.url}" href="https://devtrack.example.com" arcsize="16%" fillcolor="#059669" strokecolor="#059669" style="height:46px;v-text-anchor:middle;width:230px;"><w:anchorlock/><center style="color:#FFFFFF;font-family:'Segoe UI',Arial,sans-serif;font-size:15px;font-weight:700;">View Bug in DevTrack</center></v:roundrect><![endif]-->
+                    <!--[if !mso]><!-->
+                    <a href="https://devtrack.example.com" th:href="${bug.url}" target="_blank" style="display:inline-block; background-color:#059669; border-radius:8px; color:#FFFFFF; font-size:15px; font-weight:700; padding:14px 28px; text-decoration:none; line-height:1.2; font-family:'Segoe UI', Arial, Helvetica, sans-serif;">View Bug in DevTrack &rarr;</a>
+                    <!--<![endif]-->
+                  </td>
+                </tr>
+              </table>
+
+              <p style="margin:0 0 8px 0; font-size:15px; color:#334155; line-height:1.6;">
+                Regards,<br/>
+                <strong style="color:#1E293B;">DevTrack</strong>
+              </p>
+            </td>
+          </tr>
+
+          <!-- Footer -->
+          <tr>
+            <td class="px" valign="top" style="background-color:#F1F5F9; padding:22px 32px; text-align:center; border-top:1px solid #E2E8F0;">
+              <p style="margin:0 0 6px 0; font-size:12px; color:#64748B; line-height:1.6;">This is an automated notification from <strong style="color:#334155;">DevTrack</strong>. Please do not reply directly to this email.</p>
+              <p style="margin:0 0 4px 0; font-size:11px; color:#94A3B8; line-height:1.6;">Confidential &mdash; intended only for the named recipient.</p>
+              <p style="margin:0; font-size:11px; color:#94A3B8;">&copy; <span th:text="${#calendars.year(#calendars.createNow())}">2026</span> DevTrack 2.0 &mdash; Enterprise Engineering Workflow Platform. All rights reserved.</p>
+            </td>
+          </tr>
+
+        </table>
+      </td>
+    </tr>
+  </table>
+
+</body>
+</html>

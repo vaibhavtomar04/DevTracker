@@ -237,6 +237,48 @@ public class EmailNotificationService {
 			else
 				log.info("Request is null");
 
+			// ── Tester confirmation email ─────────────────────────────────────────
+			// Send a "Bug Raised Successfully" confirmation to the tester who raised
+			// the bug (raisedBy). This is a separate email; not threaded with the
+			// developer notification so the tester gets a clean confirmation copy.
+			try {
+				if (bug.getRaisedBy() != null && bug.getRaisedBy().getEmail() != null
+						&& !bug.getRaisedBy().getEmail().isBlank()) {
+
+					Context testerCtx = new Context();
+					Map<String, Object> testerBugMap = new HashMap<>();
+					testerBugMap.put("id", bug.getId());
+					testerBugMap.put("title", bug.getTitle());
+					testerBugMap.put("description", bug.getDescription());
+					testerBugMap.put("priority", bug.getPriority() != null ? bug.getPriority() : "MEDIUM");
+					testerBugMap.put("assignedTo", user.getFullName());
+					testerBugMap.put("status", bug.getStatus() != null ? bug.getStatus() : "OPEN");
+					testerBugMap.put("raisedBy", bug.getRaisedBy().getFullName());
+					testerBugMap.put("parentCr", task != null && task.getJtrackId() != null
+							? task.getJtrackId() + (task.getTitle() != null ? " - " + task.getTitle() : "")
+							: null);
+					testerBugMap.put("url", getEffectiveBaseUrl() + "/dashboard");
+					testerCtx.setVariable("bug", testerBugMap);
+					testerCtx.setVariable("appLogoUrl", appLogoUrl);
+
+					String testerHtml = templateEngine.process("email/bug-raised-confirmation", testerCtx);
+					String testerSubject = "Bug Raised || " + subject.replaceFirst("^Bug Details \\|\\| ", "");
+
+					EmailRequestVo testerRequest = createEmailRequestMap(
+							testerHtml, testerSubject,
+							bug.getRaisedBy().getEmail(), null,
+							testingSender, null);
+
+					if (testerRequest != null) {
+						callSendNotificationApi(testerRequest);
+						log.info("Tester confirmation mail sent for bug id={} to={}", bug.getId(), bug.getRaisedBy().getEmail());
+					}
+				}
+			} catch (Exception testerEx) {
+				log.warn("Failed to send tester confirmation mail for bug id={}: {}", bug.getId(), testerEx.getMessage());
+			}
+			// ─────────────────────────────────────────────────────────────────────
+
 		} catch (Exception e) {
 			log.error("Exception in sendNotification ",e);
 		}
