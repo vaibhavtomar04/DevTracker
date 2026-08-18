@@ -182,7 +182,9 @@ public class DocumentService {
      */
     @Transactional(readOnly = true)
     public void streamDownload(Long documentId, HttpServletResponse response) throws IOException {
-        User currentUser = resolveCurrentUser();
+        // Use nullable resolution so the public /api/auth/documents/{id}/download endpoint
+        // (which is permitAll and carries no JWT) can serve anonymous callers without a 401.
+        User currentUser = resolveCurrentUserOrNull();
 
         Document doc = documentRepository.findById(documentId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Document not found: " + documentId));
@@ -271,6 +273,20 @@ public class DocumentService {
         String username = SecurityContextHolder.getContext().getAuthentication().getName();
         return userRepository.findByUsername(username)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Authenticated user not found."));
+    }
+
+    /**
+     * Returns the current authenticated user, or {@code null} if the request
+     * is anonymous (e.g. public email-link download — no JWT present).
+     * Use this instead of {@link #resolveCurrentUser()} for endpoints that are
+     * marked {@code permitAll} so unauthenticated callers are not rejected.
+     */
+    private User resolveCurrentUserOrNull() {
+        var auth = SecurityContextHolder.getContext().getAuthentication();
+        if (auth == null || !auth.isAuthenticated() || "anonymousUser".equals(auth.getName())) {
+            return null;
+        }
+        return userRepository.findByUsername(auth.getName()).orElse(null);
     }
 
     /**
