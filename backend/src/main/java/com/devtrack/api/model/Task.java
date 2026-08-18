@@ -110,6 +110,9 @@ public class Task {
     @Transient
     private String remarks;
 
+    @Transient
+    private Boolean sendDevOpsMail;
+
     // ── DevOps deployment email fields (persisted) ───────────────────────────
     @Column(name = "deployment_note", columnDefinition = "TEXT")
     private String deploymentNote;

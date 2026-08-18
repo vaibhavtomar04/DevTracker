@@ -635,6 +635,7 @@ if (currentTargetStatus.equals("UAT_COMPLETED") && task.getUatCompletedDate() ==
                         final String deploymentNoteFinal = taskDetails.getDeploymentNote();
                         final String serverPathFinal = taskDetails.getServerPath();
                         final String itemsToDeployFinal = taskDetails.getItemsToDeploy();
+                        final Boolean sendDevOpsMailFinal = taskDetails.getSendDevOpsMail();
                         // Fire-and-forget: don't block the HTTP response for notifications
                         CompletableFuture.runAsync(() -> {
                             notifyAllDevelopersAndTester(savedFinal, savedFinal.getJtrackId() + " Status Updated",
@@ -643,10 +644,15 @@ if (currentTargetStatus.equals("UAT_COMPLETED") && task.getUatCompletedDate() ==
                             if ("CODE_REVIEW".equalsIgnoreCase(savedFinal.getStatus())) {
                                 try {
                                     emailNotificationService.sendMailOnCodeReview(savedFinal, remarksForNotif != null ? remarksForNotif : "Sent to Code Review");
-                                    String deploymentNoteVal = (deploymentNoteFinal != null) ? deploymentNoteFinal : savedFinal.getDeploymentNote();
-                                    String serverPathVal = (serverPathFinal != null) ? serverPathFinal : savedFinal.getServerPath();
-                                    String itemsToDeployVal = (itemsToDeployFinal != null) ? itemsToDeployFinal : savedFinal.getItemsToDeploy();
-                                    emailNotificationService.sendDevOpsDeploymentMail(savedFinal, deploymentNoteVal, serverPathVal, itemsToDeployVal);
+                                    // Only send DevOps deployment email if developer explicitly enabled it (sendDevOpsMail == true)
+                                    if (Boolean.TRUE.equals(sendDevOpsMailFinal)) {
+                                        String deploymentNoteVal = (deploymentNoteFinal != null) ? deploymentNoteFinal : savedFinal.getDeploymentNote();
+                                        String serverPathVal = (serverPathFinal != null) ? serverPathFinal : savedFinal.getServerPath();
+                                        String itemsToDeployVal = (itemsToDeployFinal != null) ? itemsToDeployFinal : savedFinal.getItemsToDeploy();
+                                        emailNotificationService.sendDevOpsDeploymentMail(savedFinal, deploymentNoteVal, serverPathVal, itemsToDeployVal);
+                                    } else {
+                                        log.info("Skipping DevOps deployment email for task {} as sendDevOpsMail is false/disabled", savedFinal.getId());
+                                    }
                                 } catch (Exception e) {
                                     log.error("Failed to send Code Review / DevOps mail", e);
                                 }
@@ -1603,10 +1609,14 @@ public List<TaskListDto> getTasksByStepType(@RequestParam String type) {
             log.info("current step , next step {} {}",currentStep.getStepName(),nextStage);
             if (currentStep.getStepName().equalsIgnoreCase("SIT_COMPLETED")) {
             	emailNotificationService.sendMailOnCodeReview(task, taskDetails != null ? taskDetails.getRemarks() : "SIT Completed");
-            	String deploymentNoteVal = (taskDetails != null && taskDetails.getDeploymentNote() != null) ? taskDetails.getDeploymentNote() : task.getDeploymentNote();
-            	String serverPathVal = (taskDetails != null && taskDetails.getServerPath() != null) ? taskDetails.getServerPath() : task.getServerPath();
-            	String itemsToDeployVal = (taskDetails != null && taskDetails.getItemsToDeploy() != null) ? taskDetails.getItemsToDeploy() : task.getItemsToDeploy();
-            	emailNotificationService.sendDevOpsDeploymentMail(task, deploymentNoteVal, serverPathVal, itemsToDeployVal);
+            	if (taskDetails != null && Boolean.TRUE.equals(taskDetails.getSendDevOpsMail())) {
+            		String deploymentNoteVal = taskDetails.getDeploymentNote() != null ? taskDetails.getDeploymentNote() : task.getDeploymentNote();
+            		String serverPathVal = taskDetails.getServerPath() != null ? taskDetails.getServerPath() : task.getServerPath();
+            		String itemsToDeployVal = taskDetails.getItemsToDeploy() != null ? taskDetails.getItemsToDeploy() : task.getItemsToDeploy();
+            		emailNotificationService.sendDevOpsDeploymentMail(task, deploymentNoteVal, serverPathVal, itemsToDeployVal);
+            	} else {
+            		log.info("Skipping DevOps deployment email on SIT_COMPLETED for task {} as sendDevOpsMail is not true", task.getId());
+            	}
             }
             
             if (currentStep.getStepName().equalsIgnoreCase("CODE_REVIEW")) {

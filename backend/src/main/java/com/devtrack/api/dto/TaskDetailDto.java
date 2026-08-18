@@ -37,6 +37,7 @@ public class TaskDetailDto {
     private String deploymentNote;
     private String serverPath;
     private String itemsToDeploy;
+    private Boolean sendDevOpsMail;
     private String testingDuration;
     private String testingComments;
     private String reassignmentReason;

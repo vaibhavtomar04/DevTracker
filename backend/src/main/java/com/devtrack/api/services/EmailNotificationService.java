@@ -587,6 +587,13 @@ public class EmailNotificationService {
 				return;
 			}
 
+			if ((deploymentNote == null || deploymentNote.trim().isEmpty())
+					&& (serverPath == null || serverPath.trim().isEmpty())
+					&& (itemsToDeploy == null || itemsToDeploy.trim().isEmpty())) {
+				log.info("Skipping DevOps deployment email for task {} because all deployment fields are empty", task.getId());
+				return;
+			}
+
 			User developer = task.getAssignedDeveloper();
 			String devName = developer != null ? developer.getFullName() : "Developer";
 
