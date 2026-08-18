@@ -292,8 +292,12 @@ public class BugValidationService {
         BugReview review = bugReviewRepository.findById(reviewId)
                 .orElseThrow(() -> new RuntimeException("Bug review not found."));
 
-        if (!"PENDING_DEV_REVIEW".equals(review.getReviewStatus())) {
-            throw new RuntimeException("Review is not pending developer review.");
+        // Allow rejection from PENDING_DEV_REVIEW (initial state) and CHALLENGED
+        // (tester escalated to admin but developer still owns the response).
+        // This mirrors the same guard used in acceptReview().
+        if (!"PENDING_DEV_REVIEW".equals(review.getReviewStatus())
+                && !"CHALLENGED".equals(review.getReviewStatus())) {
+            throw new RuntimeException("Review cannot be rejected in its current status: " + review.getReviewStatus());
         }
 
         if (dto.getJustification() == null || dto.getJustification().trim().isEmpty()) {

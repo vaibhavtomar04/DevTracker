@@ -801,20 +801,24 @@ export default function DeveloperDashboard() {
     }
     if (rejectingReviewId === null) return
 
-    rejectBugReview(rejectingReviewId, {
+    // Capture values and close modal immediately (optimistic dismiss)
+    const reviewIdToReject = rejectingReviewId
+    const dto = {
       justification: rejectionJustification.trim(),
       rootCause: rejectionRootCause.trim() || undefined,
       reason: rejectionReason.trim() || undefined,
       evidenceNote: rejectionEvidence.trim() || undefined
-    })
+    }
+    setRejectingReviewId(null)
+    setRejectionJustification("")
+    setRejectionRootCause("")
+    setRejectionReason("")
+    setRejectionEvidence("")
+    setRejectionFormError("")
+
+    rejectBugReview(reviewIdToReject, dto)
       .then(() => {
         addToast("Bug review rejected successfully", "success")
-        setRejectingReviewId(null)
-        setRejectionJustification("")
-        setRejectionRootCause("")
-        setRejectionReason("")
-        setRejectionEvidence("")
-        setRejectionFormError("")
         fetchBugReviews()
         fetchData()
       })
