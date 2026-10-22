@@ -1222,16 +1222,108 @@ function ApprovalTab({
     }
   };
 
+  const [resendingMail, setResendingMail] = useState(false);
+  const [resettingMail, setResettingMail] = useState(false);
+  const [mailStatusMsg, setMailStatusMsg] = useState('');
+
+  const handleResendApprovalEmail = async () => {
+    setResendingMail(true);
+    setMailStatusMsg('');
+    try {
+      const res = await fetch(`${APP_CONFIG.apiUrl}/api/tasks/${task.id}/resend-approval-email`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${localStorage.getItem('token')}`,
+        },
+      });
+      const data = await res.json().catch(() => null);
+      if (res.ok && data?.success) {
+        setMailStatusMsg(`✓ ${data.message || 'Approval email resent successfully!'}`);
+      } else {
+        setMailStatusMsg(`✕ ${data?.message || 'Failed to resend approval email'}`);
+      }
+    } catch (e: any) {
+      setMailStatusMsg(`✕ Network error: ${e.message}`);
+    } finally {
+      setResendingMail(false);
+    }
+  };
+
+  const handleResetMailThread = async () => {
+    if (!confirm(`Reset email thread for CR ${task.jtrackId}? This will remove stale thread references so the next email starts a clean, fresh thread.`)) {
+      return;
+    }
+    setResettingMail(true);
+    setMailStatusMsg('');
+    try {
+      const res = await fetch(`${APP_CONFIG.apiUrl}/api/tasks/${task.id}/mail/reset?flowType=CODE_REVIEW`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${localStorage.getItem('token')}`,
+        },
+      });
+      const data = await res.json().catch(() => null);
+      if (res.ok && data?.success) {
+        setMailStatusMsg(`✓ ${data.message || 'Email thread reset successfully!'}`);
+      } else {
+        setMailStatusMsg(`✕ ${data?.message || 'Failed to reset email thread'}`);
+      }
+    } catch (e: any) {
+      setMailStatusMsg(`✕ Network error: ${e.message}`);
+    } finally {
+      setResettingMail(false);
+    }
+  };
+
   if (!isCodeReview) {
     return (
-      <div className="text-center py-10">
+      <div className="text-center py-10 space-y-4">
         <span className="text-3xl">✅</span>
         <p className="text-zinc-400 text-sm mt-2">
           {task.status === 'CODE_REVIEW_DONE'
             ? 'Code review has been approved.'
             : 'No approval action needed for current status.'}
         </p>
-        <p className="text-xs text-zinc-600 mt-1">Current status: {task.status}</p>
+        <p className="text-xs text-zinc-600">Current status: {task.status}</p>
+
+        {task.status === 'CODE_REVIEW_DONE' && (
+          <div className="pt-4 max-w-md mx-auto space-y-3">
+            <div className="p-3 rounded-xl border border-sky-500/20 bg-sky-500/5 text-left text-xs text-zinc-300">
+              <p className="font-semibold text-sky-400 mb-1">Developer missed or didn't receive the email?</p>
+              <p className="text-zinc-400 leading-relaxed">
+                You can resend the code review approval email directly to <strong>{task.assignedDeveloper?.email || 'the assigned developer'}</strong>. If previous delivery attempts failed or were missed, you can also reset the email thread to initiate a fresh email.
+              </p>
+            </div>
+
+            {mailStatusMsg && (
+              <p className={`text-xs font-medium p-2.5 rounded-lg text-left ${mailStatusMsg.startsWith('✓') ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' : 'bg-rose-500/10 text-rose-400 border border-rose-500/20'}`}>
+                {mailStatusMsg}
+              </p>
+            )}
+
+            <div className="flex flex-col sm:flex-row gap-2 justify-center">
+              <button
+                type="button"
+                onClick={handleResendApprovalEmail}
+                disabled={resendingMail || resettingMail}
+                className="flex-1 py-2 px-3 text-xs font-semibold rounded-xl bg-sky-500/20 text-sky-300 hover:bg-sky-500/30 border border-sky-500/30 transition-all flex items-center justify-center gap-1.5 disabled:opacity-50 cursor-pointer"
+              >
+                {resendingMail ? 'Sending...' : '✉ Resend Approval Email'}
+              </button>
+              <button
+                type="button"
+                onClick={handleResetMailThread}
+                disabled={resendingMail || resettingMail}
+                className="py-2 px-3 text-xs font-semibold rounded-xl bg-amber-500/10 text-amber-400 hover:bg-amber-500/20 border border-amber-500/30 transition-all flex items-center justify-center gap-1.5 disabled:opacity-50 cursor-pointer"
+                title="Clears thread message ID so the next email starts a clean, fresh thread"
+              >
+                {resettingMail ? 'Resetting...' : '↻ Reset Mail Thread'}
+              </button>
+            </div>
+          </div>
+        )}
       </div>
     );
   }

@@ -5,6 +5,7 @@ import java.io.IOException;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 
 import org.apache.poi.ss.usermodel.Cell;
@@ -20,6 +21,7 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.cache.annotation.CacheEvict;
@@ -39,6 +41,7 @@ import org.springframework.web.bind.annotation.RestController;
 import com.devtrack.api.model.AppConfig;
 import com.devtrack.api.model.Attachment;
 import com.devtrack.api.model.AuditLog;
+import com.devtrack.api.model.BugMailThread;
 import com.devtrack.api.model.Role;
 import com.devtrack.api.model.Task;
 import com.devtrack.api.model.TaskDeveloper;
@@ -655,6 +658,14 @@ if (currentTargetStatus.equals("UAT_COMPLETED") && task.getUatCompletedDate() ==
                                     }
                                 } catch (Exception e) {
                                     log.error("Failed to send Code Review / DevOps mail", e);
+                                }
+                            }
+
+                            if ("CODE_REVIEW_DONE".equalsIgnoreCase(savedFinal.getStatus())) {
+                                try {
+                                    emailNotificationService.sendMailOnCodeReviewUpdate(savedFinal, remarksForNotif != null ? remarksForNotif : "Approved", oldStatusFinal, currentUserFinal);
+                                } catch (Exception e) {
+                                    log.error("Failed to send Code Review Approval mail on status update", e);
                                 }
                             }
 
@@ -1758,5 +1769,141 @@ public List<TaskListDto> getTasksByStepType(@RequestParam String type) {
         if (task.getTester() != null) {
             createAndPushNotification(task.getTester().getId(), title, desc);
         }
+    }
+
+    /**
+     * Resends email notification for a task (Code Review Approval, Code Review Request, UAT, etc.).
+     *
+     * POST /api/tasks/{id}/mail/resend
+     * Optional parameters (via query param or JSON body):
+     *  - type: CODE_REVIEW_APPROVAL, CODE_REVIEW_REQUEST, UAT_TESTING, etc. (defaults dynamically based on CR status)
+     *  - remarks: custom remarks to include
+     *  - resetThread: boolean (default false) - if true, clears the existing thread so a fresh email thread is sent
+     */
+    @PostMapping("/{id}/mail/resend")
+    public ResponseEntity<?> resendTaskMail(
+            @PathVariable Long id,
+            @RequestParam(required = false) String type,
+            @RequestParam(required = false) String remarks,
+            @RequestParam(required = false, defaultValue = "false") boolean resetThread,
+            @RequestBody(required = false) Map<String, Object> body) {
+
+        String effectiveType = type;
+        String effectiveRemarks = remarks;
+        boolean effectiveResetThread = resetThread;
+
+        if (body != null) {
+            if (effectiveType == null && body.get("type") != null) {
+                effectiveType = body.get("type").toString();
+            }
+            if (effectiveRemarks == null && body.get("remarks") != null) {
+                effectiveRemarks = body.get("remarks").toString();
+            }
+            if (!effectiveResetThread && body.get("resetThread") != null) {
+                effectiveResetThread = Boolean.parseBoolean(body.get("resetThread").toString());
+            }
+        }
+
+        String username = SecurityContextHolder.getContext().getAuthentication() != null 
+                ? SecurityContextHolder.getContext().getAuthentication().getName() : "system";
+        User currentUser = userRepository.findByUsername(username).orElse(null);
+
+        Map<String, Object> result = emailNotificationService.resendTaskMail(id, effectiveType, effectiveRemarks, currentUser, effectiveResetThread);
+        
+        if (Boolean.TRUE.equals(result.get("success"))) {
+            return ResponseEntity.ok(result);
+        } else {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(result);
+        }
+    }
+
+    /**
+     * Dedicated convenience endpoint to resend Code Review Approval email to the developer.
+     * POST /api/tasks/{id}/resend-approval-email
+     */
+    @PostMapping("/{id}/resend-approval-email")
+    public ResponseEntity<?> resendApprovalEmail(
+            @PathVariable Long id,
+            @RequestParam(required = false) String remarks,
+            @RequestParam(required = false, defaultValue = "false") boolean resetThread,
+            @RequestBody(required = false) Map<String, Object> body) {
+        return resendTaskMail(id, "CODE_REVIEW_APPROVAL", remarks, resetThread, body);
+    }
+
+    /**
+     * Dedicated convenience endpoint to resend Code Review Request email to reviewers.
+     * POST /api/tasks/{id}/resend-code-review-email
+     */
+    @PostMapping("/{id}/resend-code-review-email")
+    public ResponseEntity<?> resendCodeReviewEmail(
+            @PathVariable Long id,
+            @RequestParam(required = false) String remarks,
+            @RequestParam(required = false, defaultValue = "false") boolean resetThread,
+            @RequestBody(required = false) Map<String, Object> body) {
+        return resendTaskMail(id, "CODE_REVIEW_REQUEST", remarks, resetThread, body);
+    }
+
+    /**
+     * Resets / clears mail thread tracking records for a task.
+     * POST /api/tasks/{id}/mail/reset
+     * Optional query param: flowType (e.g., CODE_REVIEW, UAT_TESTING, or ALL/omitted for all)
+     */
+    @PostMapping("/{id}/mail/reset")
+    public ResponseEntity<?> resetMailThread(
+            @PathVariable Long id,
+            @RequestParam(required = false, defaultValue = "CODE_REVIEW") String flowType) {
+        Task task = taskRepository.findById(id).orElse(null);
+        if (task == null) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of(
+                    "success", false,
+                    "message", "Task not found with ID: " + id
+            ));
+        }
+
+        int deletedCount = emailNotificationService.resetMailThread(id, flowType);
+        return ResponseEntity.ok(Map.of(
+                "success", true,
+                "message", "Mail thread reset successfully for " + (task.getJtrackId() != null ? task.getJtrackId() : ("task #" + id)) + " (flowType: " + flowType + "). Deleted " + deletedCount + " thread record(s). Future emails will initiate a clean, fresh thread.",
+                "taskId", id,
+                "jtrackId", task.getJtrackId() != null ? task.getJtrackId() : "NA",
+                "flowType", flowType,
+                "deletedCount", deletedCount
+        ));
+    }
+
+    /**
+     * RESTful DELETE endpoint to clear mail threads for a task.
+     * DELETE /api/tasks/{id}/mail-thread
+     */
+    @DeleteMapping("/{id}/mail-thread")
+    public ResponseEntity<?> deleteMailThread(
+            @PathVariable Long id,
+            @RequestParam(required = false, defaultValue = "CODE_REVIEW") String flowType) {
+        return resetMailThread(id, flowType);
+    }
+
+    /**
+     * Retrieves all active mail thread tracking records for a task.
+     * GET /api/tasks/{id}/mail/threads
+     */
+    @GetMapping("/{id}/mail/threads")
+    public ResponseEntity<?> getMailThreads(
+            @PathVariable Long id,
+            @RequestParam(required = false) String flowType) {
+        Task task = taskRepository.findById(id).orElse(null);
+        if (task == null) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of(
+                    "success", false,
+                    "message", "Task not found with ID: " + id
+            ));
+        }
+        List<BugMailThread> threads = emailNotificationService.getMailThreads(id, flowType);
+        return ResponseEntity.ok(Map.of(
+                "success", true,
+                "taskId", id,
+                "jtrackId", task.getJtrackId() != null ? task.getJtrackId() : "NA",
+                "threads", threads,
+                "count", threads.size()
+        ));
     }
 }

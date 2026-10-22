@@ -31,7 +31,7 @@ This document provides a comprehensive specification and usage guide for all **1
 18. [20. Asynchronous Report Jobs](#20-asynchronous-report-jobs) (4 APIs)
 19. [8. Sprint Management](#8-sprint-management) (7 APIs)
 20. [9. Sprint Tasks & Dependencies](#9-sprint-tasks--dependencies) (11 APIs)
-21. [4. Task Management & Workflows](#4-task-management--workflows) (27 APIs)
+21. [4. Task Management & Workflows](#4-task-management--workflows) (33 APIs)
 22. [25. Task Types](#25-task-types) (4 APIs)
 23. [10. Test Cases & Execution](#10-test-cases--execution) (4 APIs)
 24. [11. Tester Workspace](#11-tester-workspace) (3 APIs)
@@ -2863,6 +2863,147 @@ This document provides a comprehensive specification and usage guide for all **1
 
 - **Success Status:** `200 OK` (or `201 Created` / `204 No Content`)
 - **Error Statuses:** `400 Bad Request`, `401 Unauthorized`, `403 Forbidden`, `404 Not Found`, `500 Internal Server Error`
+
+---
+
+### `POST` `/api/tasks/{id}/mail/resend`
+
+**Java Method:** `resendTaskMail`  
+**Description & Usage:** Resends an email notification for a task/CR. Ideal when the developer or reviewer missed or did not receive the initial notification. Automatically resolves the primary recipient, co-developers in CC, and email body/template based on CR status or the requested `type`.
+
+**Authentication:** Required (`Bearer <JWT Token>`)
+
+#### Request Parameters
+- **Path Variable:** `id` (Long, Required) — The ID of the task/CR.
+- **Query / Body Parameters:**
+  - `type` (String, Optional) — Type of email to resend (`CODE_REVIEW_APPROVAL`, `CODE_REVIEW_REQUEST`, `UAT_TESTING`, `UAT_COMPLETED`). Defaults dynamically based on current CR status (`CODE_REVIEW_DONE` -> `CODE_REVIEW_APPROVAL`).
+  - `remarks` (String, Optional) — Custom review remarks or message to include.
+  - `resetThread` (Boolean, Optional, default: `false`) — When `true`, resets the mail thread tracking record prior to resending, creating a brand new email thread with a fresh message ID.
+
+#### Request Body Example (Optional)
+```json
+{
+  "type": "CODE_REVIEW_APPROVAL",
+  "remarks": "Resending approval notification as requested by developer",
+  "resetThread": false
+}
+```
+
+#### Expected Response
+```json
+{
+  "success": true,
+  "message": "Email (CODE_REVIEW_APPROVAL) delivered successfully to developer@devtracker.com",
+  "taskId": 12,
+  "jtrackId": "CR-101",
+  "emailType": "CODE_REVIEW_APPROVAL",
+  "recipient": "developer@devtracker.com",
+  "responseCode": "0000",
+  "originalMessageId": "<devtrack-msg-123@domain.com>",
+  "threadReset": false
+}
+```
+
+---
+
+### `POST` `/api/tasks/{id}/resend-approval-email`
+
+**Java Method:** `resendApprovalEmail`  
+**Description & Usage:** Dedicated convenience endpoint to resend the **Code Review Approval** email directly to the developer and co-developers. Sends the approved checklist, reviewer details, and DevTrack review links.
+
+**Authentication:** Required (`Bearer <JWT Token>`)
+
+#### Request Parameters
+- **Path Variable:** `id` (Long, Required) — The ID of the task/CR.
+- **Query Parameters / Body:**
+  - `remarks` (String, Optional) — Remarks.
+  - `resetThread` (Boolean, Optional, default `false`) — Reset thread before resending.
+
+#### Expected Response
+```json
+{
+  "success": true,
+  "message": "Email (CODE_REVIEW_APPROVAL) delivered successfully to developer@devtracker.com",
+  "taskId": 12,
+  "jtrackId": "CR-101",
+  "emailType": "CODE_REVIEW_APPROVAL",
+  "recipient": "developer@devtracker.com",
+  "responseCode": "0000"
+}
+```
+
+---
+
+### `POST` `/api/tasks/{id}/resend-code-review-email`
+
+**Java Method:** `resendCodeReviewEmail`  
+**Description & Usage:** Dedicated convenience endpoint to resend the **Code Review Request** email to designated reviewers (`mail.reviewer`) with developers in CC.
+
+**Authentication:** Required (`Bearer <JWT Token>`)
+
+---
+
+### `POST` `/api/tasks/{id}/mail/reset`
+
+**Java Method:** `resetMailThread`  
+**Description & Usage:** Resets and deletes the stored email thread references (`BugMailThread`) for a task. Solves scenarios where delivery failed or the original mail thread message ID became stale or rejected downstream, enabling future emails to create a clean, fresh thread.
+
+**Authentication:** Required (`Bearer <JWT Token>`)
+
+#### Request Parameters
+- **Path Variable:** `id` (Long, Required) — The ID of the task/CR.
+- **Query Parameter:** `flowType` (String, Optional, default: `CODE_REVIEW`) — The flow type to reset (`CODE_REVIEW`, `UAT_TESTING`, or `ALL`).
+
+#### Expected Response
+```json
+{
+  "success": true,
+  "message": "Mail thread reset successfully for CR-101 (flowType: CODE_REVIEW). Deleted 1 thread record(s). Future emails will initiate a clean, fresh thread.",
+  "taskId": 12,
+  "jtrackId": "CR-101",
+  "flowType": "CODE_REVIEW",
+  "deletedCount": 1
+}
+```
+
+---
+
+### `DELETE` `/api/tasks/{id}/mail-thread`
+
+**Java Method:** `deleteMailThread`  
+**Description & Usage:** RESTful DELETE endpoint equivalent to `/api/tasks/{id}/mail/reset` to purge mail thread records for a task.
+
+**Authentication:** Required (`Bearer <JWT Token>`)
+
+---
+
+### `GET` `/api/tasks/{id}/mail/threads`
+
+**Java Method:** `getMailThreads`  
+**Description & Usage:** Retrieves all active mail thread tracking records (`flowType`, `messageId`, `subject`, `createdOn`, `createdBy`) for a specific task. Useful for auditing and diagnosing delivery status.
+
+**Authentication:** Required (`Bearer <JWT Token>`)
+
+#### Expected Response
+```json
+{
+  "success": true,
+  "taskId": 12,
+  "jtrackId": "CR-101",
+  "count": 1,
+  "threads": [
+    {
+      "id": 1,
+      "bugId": 12,
+      "messageId": "<msg-abc-123@domain.com>",
+      "subject": "Code Review || CR-101 Payment Gateway Integration",
+      "flowType": "CODE_REVIEW",
+      "createdBy": "CODE_REVIEW_APPROVAL_MAIL",
+      "createdOn": "2026-10-22T17:00:00"
+    }
+  ]
+}
+```
 
 ---
 

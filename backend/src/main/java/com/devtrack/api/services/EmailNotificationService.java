@@ -17,6 +17,7 @@ import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.client.RestTemplate;
 import org.thymeleaf.TemplateEngine;
 import org.thymeleaf.context.Context;
@@ -329,17 +330,85 @@ public class EmailNotificationService {
 		}
 	}
 
-	@Async
-	public void sendMailOnCodeReview(Task task, String remarks) {
+	public String buildCodeReviewSubject(Task task) {
+		StringBuilder sb = new StringBuilder("Code Review || ");
+		if (task != null && task.getJtrackId() != null && !task.getJtrackId().isBlank()) {
+			sb.append(task.getJtrackId()).append(" ");
+		}
+		if (task != null && task.getTitle() != null && !task.getTitle().isBlank()) {
+			String crName = task.getTitle().replaceAll("^\\[.*?\\]\\s*", "");
+			sb.append(crName);
+		}
+		return sb.toString();
+	}
+
+	public User resolveTaskDeveloper(Task task) {
+		if (task == null) return null;
+		User dev = task.getAssignedDeveloper();
+		if (dev != null && dev.getId() != null) {
+			return userRepository.findById(dev.getId()).orElse(dev);
+		}
+		if (task.getDevelopers() != null && !task.getDevelopers().isEmpty()) {
+			for (com.devtrack.api.model.TaskDeveloper td : task.getDevelopers()) {
+				if (td.getDeveloper() != null && td.getDeveloper().getId() != null) {
+					return userRepository.findById(td.getDeveloper().getId()).orElse(td.getDeveloper());
+				}
+			}
+		}
+		if (task.getCreatedBy() != null && task.getCreatedBy().getId() != null) {
+			return userRepository.findById(task.getCreatedBy().getId()).orElse(task.getCreatedBy());
+		}
+		return dev;
+	}
+
+	public String buildTaskDeveloperCc(Task task, Long primaryRecipientId, String baseCc) {
+		if (task == null) return baseCc;
+		java.util.LinkedHashSet<String> extraCc = new java.util.LinkedHashSet<>();
 		try {
-			log.info("bug sendMailOnCodeReview ");
-			User user = userRepository.findById(task.getAssignedDeveloper().getId()).get();
+			if (task.getDevelopers() != null) {
+				for (com.devtrack.api.model.TaskDeveloper td : task.getDevelopers()) {
+					if (td.getDeveloper() != null && td.getDeveloper().getId() != null) {
+						if (primaryRecipientId == null || !td.getDeveloper().getId().equals(primaryRecipientId)) {
+							userRepository.findById(td.getDeveloper().getId()).ifPresent(u -> {
+								if (u.getEmail() != null && !u.getEmail().isBlank()) {
+									extraCc.add(u.getEmail().trim());
+								}
+							});
+						}
+					}
+				}
+			}
+		} catch (Exception e) {
+			log.warn("Could not read task co-developer pool for task {}", task.getId(), e);
+		}
+
+		if (extraCc.isEmpty()) {
+			return baseCc;
+		}
+
+		StringBuilder sb = new StringBuilder();
+		if (baseCc != null && !baseCc.trim().isEmpty()) {
+			sb.append(baseCc.trim());
+		}
+		for (String email : extraCc) {
+			if (sb.length() > 0) {
+				sb.append(",");
+			}
+			sb.append(email);
+		}
+		return sb.toString();
+	}
+
+	public ResponseVo sendMailOnCodeReviewDirect(Task task, String remarks, boolean forceFreshThread) {
+		try {
+			log.info("sendMailOnCodeReviewDirect for task id={}", task != null ? task.getId() : "null");
+			User user = resolveTaskDeveloper(task);
 			
 			Context context = new Context();
 			Map<String, Object> crMap = new HashMap<>();
 			crMap.put("jtrackId", task.getJtrackId() != null && !task.getJtrackId().isBlank() ? task.getJtrackId() : "NA");
 			crMap.put("branchName", task.getBranchName() != null && !task.getBranchName().isBlank() ? task.getBranchName() : "NA");
-			crMap.put("developerName", user.getFullName());
+			crMap.put("developerName", user != null ? user.getFullName() : "Developer");
 			crMap.put("gitLinks", task.getGitLinks() != null && !task.getGitLinks().isBlank() ? task.getGitLinks() : "NA");
 			crMap.put("summaryOfChanges", task.getCodeReviewComments() != null && !task.getCodeReviewComments().isBlank() ? task.getCodeReviewComments() : (remarks != null ? remarks : "NA"));
 			crMap.put("reviewUrl", getEffectiveBaseUrl() + "/dashboard/code-review");
@@ -349,83 +418,300 @@ public class EmailNotificationService {
 			context.setVariable("appLogoUrl", appLogoUrl);
 
 			String renderedHtml = templateEngine.process("email/codereview-request", context);
+			String subject = buildCodeReviewSubject(task);
 
-			String subject = "Code Review || ";
+			String devCc = buildTaskDeveloperCc(task, null, reviewCc);
+			EmailRequestVo requestMap = createEmailRequestMap(renderedHtml, subject, reviewerMail, null, developersMail, devCc);
 
-			if(task!=null && task.getJtrackId()!=null && !task.getJtrackId().isBlank()) {
-				subject = subject+task.getJtrackId()+" ";
-			}
-			if(task!=null && task.getTitle()!=null && !task.getTitle().isBlank()) {
-				String crName = task.getTitle().replaceAll("^\\[.*?\\]\\s*", "");
-				subject = subject+crName;
-			}
-
-			EmailRequestVo requestMap = createEmailRequestMap(renderedHtml, subject, reviewerMail, null, developersMail, reviewCc);
-
-			if(requestMap!=null) {
+			if (requestMap != null) {
 				ResponseVo response = callSendNotificationApi(requestMap);
-				if(response!=null && response.getStatusCode()!=null && !response.getStatusCode().isBlank() 
+				if (response != null && response.getStatusCode() != null && !response.getStatusCode().isBlank() 
 						&& "0000".equalsIgnoreCase(response.getStatusCode())) {
-					BugMailThread mailThread = new BugMailThread();
-					mailThread.setBugId(task.getId());
-					mailThread.setMessageId(response.getOriginalMessageId());
-					mailThread.setCreatedBy("CODE_REVIEW_MAIL");
-					mailThread.setFlowType("CODE_REVIEW");
-					mailThread.setSubject(subject);
-					mailThreadRepo.save(mailThread);
+					List<BugMailThread> existingThreads = mailThreadRepo.findByBugIdAndFlowType(task.getId(), "CODE_REVIEW");
+					if (existingThreads == null || existingThreads.isEmpty() || forceFreshThread) {
+						BugMailThread mailThread = new BugMailThread();
+						mailThread.setBugId(task.getId());
+						mailThread.setMessageId(response.getOriginalMessageId());
+						mailThread.setCreatedBy("CODE_REVIEW_MAIL");
+						mailThread.setFlowType("CODE_REVIEW");
+						mailThread.setSubject(subject);
+						mailThreadRepo.save(mailThread);
+					}
 				}
+				return response;
 			}
-			else
-				log.info("Request is null");
+			return null;
+		} catch (Exception e) {
+			log.error("Exception in sendMailOnCodeReviewDirect ", e);
+			return null;
+		}
+	}
+
+	@Async
+	public void sendMailOnCodeReview(Task task, String remarks) {
+		sendMailOnCodeReviewDirect(task, remarks, false);
+	}
+
+	public ResponseVo sendMailOnCodeReviewApprovalInternal(Task task, String remarks, String status, User approver, boolean forceFreshThread) {
+		try {
+			if (task == null) {
+				log.warn("Task is null in sendMailOnCodeReviewApprovalInternal");
+				return null;
+			}
+			log.info("Processing sendMailOnCodeReviewApprovalInternal for task id={}, jtrackId={}, status={}", task.getId(), task.getJtrackId(), status);
+			
+			User user = resolveTaskDeveloper(task);
+			if (user == null || user.getEmail() == null || user.getEmail().isBlank()) {
+				log.error("Cannot send Code Review Approval email for task id={}: developer or email is missing", task.getId());
+				ResponseVo missingUserVo = new ResponseVo();
+				missingUserVo.setStatusCode("400");
+				missingUserVo.setStatusDescription("Assigned developer or developer email is missing for task " + task.getJtrackId());
+				return missingUserVo;
+			}
+
+			List<BugMailThread> mailThread = mailThreadRepo.findByBugIdAndFlowType(task.getId(), "CODE_REVIEW");
+			String threadMessageId = null;
+			String subject = null;
+
+			if (!forceFreshThread && mailThread != null && !mailThread.isEmpty() && mailThread.get(0).getMessageId() != null && !mailThread.get(0).getMessageId().isBlank()) {
+				threadMessageId = mailThread.get(0).getMessageId();
+				subject = mailThread.get(0).getSubject();
+			}
+
+			if (subject == null || subject.isBlank()) {
+				subject = buildCodeReviewSubject(task);
+			}
+
+			Context context = new Context();
+			Map<String, Object> crMap = new HashMap<>();
+			crMap.put("reviewUrl", getEffectiveBaseUrl() + "/dashboard/crs");
+			
+			// Generate review checklist
+			List<Map<String, Object>> checklist = List.of(
+				Map.of("srNo", 1, "question", "Does the source code conform to the standards and guidelines?", "comment", "YES"),
+				Map.of("srNo", 2, "question", "Are unit tests executed and passed?", "comment", "YES"),
+				Map.of("srNo", 3, "question", "Are database queries optimized?", "comment", "YES"),
+				Map.of("srNo", 4, "question", "Has SonarQube quality gate passed?", "comment", "YES")
+			);
+			crMap.put("checklist", checklist);
+			
+			String reviewerName = (approver != null && approver.getFullName() != null && !approver.getFullName().isBlank()) 
+					? approver.getFullName() : "Code Reviewer";
+
+			context.setVariable("cr", crMap);
+			context.setVariable("reviewerName", reviewerName);
+			context.setVariable("developerName", user.getFullName() != null ? user.getFullName() : "Developer");
+			context.setVariable("appLogoUrl", appLogoUrl);
+
+			String renderedHtml = templateEngine.process("email/codereview-approval", context);
+
+			String cc = buildTaskDeveloperCc(task, user.getId(), reviewCc);
+
+			EmailRequestVo requestMap = createEmailRequestMap(renderedHtml, subject, 
+					user.getEmail(), threadMessageId, developersMail, cc);
+
+			if (requestMap != null) {
+				ResponseVo response = callSendNotificationApi(requestMap);
+				if (response != null && response.getStatusCode() != null && !response.getStatusCode().isBlank() 
+						&& "0000".equalsIgnoreCase(response.getStatusCode())) {
+					if (mailThread == null || mailThread.isEmpty() || forceFreshThread) {
+						BugMailThread newThread = new BugMailThread();
+						newThread.setBugId(task.getId());
+						newThread.setMessageId(response.getOriginalMessageId());
+						newThread.setCreatedBy("CODE_REVIEW_APPROVAL_MAIL");
+						newThread.setFlowType("CODE_REVIEW");
+						newThread.setSubject(subject);
+						mailThreadRepo.save(newThread);
+					}
+					log.info("Code review approval email delivered successfully for task id={} to={}", task.getId(), user.getEmail());
+				} else {
+					log.warn("Code review approval email dispatch returned non-0000 response: {}", response);
+				}
+				return response;
+			} else {
+				log.warn("Request payload is null for code review approval email on task id={}", task.getId());
+				ResponseVo nullReq = new ResponseVo();
+				nullReq.setStatusCode("500");
+				nullReq.setStatusDescription("Failed to construct email request payload");
+				return nullReq;
+			}
 
 		} catch (Exception e) {
-			log.error("Exception in sendNotification ",e);
+			log.error("Exception in sendMailOnCodeReviewApprovalInternal ", e);
+			ResponseVo errVo = new ResponseVo();
+			errVo.setStatusCode("500");
+			errVo.setStatusDescription("Exception: " + e.getMessage());
+			return errVo;
 		}
 	}
 
 	@Async
 	public void sendMailOnCodeReviewUpdate(Task task, String remarks, String status, User approver) {
+		sendMailOnCodeReviewApprovalInternal(task, remarks, status, approver, false);
+	}
+
+	public ResponseVo sendMailForUatTestingDirect(Task task, String remarks, User currentUser) {
+		sendMailForUatTesting(task, remarks, currentUser);
+		ResponseVo vo = new ResponseVo();
+		vo.setStatusCode("0000");
+		vo.setStatusDescription("UAT Testing mail triggered");
+		return vo;
+	}
+
+	public ResponseVo sendMailOnUATTestingCompleteDirect(Task task, String remarks, User currentUser) {
+		sendMailOnUATTestingComplete(task, remarks, currentUser);
+		ResponseVo vo = new ResponseVo();
+		vo.setStatusCode("0000");
+		vo.setStatusDescription("UAT Complete mail triggered");
+		return vo;
+	}
+
+	@Transactional
+	public int resetMailThread(Long taskId, String flowType) {
+		if (taskId == null) return 0;
 		try {
-			log.info("bug details sendMailOnCodeReviewUpdate");
-			List<BugMailThread> mailThread = mailThreadRepo.findByBugIdAndFlowType(task.getId(), "CODE_REVIEW");
-			if(mailThread==null || mailThread.isEmpty() || mailThread.get(0).getMessageId()==null) {
-				sendMailOnCodeReview(task, remarks);
-			}else {
-				User user = userRepository.findById(task.getAssignedDeveloper().getId()).get();
-				
-				Context context = new Context();
-				Map<String, Object> crMap = new HashMap<>();
-				crMap.put("reviewUrl", getEffectiveBaseUrl() + "/dashboard/crs");
-				
-				// Generate review checklist
-				List<Map<String, Object>> checklist = List.of(
-					Map.of("srNo", 1, "question", "Does the source code conform to the standards and guidelines?", "comment", "YES"),
-					Map.of("srNo", 2, "question", "Are unit tests executed and passed?", "comment", "YES"),
-					Map.of("srNo", 3, "question", "Are database queries optimized?", "comment", "YES"),
-					Map.of("srNo", 4, "question", "Has SonarQube quality gate passed?", "comment", "YES")
-				);
-				crMap.put("checklist", checklist);
-				
-				context.setVariable("cr", crMap);
-				context.setVariable("reviewerName", approver.getFullName());
-				context.setVariable("developerName", user.getFullName());
-				context.setVariable("appLogoUrl", appLogoUrl);
-
-				String renderedHtml = templateEngine.process("email/codereview-approval", context);
-
-				EmailRequestVo requestMap = createEmailRequestMap(renderedHtml, mailThread.get(0).getSubject(), 
-						user.getEmail(), mailThread.get(0).getMessageId(), developersMail, reviewCc);
-
-				if(requestMap!=null)
-					callSendNotificationApi(requestMap);
-				else
-					log.info("Request is null");
-
+			if (flowType != null && !flowType.isBlank() && !"ALL".equalsIgnoreCase(flowType)) {
+				List<BugMailThread> existing = mailThreadRepo.findByBugIdAndFlowType(taskId, flowType);
+				int count = existing != null ? existing.size() : 0;
+				mailThreadRepo.deleteByBugIdAndFlowType(taskId, flowType);
+				log.info("Reset {} mail thread(s) for task id={} flowType={}", count, taskId, flowType);
+				return count;
+			} else {
+				List<BugMailThread> existing = mailThreadRepo.findByBugId(taskId);
+				int count = existing != null ? existing.size() : 0;
+				mailThreadRepo.deleteByBugId(taskId);
+				log.info("Reset {} mail thread(s) for task id={}", count, taskId);
+				return count;
 			}
-
 		} catch (Exception e) {
-			log.error("Exception ",e);
+			log.error("Exception resetting mail thread for task id=" + taskId, e);
+			return 0;
 		}
+	}
+
+	public List<BugMailThread> getMailThreads(Long taskId, String flowType) {
+		if (taskId == null) return List.of();
+		if (flowType != null && !flowType.isBlank() && !"ALL".equalsIgnoreCase(flowType)) {
+			return mailThreadRepo.findByBugIdAndFlowType(taskId, flowType);
+		}
+		return mailThreadRepo.findByBugId(taskId);
+	}
+
+	private String determineFlowType(String emailType, String status) {
+		if (emailType != null) {
+			String t = emailType.toUpperCase();
+			if (t.contains("REVIEW") || t.contains("APPROVAL")) return "CODE_REVIEW";
+			if (t.contains("UAT")) return "UAT_TESTING";
+			if (t.contains("BUG")) return "BUG";
+		}
+		if (status != null) {
+			String s = status.toUpperCase();
+			if (s.contains("REVIEW")) return "CODE_REVIEW";
+			if (s.contains("UAT")) return "UAT_TESTING";
+		}
+		return "CODE_REVIEW";
+	}
+
+	private String resolveDefaultEmailTypeForStatus(String status) {
+		if (status == null) return "CODE_REVIEW_APPROVAL";
+		switch (status.toUpperCase()) {
+			case "CODE_REVIEW":
+				return "CODE_REVIEW_REQUEST";
+			case "CODE_REVIEW_DONE":
+				return "CODE_REVIEW_APPROVAL";
+			case "UAT_TESTING":
+			case "TESTING_POOL":
+			case "MOVE_TO_UAT":
+				return "UAT_TESTING";
+			case "UAT_COMPLETED":
+				return "UAT_COMPLETED";
+			default:
+				return "CODE_REVIEW_APPROVAL";
+		}
+	}
+
+	public Map<String, Object> resendTaskMail(Long taskId, String emailType, String remarks, User currentUser, boolean resetThread) {
+		Map<String, Object> result = new HashMap<>();
+		Task task = taskRepository.findById(taskId).orElse(null);
+		if (task == null) {
+			result.put("success", false);
+			result.put("message", "Task not found with ID: " + taskId);
+			return result;
+		}
+
+		String effType = emailType;
+		if (effType == null || effType.isBlank() || "AUTO".equalsIgnoreCase(effType)) {
+			effType = resolveDefaultEmailTypeForStatus(task.getStatus());
+		}
+		effType = effType.trim().toUpperCase();
+		result.put("taskId", task.getId());
+		result.put("jtrackId", task.getJtrackId());
+		result.put("emailType", effType);
+
+		// If resetThread requested, clear existing thread records first so a brand new thread starts
+		if (resetThread) {
+			int resetCount = resetMailThread(taskId, determineFlowType(effType, task.getStatus()));
+			result.put("threadReset", true);
+			result.put("deletedThreadsCount", resetCount);
+		} else {
+			result.put("threadReset", false);
+		}
+
+		String finalRemarks = (remarks != null && !remarks.isBlank()) ? remarks : "Email resent by " + (currentUser != null ? currentUser.getFullName() : "User");
+
+		ResponseVo responseVo = null;
+		User targetDev = resolveTaskDeveloper(task);
+		String targetRecipient = null;
+
+		switch (effType) {
+			case "CODE_REVIEW_APPROVAL":
+			case "APPROVAL":
+			case "CODE_REVIEW_APPROVED":
+				targetRecipient = (targetDev != null) ? targetDev.getEmail() : null;
+				responseVo = sendMailOnCodeReviewApprovalInternal(task, finalRemarks, task.getStatus(), currentUser, resetThread);
+				break;
+
+			case "CODE_REVIEW_REQUEST":
+			case "CODE_REVIEW":
+			case "REQUEST":
+				targetRecipient = reviewerMail;
+				responseVo = sendMailOnCodeReviewDirect(task, finalRemarks, resetThread);
+				break;
+
+			case "UAT_TESTING":
+			case "UAT":
+				targetRecipient = testingSender;
+				responseVo = sendMailForUatTestingDirect(task, finalRemarks, currentUser);
+				break;
+
+			case "UAT_COMPLETED":
+			case "UAT_TESTING_COMPLETE":
+				targetRecipient = (targetDev != null) ? targetDev.getEmail() : null;
+				responseVo = sendMailOnUATTestingCompleteDirect(task, finalRemarks, currentUser);
+				break;
+
+			default:
+				targetRecipient = (targetDev != null) ? targetDev.getEmail() : null;
+				responseVo = sendMailOnCodeReviewApprovalInternal(task, finalRemarks, task.getStatus(), currentUser, resetThread);
+				break;
+		}
+
+		result.put("recipient", targetRecipient);
+		if (responseVo != null) {
+			result.put("responseCode", responseVo.getStatusCode());
+			result.put("responseDesc", responseVo.getStatusDescription());
+			result.put("originalMessageId", responseVo.getOriginalMessageId());
+			boolean ok = "0000".equalsIgnoreCase(responseVo.getStatusCode());
+			result.put("success", ok);
+			result.put("message", ok 
+				? "Email (" + effType + ") delivered successfully to " + (targetRecipient != null ? targetRecipient : "recipient")
+				: "Mail service response: " + responseVo.getStatusDescription() + " (Code: " + responseVo.getStatusCode() + ")");
+		} else {
+			result.put("success", false);
+			result.put("message", "No response received from notification service for " + effType);
+		}
+
+		return result;
 	}
 
 	@Async

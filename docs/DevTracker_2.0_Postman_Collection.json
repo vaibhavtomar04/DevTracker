@@ -4869,6 +4869,261 @@
             "description": "Executes endpoint operation on /api/tasks/{id}/reject."
           },
           "response": []
+        },
+        {
+          "name": "POST /api/tasks/{id}/mail/resend - Resend Task Email Notification",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"type\": \"CODE_REVIEW_APPROVAL\",\n  \"remarks\": \"Resending code review approval notification\",\n  \"resetThread\": false\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/tasks/:id/mail/resend?type=CODE_REVIEW_APPROVAL&resetThread=false",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "tasks",
+                ":id",
+                "mail",
+                "resend"
+              ],
+              "query": [
+                {
+                  "key": "type",
+                  "value": "CODE_REVIEW_APPROVAL",
+                  "description": "Optional email type: CODE_REVIEW_APPROVAL, CODE_REVIEW_REQUEST, UAT_TESTING, UAT_COMPLETED. Defaults dynamically based on CR status."
+                },
+                {
+                  "key": "resetThread",
+                  "value": "false",
+                  "description": "Boolean (default: false). When true, clears existing mail thread records to start a fresh thread."
+                },
+                {
+                  "key": "remarks",
+                  "value": "Resending approval notification",
+                  "description": "Optional remarks string to include."
+                }
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "1",
+                  "description": "Task/CR ID"
+                }
+              ]
+            },
+            "description": "Resends task email notifications (e.g. Code Review Approval to developer, Code Review Request to reviewer, UAT testing notice). Automatically identifies recipients and co-developer CCs."
+          },
+          "response": []
+        },
+        {
+          "name": "POST /api/tasks/{id}/resend-approval-email - Resend Code Review Approval Email",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"remarks\": \"Developer missed approval email - resending confirmation\",\n  \"resetThread\": false\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/tasks/:id/resend-approval-email?resetThread=false",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "tasks",
+                ":id",
+                "resend-approval-email"
+              ],
+              "query": [
+                {
+                  "key": "resetThread",
+                  "value": "false",
+                  "description": "Optional: set to true to force a brand new email thread without parent message ID."
+                },
+                {
+                  "key": "remarks",
+                  "value": "Developer missed approval email",
+                  "description": "Optional remarks."
+                }
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "1",
+                  "description": "Task/CR ID"
+                }
+              ]
+            },
+            "description": "Dedicated convenience endpoint to resend the Code Review Approval email directly to the developer and co-developers."
+          },
+          "response": []
+        },
+        {
+          "name": "POST /api/tasks/{id}/resend-code-review-email - Resend Code Review Request Email",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"remarks\": \"Resending code review request to reviewers\",\n  \"resetThread\": false\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/tasks/:id/resend-code-review-email?resetThread=false",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "tasks",
+                ":id",
+                "resend-code-review-email"
+              ],
+              "query": [
+                {
+                  "key": "resetThread",
+                  "value": "false",
+                  "description": "Optional: set to true to reset mail thread before resending."
+                }
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "1",
+                  "description": "Task/CR ID"
+                }
+              ]
+            },
+            "description": "Dedicated convenience endpoint to resend the Code Review Request notification to designated code reviewers."
+          },
+          "response": []
+        },
+        {
+          "name": "POST /api/tasks/{id}/mail/reset - Reset Mail Thread for Task",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/tasks/:id/mail/reset?flowType=CODE_REVIEW",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "tasks",
+                ":id",
+                "mail",
+                "reset"
+              ],
+              "query": [
+                {
+                  "key": "flowType",
+                  "value": "CODE_REVIEW",
+                  "description": "Optional: CODE_REVIEW, UAT_TESTING, or ALL (default: CODE_REVIEW)"
+                }
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "1",
+                  "description": "Task/CR ID"
+                }
+              ]
+            },
+            "description": "Resets the stored email thread references (BugMailThread) for a CR. Useful when previous emails were dropped or messageId was invalid, allowing future notifications to initiate a clean, fresh thread."
+          },
+          "response": []
+        },
+        {
+          "name": "DELETE /api/tasks/{id}/mail-thread - Delete Mail Thread for Task",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/tasks/:id/mail-thread?flowType=CODE_REVIEW",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "tasks",
+                ":id",
+                "mail-thread"
+              ],
+              "query": [
+                {
+                  "key": "flowType",
+                  "value": "CODE_REVIEW",
+                  "description": "Optional: CODE_REVIEW, UAT_TESTING, or ALL (default: CODE_REVIEW)"
+                }
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "1",
+                  "description": "Task/CR ID"
+                }
+              ]
+            },
+            "description": "RESTful DELETE endpoint to clear and reset mail thread references for a CR."
+          },
+          "response": []
+        },
+        {
+          "name": "GET /api/tasks/{id}/mail/threads - Get Mail Threads for Task",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/tasks/:id/mail/threads?flowType=CODE_REVIEW",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "tasks",
+                ":id",
+                "mail",
+                "threads"
+              ],
+              "query": [
+                {
+                  "key": "flowType",
+                  "value": "CODE_REVIEW",
+                  "description": "Optional: filter by flowType (CODE_REVIEW, UAT_TESTING, BUG)"
+                }
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "1",
+                  "description": "Task/CR ID"
+                }
+              ]
+            },
+            "description": "Retrieves the list of active mail thread tracking records (flowType, messageId, subject, createdOn) for a CR."
+          },
+          "response": []
         }
       ]
     },
