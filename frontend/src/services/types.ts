@@ -104,6 +104,13 @@ export interface Task {
   testingOnHold?: boolean
   testingHoldReason?: string | null
   testingHoldStartDate?: string | null
+  // DevOps deployment & review fields
+  deploymentNote?: string | null
+  serverPath?: string | null
+  itemsToDeploy?: string | null
+  sendDevOpsMail?: boolean | null
+  approver?: User | null
+  deploymentOwner?: User | null
 }
 
 export interface BugArtifact {

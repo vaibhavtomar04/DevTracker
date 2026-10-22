@@ -759,7 +759,6 @@ export default function DeveloperDashboard() {
       branchName: branchName,
       gitLinks: gitRepo,
       codeReviewComments: `Build: ${buildStatus}\nNotes: ${deployNotes}`,
-      // @ts-ignore — transient fields not in Task type but accepted by API
       deploymentNote: fields.deploymentNote,
       serverPath: fields.serverPath,
       itemsToDeploy: fields.itemsToDeploy,

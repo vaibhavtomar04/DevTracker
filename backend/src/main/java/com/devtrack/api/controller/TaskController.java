@@ -345,13 +345,15 @@ public ResponseEntity<List<TaskListDto>> getTasksBatch(@RequestBody java.util.Ma
                     
                     String roles = SecurityContextHolder.getContext().getAuthentication().getAuthorities().toString();
                     boolean isReviewer = roles.contains("ROLE_CODEREVIEWER");
-                    boolean isAdmin = roles.contains("ROLE_DEVADMIN");
+                    boolean isAdmin = roles.contains("ROLE_DEVADMIN") || roles.contains("ROLE_ADMIN");
+                    boolean isTester = roles.contains("ROLE_TESTER") || roles.contains("ROLE_TESTADMIN");
+                    boolean isAssignedTester = task.getTester() != null && task.getTester().getUsername().equals(username);
                     
-                    if (!isAssignedDev && !isReviewer && !isAdmin) {
-                        return ResponseEntity.status(403).body("Only assigned developers can update this task.");
+                    if (!isAssignedDev && !isReviewer && !isAdmin && !isTester && !isAssignedTester) {
+                        return ResponseEntity.status(403).body("Only assigned developers, reviewers, testers, or admins can update this task.");
                     }
 
-                    if (isAssignedDev || isAdmin || isReviewer) {
+                    if (isAssignedDev || isAdmin || isReviewer || isTester || isAssignedTester) {
 
                         // Developers can test and complete SIT. Block only for Code Review, UAT, Testing, or terminal phases
                         boolean isDeveloperBlocked = task.getStatus().equals("CODE_REVIEW") || 
@@ -361,6 +363,11 @@ public ResponseEntity<List<TaskListDto>> getTasksBatch(@RequestBody java.util.Ma
                                                      task.getStatus().equals("TESTING_COMPLETED") ||
                                                      task.getStatus().equals("PROD_DEPLOYED") ||
                                                      task.getStatus().equals("CLOSED");
+                        
+                        // If not changing task status (e.g. updating details/metadata/notes in Resend Mail tab), allow edit
+                        if (taskDetails.getStatus() == null || taskDetails.getStatus().equals(task.getStatus())) {
+                            isDeveloperBlocked = false;
+                        }
                         
                         // Exemptions for developers transitioning or updating tasks in allowed pipeline states:
                         // 1. From CODE_REVIEW_DONE to MOVE_TO_UAT
@@ -515,6 +522,15 @@ if (currentTargetStatus.equals("UAT_COMPLETED") && task.getUatCompletedDate() ==
                     }
                     if (taskDetails.getItemsToDeploy() != null) {
                         task.setItemsToDeploy(taskDetails.getItemsToDeploy());
+                    }
+                    if (taskDetails.getRemarks() != null) {
+                        task.setRemarks(taskDetails.getRemarks());
+                    }
+                    if (taskDetails.getTestingComments() != null) {
+                        task.setTestingComments(taskDetails.getTestingComments());
+                    }
+                    if (taskDetails.getSendDevOpsMail() != null) {
+                        task.setSendDevOpsMail(taskDetails.getSendDevOpsMail());
                     }
                     
                     if (taskDetails.getDevStartDate() != null) {
@@ -1786,11 +1802,18 @@ public List<TaskListDto> getTasksByStepType(@RequestParam String type) {
             @RequestParam(required = false) String type,
             @RequestParam(required = false) String remarks,
             @RequestParam(required = false, defaultValue = "false") boolean resetThread,
-            @RequestBody(required = false) Map<String, Object> body) {
+            org.springframework.http.HttpEntity<String> entity) {
 
         String effectiveType = type;
         String effectiveRemarks = remarks;
         boolean effectiveResetThread = resetThread;
+
+        Map<String, Object> body = null;
+        if (entity != null && entity.getBody() != null && !entity.getBody().isBlank()) {
+            try {
+                body = new com.fasterxml.jackson.databind.ObjectMapper().readValue(entity.getBody(), Map.class);
+            } catch (Exception ignored) {}
+        }
 
         if (body != null) {
             if (effectiveType == null && body.get("type") != null) {
@@ -1826,8 +1849,8 @@ public List<TaskListDto> getTasksByStepType(@RequestParam String type) {
             @PathVariable Long id,
             @RequestParam(required = false) String remarks,
             @RequestParam(required = false, defaultValue = "false") boolean resetThread,
-            @RequestBody(required = false) Map<String, Object> body) {
-        return resendTaskMail(id, "CODE_REVIEW_APPROVAL", remarks, resetThread, body);
+            org.springframework.http.HttpEntity<String> entity) {
+        return resendTaskMail(id, "CODE_REVIEW_APPROVAL", remarks, resetThread, entity);
     }
 
     /**
@@ -1839,8 +1862,8 @@ public List<TaskListDto> getTasksByStepType(@RequestParam String type) {
             @PathVariable Long id,
             @RequestParam(required = false) String remarks,
             @RequestParam(required = false, defaultValue = "false") boolean resetThread,
-            @RequestBody(required = false) Map<String, Object> body) {
-        return resendTaskMail(id, "CODE_REVIEW_REQUEST", remarks, resetThread, body);
+            org.springframework.http.HttpEntity<String> entity) {
+        return resendTaskMail(id, "CODE_REVIEW_REQUEST", remarks, resetThread, entity);
     }
 
     /**

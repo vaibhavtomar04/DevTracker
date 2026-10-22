@@ -50,6 +50,7 @@ public final class TaskMapper {
         d.setLabels(t.getLabels()); d.setPds(t.getPds()); d.setCodeReviewComments(t.getCodeReviewComments());
         d.setRemarks(t.getRemarks()); d.setDeploymentNote(t.getDeploymentNote()); d.setServerPath(t.getServerPath());
         d.setItemsToDeploy(t.getItemsToDeploy()); d.setRollbackCount(t.getRollbackCount());
+        d.setSendDevOpsMail(t.getSendDevOpsMail());
         d.setTestingDuration(t.getTestingDuration()); d.setTestingComments(t.getTestingComments());
         d.setReassignmentReason(t.getReassignmentReason());
         // detail dates
