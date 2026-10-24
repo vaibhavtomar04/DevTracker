@@ -691,7 +691,7 @@ public class EmailNotificationService {
 			case "DEVOPS_DEPLOYMENT":
 			case "DEVOPS":
 			case "DEPLOYMENT":
-				targetRecipient = devopsMail;
+				targetRecipient = getEffectiveDevOpsMail();
 				String dNote = (remarks != null && !remarks.isBlank()) ? remarks : task.getDeploymentNote();
 				sendDevOpsDeploymentMail(task, dNote, task.getServerPath(), task.getItemsToDeploy());
 				responseVo = new ResponseVo();
@@ -886,11 +886,44 @@ public class EmailNotificationService {
 	}
 
 
+	public String getEffectiveDevOpsMail() {
+		if (configRepository != null) {
+			var cfg = configRepository.findByConfigKey("MAIL_DEVOPS");
+			if (cfg.isEmpty()) {
+				cfg = configRepository.findByConfigKey("DEVOPS_MAIL");
+			}
+			if (cfg.isEmpty()) {
+				cfg = configRepository.findByConfigKey("DEVOPS_TEAM_EMAIL");
+			}
+			if (cfg.isPresent() && cfg.get().getConfigValue() != null && !cfg.get().getConfigValue().isBlank()) {
+				return cfg.get().getConfigValue().trim();
+			}
+		}
+		if (devopsMail != null && !devopsMail.trim().isEmpty()) {
+			return devopsMail.trim();
+		}
+		return null;
+	}
+
+	public String getEffectiveDevOpsCc() {
+		if (configRepository != null) {
+			var cfg = configRepository.findByConfigKey("MAIL_DEVOPS_CC");
+			if (cfg.isPresent() && cfg.get().getConfigValue() != null && !cfg.get().getConfigValue().isBlank()) {
+				return cfg.get().getConfigValue().trim();
+			}
+		}
+		if (devopsCc != null && !devopsCc.trim().isEmpty()) {
+			return devopsCc.trim();
+		}
+		return null;
+	}
+
 	@Async
 	public void sendDevOpsDeploymentMail(Task task, String deploymentNote, String serverPath, String itemsToDeploy) {
 		log.info("Inside sendDevOpsDeploymentMail for task {}", task.getId());
 		try {
-			if (devopsMail == null || devopsMail.trim().isEmpty()) {
+			String targetDevopsMail = getEffectiveDevOpsMail();
+			if (targetDevopsMail == null || targetDevopsMail.trim().isEmpty()) {
 				log.info("mail.devops is not configured — skipping DevOps deployment email");
 				return;
 			}
@@ -904,6 +937,9 @@ public class EmailNotificationService {
 
 			User developer = task.getAssignedDeveloper();
 			String devName = developer != null ? developer.getFullName() : "Developer";
+			String devEmail = (developer != null && developer.getEmail() != null && !developer.getEmail().isBlank())
+					? developer.getEmail().trim()
+					: developersMail;
 
 			// Derive CR type label from task type
 			String crType = "CR";
@@ -935,10 +971,24 @@ public class EmailNotificationService {
 			// Subject: UAT Deployment || CR Name
 			String subject = "UAT Deployment || " + crName;
 
-			// Build CC: use dedicated mail.devops.cc if configured, otherwise fall back to reviewCc
-			String effectiveCc = (devopsCc != null && !devopsCc.trim().isEmpty()) ? devopsCc : reviewCc;
+			// Build CC: use dedicated mail.devops.cc / DB config if configured, otherwise fall back to reviewCc
+			String configuredCc = getEffectiveDevOpsCc();
+			StringBuilder ccBuilder = new StringBuilder();
+			if (configuredCc != null && !configuredCc.isBlank()) {
+				ccBuilder.append(configuredCc.trim());
+			} else if (reviewCc != null && !reviewCc.isBlank()) {
+				ccBuilder.append(reviewCc.trim());
+			}
+			if (devEmail != null && !devEmail.isBlank()) {
+				String currentCc = ccBuilder.toString();
+				if (!currentCc.contains(devEmail) && !targetDevopsMail.contains(devEmail)) {
+					if (ccBuilder.length() > 0) ccBuilder.append(",");
+					ccBuilder.append(devEmail);
+				}
+			}
+			String effectiveCc = ccBuilder.length() > 0 ? ccBuilder.toString() : null;
 
-			EmailRequestVo requestMap = createEmailRequestMap(renderedHtml, subject, devopsMail, null, testingSender, effectiveCc);
+			EmailRequestVo requestMap = createEmailRequestMap(renderedHtml, subject, targetDevopsMail, null, devEmail, effectiveCc);
 
 			if (requestMap != null) {
 				callSendNotificationApi(requestMap);

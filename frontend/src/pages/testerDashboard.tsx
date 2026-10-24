@@ -463,7 +463,7 @@ export default function TesterDashboard() {
                       <div className="flex justify-between items-start mb-3">
                         <span className="font-mono text-xs font-bold text-indigo-400 tracking-wider">{task.jtrackId}</span>
                         <span className="text-[10px] font-bold px-2 py-0.5 bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 rounded-lg uppercase tracking-wider text-[9px]">
-                          UAT Pool
+                          {task.status?.startsWith('SIT') ? 'SIT Pool' : 'UAT Pool'}
                         </span>
                       </div>
                       <h3 className="font-bold text-sm mb-2 text-slate-100">{task.title}</h3>
@@ -831,7 +831,7 @@ export default function TesterDashboard() {
                 </p>
               </div>
 
-              {selectedTask.status === "TESTING_POOL" ? (
+              {(!selectedTask.tester && (['TESTING_POOL', 'MOVE_TO_UAT', 'SIT_DEPLOYED', 'SIT_TESTING'].includes(selectedTask.status) || (selectedTask as any).isInPool)) ? (
                 <div className="space-y-4 border-t border-white/[0.08] pt-4 text-center">
                   <p className="text-slate-400 text-xs leading-relaxed">
                     This Change Request is currently in the Testing Pool and is not assigned to any tester.

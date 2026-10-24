@@ -144,23 +144,29 @@ export const DevOpsDeploymentModal: React.FC<DevOpsDeploymentModalProps> = ({
                   </div>
 
                   {/* ── DevOps Mail Toggle ── */}
-                  <div className="shrink-0 flex flex-col items-center gap-1">
-                    <button
-                      type="button"
-                      onClick={() => { setSendDevOpsMail(v => !v); setError(''); }}
-                      className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-violet-400 focus:ring-offset-1 ${
-                        sendDevOpsMail ? 'bg-emerald-500' : 'bg-slate-300 dark:bg-slate-700'
-                      }`}
-                      aria-label="Toggle DevOps mail"
-                    >
-                      <span
-                        className={`inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform ${
-                          sendDevOpsMail ? 'translate-x-6' : 'translate-x-1'
+                  <div className="shrink-0 flex flex-col items-end gap-1">
+                    <div className="flex items-center gap-2">
+                      <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400">
+                        Email DevOps
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => { setSendDevOpsMail(v => !v); setError(''); }}
+                        className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-violet-400 focus:ring-offset-1 ${
+                          sendDevOpsMail ? 'bg-emerald-500' : 'bg-slate-300 dark:bg-slate-700'
                         }`}
-                      />
-                    </button>
-                    <span className={`text-[9px] font-bold uppercase tracking-wide ${sendDevOpsMail ? 'text-emerald-600 dark:text-emerald-400' : 'text-slate-400 dark:text-slate-500'}`}>
-                      {sendDevOpsMail ? 'Notify DevOps' : 'Skip DevOps'}
+                        aria-label="Toggle DevOps mail notification"
+                        title={sendDevOpsMail ? 'DevOps notification email is enabled (click to disable)' : 'DevOps notification email is disabled (click to enable)'}
+                      >
+                        <span
+                          className={`inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform ${
+                            sendDevOpsMail ? 'translate-x-6' : 'translate-x-1'
+                          }`}
+                        />
+                      </button>
+                    </div>
+                    <span className={`text-[9px] font-extrabold uppercase tracking-wide px-1.5 py-0.5 rounded ${sendDevOpsMail ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20' : 'bg-slate-500/10 text-slate-400 dark:text-slate-500 border border-slate-500/20'}`}>
+                      {sendDevOpsMail ? '✓ Enabled' : '✕ Disabled'}
                     </span>
                   </div>
                 </div>

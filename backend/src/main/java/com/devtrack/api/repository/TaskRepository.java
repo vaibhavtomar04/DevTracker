@@ -205,7 +205,12 @@ public interface TaskRepository extends JpaRepository<Task, Long>, org.springfra
 
     @org.springframework.data.jpa.repository.Modifying
     @org.springframework.transaction.annotation.Transactional
-    @Query("UPDATE Task t SET t.tester = :tester, t.status = 'TESTING_IN_PROGRESS', t.isInPool = false, t.testingStartedDate = CURRENT_TIMESTAMP, t.updatedDate = CURRENT_TIMESTAMP WHERE t.id = :taskId AND t.status = 'TESTING_POOL' AND t.tester IS NULL")
+    @Query("UPDATE Task t SET t.tester = :tester, t.status = :targetStatus, t.isInPool = false, t.testingStartedDate = CURRENT_TIMESTAMP, t.updatedDate = CURRENT_TIMESTAMP WHERE t.id = :taskId AND t.tester IS NULL AND (t.status IN ('TESTING_POOL', 'MOVE_TO_UAT', 'SIT_DEPLOYED', 'SIT_TESTING') OR t.isInPool = true)")
+    int assignTesterAtomicallyWithStatus(@Param("taskId") Long taskId, @Param("tester") User tester, @Param("targetStatus") String targetStatus);
+
+    @org.springframework.data.jpa.repository.Modifying
+    @org.springframework.transaction.annotation.Transactional
+    @Query("UPDATE Task t SET t.tester = :tester, t.status = 'TESTING_IN_PROGRESS', t.isInPool = false, t.testingStartedDate = CURRENT_TIMESTAMP, t.updatedDate = CURRENT_TIMESTAMP WHERE t.id = :taskId AND t.tester IS NULL AND (t.status IN ('TESTING_POOL', 'MOVE_TO_UAT', 'SIT_DEPLOYED', 'SIT_TESTING') OR t.isInPool = true)")
     int assignTesterAtomically(@Param("taskId") Long taskId, @Param("tester") User tester);
 
     @Query(value = "SELECT DISTINCT t FROM Task t " +

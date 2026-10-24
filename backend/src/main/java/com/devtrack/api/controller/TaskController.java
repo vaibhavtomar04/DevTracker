@@ -822,12 +822,29 @@ if (currentTargetStatus.equals("UAT_COMPLETED") && task.getUatCompletedDate() ==
         String username = SecurityContextHolder.getContext().getAuthentication().getName();
         User currentUser = userRepository.findByUsername(username).orElseThrow();
         
-        int updatedCount = taskRepository.assignTesterAtomically(id, currentUser);
+        Task existing = taskRepository.findById(id).orElse(null);
+        if (existing == null) {
+            return ResponseEntity.notFound().build();
+        }
+        if (existing.getTester() != null) {
+            return ResponseEntity.badRequest().body("Assign to Me failed: CR is already assigned to a tester.");
+        }
+        
+        String oldStatus = existing.getStatus();
+        String targetStatus = (oldStatus != null && oldStatus.startsWith("SIT")) ? "SIT_TESTING" : "TESTING_IN_PROGRESS";
+        
+        int updatedCount = taskRepository.assignTesterAtomicallyWithStatus(id, currentUser, targetStatus);
         if (updatedCount == 0) {
             return ResponseEntity.badRequest().body("Assign to Me failed: CR is already assigned or not in the Testing Pool.");
         }
         
         Task task = taskRepository.findById(id).orElseThrow();
+        
+        try {
+            workflowExecutionService.syncWorkflowMapWithStatus(task.getId(), task.getStatus());
+        } catch (Exception ex) {
+            log.warn("Failed to sync workflow steps for task {} on tester assignment: {}", task.getId(), ex.getMessage());
+        }
         
         // Create Audit Log
         AuditLog auditLogObj = new AuditLog();
@@ -846,9 +863,9 @@ if (currentTargetStatus.equals("UAT_COMPLETED") && task.getUatCompletedDate() ==
         statusLog.setEntityType("TASK");
         statusLog.setEntityId(task.getId());
         statusLog.setFieldName("status");
-        statusLog.setOldValue("TESTING_POOL");
-        statusLog.setNewValue("TESTING_IN_PROGRESS");
-        statusLog.setRemarks("Status changed to Testing In Progress on tester assignment.");
+        statusLog.setOldValue(oldStatus != null ? oldStatus : "TESTING_POOL");
+        statusLog.setNewValue(task.getStatus());
+        statusLog.setRemarks("Status changed to " + task.getStatus() + " on tester assignment.");
         statusLog.setChangedBy(currentUser);
         com.devtrack.api.services.AuditLogHelper.enrich(statusLog);
         auditLogRepository.save(statusLog);
